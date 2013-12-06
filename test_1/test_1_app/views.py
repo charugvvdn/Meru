@@ -3,6 +3,7 @@ from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.db.models import Q
 from pymongo import MongoClient
+from datetime import datetime
 import ast
 import json
 
@@ -162,11 +163,15 @@ def cHello(request):
 				client_info["total"] += 1
                                 db.clients.insert(client)
 
+	utc_1970 = datetime(1970, 1, 1)
+	utcnow = datetime.utcnow()
+	timestamp = int((utcnow - utc_1970).total_seconds())
+
 	cursor = connection.cursor()
 	cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \
-		ap_up, ap_down, client_up, client_down, updated_on) VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, 1888888888)" \
+		ap_up, ap_down, client_up, client_down, updated_on) VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
 		% (str(mac), client_info["total"], ap_info["total"], alarm_info["total"], ap_info["up"], ap_info["down"], \
-		client_info["up"], client_info["down"]))
+		client_info["up"], client_info["down"], timestamp))
 
 	transaction.commit_unless_managed()
 

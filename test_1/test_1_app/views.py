@@ -83,84 +83,84 @@ def getMacId(mac):
 	by a user for that particular controller
 '''
 def cHello(request):
-	mac = request.POST.get('mac')
-#	print request.POST
-#	print request.POST.get('mac')
+	post_data = ast.literal_eval(request.POST.lists()[0][0])
+#	mac = post_data['mac']
+	print post_data
 #	print mac
-	false_response = {"status" : "false", "mac" : mac}
-	no_mac = {"status" : "Unregistered", "mac" : mac}
 
 	ap_info = {"total" : 0, "up" : 0, "down" : 0}	
 	client_info = {"total" : 0, "up" : 0, "down" : 0}
 	alarm_info = {"total" : 0}
 	
-	if 'snum' in request.POST.keys():
-		mac = request.POST.get('snum')
+	if 'snum' in post_data.keys():
+		mac = post_data.get('snum')
+	else:
+		mac = post_data.get('controller')
 
 	if not controller.objects.filter(mac_address=mac).exists():
 		return HttpResponse(json.dumps(no_mac))
 
 
-	if 'type' in request.POST.keys():
-		if request.POST.get('type') == 'controller':
-			controller_dict = request.POST.get('controller')
-			print ast.literal_eval(controller_dict)
-			db.controllers.insert(ast.literal_eval(controller_dict))
+	if 'type' in post_data.keys():
+		if post_data.get('type') == 'controller':
+			controller_dict = post_data.get('controller')
+			print type(controller_dict)
+			db.controllers.insert(controller_dict)
 
-		if request.POST.get('type') == 'alarms':
-			alarm_list = request.POST.get('alarms')
-			for alarm in alarm_dict:
+		if post_data.get('type') == 'alarms':
+			alarm_list = post_data.get('alarms')
+			for alarm in alarm_list:
 				alarm_info["total"] += 1
-				db.alarms.insert(ast.literal_eval(alarm))
+				db.alarms.insert(alarm)
 
-		if request.POST.get('type') == 'aps':
-			ap_list = request.POST.get('aps')
+		if post_data.get('type') == 'aps':
+			ap_list = post_data.get('aps')
 			for ap in ap_list:
 				if ap["status"].lower() == "disabled":
 					ap_info["down"] += 1
 				else:
 					ap_info["up"] += 1
 			ap_info["total"] += 1
-			db.aps.insert(ast.literal_eval(ap))
+			db.aps.insert(ap)
 
-		if request.POST.get('type') == 'clients':
-			client_list = request.POST.get('clients')
+		if post_data.get('type') == 'clients':
+			client_list = post_data.get('clients')
 			for client in client_list:
 				if client["status"].lower() == "associated":
 					client_info["up"] += 1
 				else:
 					client_info["down"] += 1
 			client_info["total"] += 1	
-			db.clients.insert(ast.literal_eval(client))
+			db.clients.insert(client)
 	else:
-		controller_doc = request.POST.get('msgBody').get('controller')
-		db.controllers.insert(ast.literal_eval(controller_doc))
+		controller_doc = post_data.get('msgBody').get('controller')
+		db.controllers.insert(controller_doc)
 
-		if 'alarms' in request.POST.get('msgBody').get('controller'):
-			alarm_list = request.POST.get('msgBody').get('controller').get('alarms')
+		if 'alarms' in post_data.get('msgBody').get('controller'):
+			alarm_list = post_data.get('msgBody').get('controller').get('alarms')
 			for alarm in alarm_list:
 				alarm_info["total"] += 1
-				db.alarms.insert(ast.literal_eval(alarm))
+				db.alarms.insert(alarm)
 
-		if 'aps' in request.POST.get('msgBody').get('controller'):
-			ap_list = request.POST.get('msgBody').get('controller').get('aps')
+		if 'aps' in post_data.get('msgBody').get('controller'):
+			ap_list = post_data.get('msgBody').get('controller').get('aps')
 			for ap in ap_list:
 				if ap["status"].lower() == "disabled":
 					ap_info["down"] += 1
 				else:
 					ap_info["up"] += 1
 				ap_info["total"] += 1
-				db.aps.insert(ast.literal_eval(ap))
+				db.aps.insert(ap)
 
-		if 'clients' in request.POST.get('msgBody').get('controller'):
-                        client_list = request.POST.get('msgBody').get('controller').get('clients')
+		if 'clients' in post_data.get('msgBody').get('controller'):
+                        client_list = post_data.get('msgBody').get('controller').get('clients')
                         for client in client_list:
 				if client["status"].lower() == "associated":
 					client_info["up"] += 1
 				else:
 					client_info["down"] += 1
 				client_info["total"] += 1
-                                db.clients.insert(ast.literal_eval(client))
+                                db.clients.insert(client)
 
 	cursor = connection.cursor()
 	cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \

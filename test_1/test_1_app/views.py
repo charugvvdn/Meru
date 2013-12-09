@@ -88,7 +88,6 @@ def cHello(request):
 #	mac = post_data['mac']
 	print post_data
 #	print mac
-
 	ap_info = {"total" : 0, "up" : 0, "down" : 0}	
 	client_info = {"total" : 0, "up" : 0, "down" : 0}
 	alarm_info = {"total" : 0}
@@ -97,6 +96,8 @@ def cHello(request):
 		mac = post_data.get('snum')
 	else:
 		mac = post_data.get('controller')
+
+	no_mac = {"status" : "false", "mac" : mac}
 
 	if not controller.objects.filter(mac_address=mac).exists():
 		return HttpResponse(json.dumps(no_mac))
@@ -163,9 +164,14 @@ def cHello(request):
 				client_info["total"] += 1
                                 db.clients.insert(client)
 
+	print post_data
+
 	utc_1970 = datetime(1970, 1, 1)
 	utcnow = datetime.utcnow()
 	timestamp = int((utcnow - utc_1970).total_seconds())
+	
+	post_data['timestamp'] = timestamp
+	db.devices.insert(post_data)
 
 	cursor = connection.cursor()
 	cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \
@@ -238,3 +244,34 @@ def isConfigData(mac):
 
 	return config_data
 
+
+def clientThroughput(request):
+	db = MongoClient()['nms']
+#	print request.POST.lists()[0][0]
+	doc_list = []
+	if len(request.POST) == 0:
+		return HttpResponse(json.dumps({"status" : "false", "message" : "No POST data"}))
+
+	post_data = ast.literal_eval(request.POST.lists()[0][0])
+#	print post_data
+	utc_now = datetime.utcnow()
+	
+	if 'mac' in post_data:
+		mac_list = post_data['mac']
+		if 'time' in post_data:
+			time_frame = post_data['time']
+			start_time = time_frame[0]
+			end_time = time_frame[1]
+			print start_time, end_time
+			#start_time = 1386586666
+			#end_time = 1386589999
+			cursor = db.devices.find({ "snum" : str(mac_list[0]), "timestamp" : { "$gt" : start_time, "$lt" : end_time}})	
+			for doc in cursor:
+				doc_list.append(doc)
+				print doc
+			print doc_list[0]
+			return HttpResponse(json.dumps({"time" : time_frame}))
+	else:
+		return HttpResponse(json.dumps({"status" : "false", "message" : "No mac provided"}))
+
+	return HttpResponse(json.dumps({"status" : "false", "message" : "Malformed Request"}))

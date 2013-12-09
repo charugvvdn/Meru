@@ -7,7 +7,7 @@ from django.conf import settings
 # admin.autodiscover()
 
 urlpatterns = patterns('',
-	url(r'^meru-nms/', include('test_1_app.urls'))
+	url(r'^meru-nms/', include('test_1_app.urls')),
     # Examples:
     # url(r'^$', 'test_1.views.home', name='home'),
     # url(r'^test_1/', include('test_1.foo.urls')),

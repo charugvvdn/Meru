@@ -134,8 +134,8 @@ class DeviceApplication(View):
 
         print post_data
 
-        utc_1970 = datetime(1970, 1, 1)
-        utcnow = datetime.utcnow()
+        utc_1970 = datetime.datetime(1970, 1, 1)
+        utcnow = datetime.datetime.utcnow()
         timestamp = int((utcnow - utc_1970).total_seconds())
         
         post_data['timestamp'] = timestamp
@@ -378,7 +378,6 @@ def isConfigData(mac):
 
 
 def clientThroughput(request):
-<<<<<<< HEAD
 	db = MongoClient()['nms']
 	doc_list = []
 	clients = []
@@ -441,34 +440,3 @@ def clientThroughput(request):
 
 	return HttpResponse(json.dumps({"status" : "false", \
 					"message" : "Malformed Request"}))
-=======
-    db = MongoClient()['nms']
-#   print request.POST.lists()[0][0]
-    doc_list = []
-    if len(request.POST) == 0:
-        return HttpResponse(json.dumps({"status" : "false", "message" : "No POST data"}))
-
-    post_data = ast.literal_eval(request.POST.lists()[0][0])
-#   print post_data
-    utc_now = datetime.utcnow()
-    
-    if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-            print start_time, end_time
-            #start_time = 1386586666
-            #end_time = 1386589999
-            cursor = db.devices.find({ "snum" : str(mac_list[0]), "timestamp" : { "$gt" : start_time, "$lt" : end_time}})   
-            for doc in cursor:
-                doc_list.append(doc)
-                print doc
-            print doc_list[0]
-            return HttpResponse(json.dumps({"time" : time_frame}))
-    else:
-        return HttpResponse(json.dumps({"status" : "false", "message" : "No mac provided"}))
-
-    return HttpResponse(json.dumps({"status" : "false", "message" : "Malformed Request"}))
->>>>>>> ce98303522db33fd5f589f5b863a341e3341a8c4

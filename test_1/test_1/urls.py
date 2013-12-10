@@ -1,4 +1,5 @@
 from django.conf.urls import patterns, include, url
+from django.views.generic import RedirectView
 from django.conf import settings
 
 
@@ -9,7 +10,7 @@ from django.conf import settings
 urlpatterns = patterns('',
 	url(r'^meru-nms/', include('test_1_app.urls')),
     # Examples:
-    # url(r'^$', 'test_1.views.home', name='home'),
+    url(r'^$', RedirectView.as_view(url='meru-nms/api/auth/hello/'), name='home'),
     # url(r'^test_1/', include('test_1.foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:

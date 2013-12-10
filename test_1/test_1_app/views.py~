@@ -3,6 +3,7 @@ from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.db.models import Q
 from pymongo import MongoClient
+import ast
 import json
 
 from test_1_app.models import controller, command, alarm, dashboard_info, ssid, security_profile, ssid_in_command
@@ -66,14 +67,14 @@ def uHello(request):
 
 def getMacId(mac):
 	if mac == "":
-		return False
+		return False 
 
 	query_dict = controller.objects.filter(mac_address=mac).values('cid')	
 
-	if 'cid' in query_dict:
-		return query_dict
+	if 'cid' in query_dict[0]:
+		return query_dict[0]
 
-	return False
+	return "No Mac"
 
 '''
 	Request:  Monitoring data from controller and insert that data into
@@ -82,50 +83,47 @@ def getMacId(mac):
 	by a user for that particular controller
 '''
 def cHello(request):
-	mac = request.GET.get('mac')
-	print request.GET
+	post_data = ast.literal_eval(request.POST.lists()[0][0])
+	mac = post_data['mac']
+	print post_data
+	print mac
 	false_response = {"status" : "false", "mac" : mac}
+	no_mac = {"status" : "Unregistered", "mac" : mac}
 
 	ap_info = {"total" : 0, "up" : 0, "down" : 0}	
 	client_info = {"total" : 0, "up" : 0, "down" : 0}
 	alarm_info = {"total" : 0}
 	
-	if 'snum' in request.GET.keys():
-		mac = request.GET.get('snum')
+	if 'snum' in post_data.keys():
+		mac = post_data.get('snum')
 
 	if not controller.objects.filter(mac_address=mac).exists():
-		return HttpResponse(json.dumps(false_response))
+		return HttpResponse(json.dumps(no_mac))
 
-	cid = getMacId(mac)
 
-	print cid
-'''
-	To handle the scenario when separate packets are sent for
-	controller,ap, alarm and clients. 
-'''
+	if 'type' in request.POST.keys():
+		if request.POST.get('type') == 'controller':
+			controller_dict = request.POST.get('controller')
+			print ast.literal_eval(controller_dict)
+			db.controllers.insert(ast.literal_eval(controller_dict))
 
-	if 'type' in request.GET.keys():
-		if request.GET.get('type') == 'controller':
-			controller_dict = request.GET.get('controller')	
-			db.controllers.insert(controller_dict)
-
-		if request.GET.get('type') == 'alarms':
-			alarm_list = request.GET.get('alarms')
+		if request.POST.get('type') == 'alarms':
+			alarm_list = request.POST.get('alarms')
 			for alarm in alarm_dict:
 				alarm_info["total"] += 1
-				db.alarms.insert(alarm)
+				db.alarms.insert(ast.literal_eval(alarm))
 
-		if request.GET.get('type') == 'aps':
-			ap_list = request.GET.get('aps')
+		if request.POST.get('type') == 'aps':
+			ap_list = request.POST.get('aps')
 			for ap in ap_list:
 				if ap["status"].lower() == "disabled":
 					ap_info["down"] += 1
 				else:
 					ap_info["up"] += 1
 			ap_info["total"] += 1
-			db.aps.insert(ap)
+			db.aps.insert(ast.literal_eval(ap))
 
-		if request.GET.get('type') == 'clients':
+		if request.POST.get('type') == 'clients':
 			client_list = request.POST.get('clients')
 			for client in client_list:
 				if client["status"].lower() == "associated":
@@ -133,41 +131,41 @@ def cHello(request):
 				else:
 					client_info["down"] += 1
 			client_info["total"] += 1	
-			db.clients.insert(client)
+			db.clients.insert(ast.literal_eval(client))
 	else:
-		controller_doc = request.GET.get('msgBody').get('controller')
-		db.controllers.insert(controller_doc)
+		controller_doc = request.POST.get('msgBody').get('controller')
+		db.controllers.insert(ast.literal_eval(controller_doc))
 
-		if 'alarms' in request.GET.get('msgBody').get('controller'):
-			alarm_list = request.GET.get('msgBody').get('controller').get('alarms')
+		if 'alarms' in request.POST.get('msgBody').get('controller'):
+			alarm_list = request.POST.get('msgBody').get('controller').get('alarms')
 			for alarm in alarm_list:
 				alarm_info["total"] += 1
-				db.alarms.insert(alarm)
+				db.alarms.insert(ast.literal_eval(alarm))
 
-		if 'aps' in request.GET.get('msgBody').get('controller'):
-			ap_list = request.GET.get('msgBody').get('controller').get('aps')
+		if 'aps' in request.POST.get('msgBody').get('controller'):
+			ap_list = request.POST.get('msgBody').get('controller').get('aps')
 			for ap in ap_list:
 				if ap["status"].lower() == "disabled":
 					ap_info["down"] += 1
 				else:
 					ap_info["up"] += 1
 				ap_info["total"] += 1
-				db.aps.insert(ap)
+				db.aps.insert(ast.literal_eval(ap))
 
-		if 'clients' in request.GET.get('msgBody').get('controller'):
-                        client_list = request.GET.get('msgBody').get('controller').get('clients')
+		if 'clients' in request.POST.get('msgBody').get('controller'):
+                        client_list = request.POST.get('msgBody').get('controller').get('clients')
                         for client in client_list:
 				if client["status"].lower() == "associated":
 					client_info["up"] += 1
 				else:
 					client_info["down"] += 1
 				client_info["total"] += 1
-                                db.clients.insert(client)
+                                db.clients.insert(ast.literal_eval(client))
 
 	cursor = connection.cursor()
 	cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \
-		ap_up, ap_down, client_up, client_down, updated_on) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)" \
-		% (mac, client_info["total"], ap_info["total"], alarm_info["total"], ap_info["up"], ap_info["down"], \
+		ap_up, ap_down, client_up, client_down, updated_on) VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, 1888888888)" \
+		% (str(mac), client_info["total"], ap_info["total"], alarm_info["total"], ap_info["up"], ap_info["down"], \
 		client_info["up"], client_info["down"]))
 
 	transaction.commit_unless_managed()
@@ -235,30 +233,3 @@ def isConfigData(mac):
 
 	return config_data
 
-
-
-
-
-'''def saveControllerData(data, cid, mac):
-	if 'ip' in data:
-		controller.objects.filter(cid=cid).update(ip_address=data['ip'])
-	if 'hostname' in data:
-		controller.objects.filter(cid=cid).update(hostname=data['hostname'])
-	if 'uptime' in data:
-		controller.objects.filter(cid=cid).update(uptime=data['uptime'])
-	if 'location' in data:
-		controller.objects.filter(cid=cid).update(location=data['location'])
-	if 'contact' in data:
-		controller.objects.filter(cid=cid).update(contact=data['contact'])
-	if 'operStat' in data:
-		controller.objects.filter(cid=cid).update(operation_state=data['operStat'])
-	if 'model' in data:
-		controller.objects.filter(cid=cid).update(controller_model=data['model'])
-	if 'swVersion' in data:
-		controller.objects.filter(cid=cid).update(software_version=data['swVersion'])
-	if 'countrySettings' in data:
-		controller.objects.filter(cid=cid).update(country_settings=data['countrySettings'])
-
-	return cid
-
-def saveAlarmData(data, cid, mac):'''

@@ -3,7 +3,8 @@ from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.db.models import Q
 from pymongo import MongoClient
-from datetime import datetime
+import datetime
+import itertools
 import ast
 import json
 
@@ -166,8 +167,8 @@ def cHello(request):
 
 	print post_data
 
-	utc_1970 = datetime(1970, 1, 1)
-	utcnow = datetime.utcnow()
+	utc_1970 = datetime.datetime(1970, 1, 1)
+	utcnow = datetime.datetime.utcnow()
 	timestamp = int((utcnow - utc_1970).total_seconds())
 	
 	post_data['timestamp'] = timestamp
@@ -247,14 +248,20 @@ def isConfigData(mac):
 
 def clientThroughput(request):
 	db = MongoClient()['nms']
-#	print request.POST.lists()[0][0]
 	doc_list = []
+	clients = []
+	rx_bytes = 0
+	tx_bytes = 0
+	throughput = []
+	timestamp = []
+	rx_list = []
+	tx_list = []
+	response_list = 0
 	if len(request.POST) == 0:
-		return HttpResponse(json.dumps({"status" : "false", "message" : "No POST data"}))
+		return HttpResponse(json.dumps({"status" : "false", \
+						"message" : "No POST data"}))
 
 	post_data = ast.literal_eval(request.POST.lists()[0][0])
-#	print post_data
-	utc_now = datetime.utcnow()
 	
 	if 'mac' in post_data:
 		mac_list = post_data['mac']
@@ -262,16 +269,43 @@ def clientThroughput(request):
 			time_frame = post_data['time']
 			start_time = time_frame[0]
 			end_time = time_frame[1]
-			print start_time, end_time
-			#start_time = 1386586666
-			#end_time = 1386589999
-			cursor = db.devices.find({ "snum" : str(mac_list[0]), "timestamp" : { "$gt" : start_time, "$lt" : end_time}})	
-			for doc in cursor:
-				doc_list.append(doc)
-				print doc
-			print doc_list[0]
-			return HttpResponse(json.dumps({"time" : time_frame}))
-	else:
-		return HttpResponse(json.dumps({"status" : "false", "message" : "No mac provided"}))
 
-	return HttpResponse(json.dumps({"status" : "false", "message" : "Malformed Request"}))
+		else:
+			utc_1970 = datetime.datetime(1970, 1, 1)
+			utc_now = datetime.datetime.utcnow()
+			offset = utc_now - datetime.timedelta(minutes=30)
+			start_time = int((offset - utc_1970).total_seconds())
+			end_time = int((utc_now - utc_1970).total_seconds())
+			print start_time
+			print end_time			
+		
+		cursor = db.devices.find({ "snum" : mac_list[0], "timestamp" \
+						: { "$gt" : start_time, "$lt" : end_time}})	
+		for doc in cursor:
+			doc_list.append(doc)
+		print doc_list
+
+		for doc in doc_list:
+			if 'clients' in doc['msgBody'].get('controller'):
+				client = doc.get('msgBody').get('controller').get('clients')
+				for c in client:
+					c['timestamp'] = doc['timestamp']
+					clients.append(c)
+		
+		#print clients
+		for c in clients:
+			rx_list.append([c['timestamp'], c['rxBytes']])
+			tx_list.append([c['timestamp'], c['txBytes']])
+			throughput.append([c['timestamp'], c['rxBytes']+c['txBytes']])
+		#print throughput
+		response_list = [{"label" : "rxBytes", "data": rx_list}, {"label" : "txBytes", "data" : \
+			tx_list}, {"label" : "throughput", "data" : throughput}]
+#		print response_list
+		return HttpResponse(json.dumps({"status" : "true", "values" : response_list, \
+					"message" : "values for station throughput bar graph"}))
+	else:
+		return HttpResponse(json.dumps({"status" : "false", \
+						"message" : "No mac provided"}))
+
+	return HttpResponse(json.dumps({"status" : "false", \
+					"message" : "Malformed Request"}))

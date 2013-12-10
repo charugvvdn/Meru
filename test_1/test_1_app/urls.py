@@ -3,6 +3,7 @@ from test_1_app import views
 
 
 urlpatterns = patterns('',
+	url(r'^welcome/$', views.Welcome, name='welcome'),
 	url(r'^api/auth/hello/$', views.gHello, name='hello'),
 	url(r'^api/auth/hello/update/$', views.uHello, name='uHello'),
 	url(r'^api/auth/hello/mon/$', views.cHello, name='cHello'),

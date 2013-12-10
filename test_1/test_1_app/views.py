@@ -3,6 +3,8 @@ from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.db.models import Q
 from pymongo import MongoClient
+from django.shortcuts import render, render_to_response
+from django.template import RequestContext
 import datetime
 import itertools
 import ast
@@ -18,6 +20,9 @@ db = client['nms']
 	To check whether specified mac has registered with the mac or not,
 	performing is_registered	
 '''
+def Welcome(request):
+	context = RequestContext(request)
+	return render_to_response('test_1_app/stationthru.html',{"d":"Station"},context)
 def gHello(request):
 	mac = request.GET.get('mac')
 	false_response = { "status" : "false", "mac" : mac}
@@ -245,7 +250,7 @@ def isConfigData(mac):
 
 	return config_data
 
-
+	
 def clientThroughput(request):
 	db = MongoClient()['nms']
 	doc_list = []
@@ -257,11 +262,15 @@ def clientThroughput(request):
 	rx_list = []
 	tx_list = []
 	response_list = 0
-	if len(request.POST) == 0:
+
+	print request.body
+	post_data = json.loads(request.body)
+
+	if not len(post_data):
 		return HttpResponse(json.dumps({"status" : "false", \
 						"message" : "No POST data"}))
 
-	post_data = ast.literal_eval(request.POST.lists()[0][0])
+	#post_data = ast.literal_eval(request.POST.lists()[0][0])
 	
 	if 'mac' in post_data:
 		mac_list = post_data['mac']

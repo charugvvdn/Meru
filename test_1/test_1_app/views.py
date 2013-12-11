@@ -398,6 +398,7 @@ def clientThroughput(request):
 	rx_list = []
 	tx_list = []
 	response_list = 0
+	unix_timestamp = 0
 
 	print request.body
 	post_data = json.loads(request.body)
@@ -428,13 +429,14 @@ def clientThroughput(request):
 						: { "$gt" : start_time, "$lt" : end_time}})	
 		for doc in cursor:
 			doc_list.append(doc)
-		print doc_list
+#		print doc_list
 
 		for doc in doc_list:
 			if 'clients' in doc['msgBody'].get('controller'):
 				client = doc.get('msgBody').get('controller').get('clients')
 				for c in client:
-					c['timestamp'] = doc['timestamp']
+					unix_timestamp = int(doc['timestamp']) * 1000
+					c['timestamp'] = unix_timestamp
 					clients.append(c)
 		
 		#print clients

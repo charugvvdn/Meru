@@ -22,13 +22,20 @@ client = MongoClient()
 db = client['nms']
 
 '''
-	To check whether specified mac has registered with the mac or not,
-	performing is_registered	
+    To check whether specified mac has registered with the mac or not,
+    performing is_registered    
 '''
 def Welcome(request):
-	context = RequestContext(request)
-	return render_to_response('test_1_app/stationthru.html',{"d":"Station"},context)
-
+    context = RequestContext(request)
+    if 'station' in request.GET:
+        print "station"
+        return render_to_response('test_1_app/stationthru.html',{"d":"Station"},context)
+    if 'ap' in request.GET:
+        return render_to_response('test_1_app/apthru.html',{"d":"AP"},context)  
+    if 'wifi' in request.GET:
+        return render_to_response('test_1_app/wifiexp.html',{"d":"Wifi Experience"},context) 
+    if 'overall' in request.GET:
+        return render_to_response('test_1_app/overallthru.html',{"d":"Overall Throughput"},context) 
 class DeviceApplication(View):
     
     false_response = { "status" : False, "mac" : ""}
@@ -220,112 +227,112 @@ def getMacId(mac):
         return query_dict[0]
 
 '''
-	Request:  Monitoring data from controller and insert that data into
-	a mongodb data source.
-	Response: Respond with commands for the controller that has been registered
-	by a user for that particular controller
+    Request:  Monitoring data from controller and insert that data into
+    a mongodb data source.
+    Response: Respond with commands for the controller that has been registered
+    by a user for that particular controller
 '''
 def cHello(request):
-	post_data = ast.literal_eval(request.POST.lists()[0][0])
-#	mac = post_data['mac']
-	print post_data
-#	print mac
-	ap_info = {"total" : 0, "up" : 0, "down" : 0}	
-	client_info = {"total" : 0, "up" : 0, "down" : 0}
-	alarm_info = {"total" : 0}
-	
-	if 'snum' in post_data.keys():
-		mac = post_data.get('snum')
-	else:
-		mac = post_data.get('controller')
+    post_data = ast.literal_eval(request.POST.lists()[0][0])
+#   mac = post_data['mac']
+    print post_data
+#   print mac
+    ap_info = {"total" : 0, "up" : 0, "down" : 0}   
+    client_info = {"total" : 0, "up" : 0, "down" : 0}
+    alarm_info = {"total" : 0}
+    
+    if 'snum' in post_data.keys():
+        mac = post_data.get('snum')
+    else:
+        mac = post_data.get('controller')
 
-	no_mac = {"status" : "false", "mac" : mac}
+    no_mac = {"status" : "false", "mac" : mac}
 
-	if not controller.objects.filter(mac_address=mac).exists():
-		return HttpResponse(json.dumps(no_mac))
+    if not controller.objects.filter(mac_address=mac).exists():
+        return HttpResponse(json.dumps(no_mac))
 
 
-	if 'type' in post_data.keys():
-		if post_data.get('type') == 'controller':
-			controller_dict = post_data.get('controller')
-			print type(controller_dict)
-			db.controllers.insert(controller_dict)
+    if 'type' in post_data.keys():
+        if post_data.get('type') == 'controller':
+            controller_dict = post_data.get('controller')
+            print type(controller_dict)
+            db.controllers.insert(controller_dict)
 
-		if post_data.get('type') == 'alarms':
-			alarm_list = post_data.get('alarms')
-			for alarm in alarm_list:
-				alarm_info["total"] += 1
-				db.alarms.insert(alarm)
+        if post_data.get('type') == 'alarms':
+            alarm_list = post_data.get('alarms')
+            for alarm in alarm_list:
+                alarm_info["total"] += 1
+                db.alarms.insert(alarm)
 
-		if post_data.get('type') == 'aps':
-			ap_list = post_data.get('aps')
-			for ap in ap_list:
-				if ap["status"].lower() == "disabled":
-					ap_info["down"] += 1
-				else:
-					ap_info["up"] += 1
-			ap_info["total"] += 1
-			db.aps.insert(ap)
+        if post_data.get('type') == 'aps':
+            ap_list = post_data.get('aps')
+            for ap in ap_list:
+                if ap["status"].lower() == "disabled":
+                    ap_info["down"] += 1
+                else:
+                    ap_info["up"] += 1
+            ap_info["total"] += 1
+            db.aps.insert(ap)
 
-		if post_data.get('type') == 'clients':
-			client_list = post_data.get('clients')
-			for client in client_list:
-				if client["status"].lower() == "associated":
-					client_info["up"] += 1
-				else:
-					client_info["down"] += 1
-			client_info["total"] += 1	
-			db.clients.insert(client)
-	else:
-		controller_doc = post_data.get('msgBody').get('controller')
-		db.controllers.insert(controller_doc)
+        if post_data.get('type') == 'clients':
+            client_list = post_data.get('clients')
+            for client in client_list:
+                if client["status"].lower() == "associated":
+                    client_info["up"] += 1
+                else:
+                    client_info["down"] += 1
+            client_info["total"] += 1   
+            db.clients.insert(client)
+    else:
+        controller_doc = post_data.get('msgBody').get('controller')
+        db.controllers.insert(controller_doc)
 
-		if 'alarms' in post_data.get('msgBody').get('controller'):
-			alarm_list = post_data.get('msgBody').get('controller').get('alarms')
-			for alarm in alarm_list:
-				alarm_info["total"] += 1
-				db.alarms.insert(alarm)
+        if 'alarms' in post_data.get('msgBody').get('controller'):
+            alarm_list = post_data.get('msgBody').get('controller').get('alarms')
+            for alarm in alarm_list:
+                alarm_info["total"] += 1
+                db.alarms.insert(alarm)
 
-		if 'aps' in post_data.get('msgBody').get('controller'):
-			ap_list = post_data.get('msgBody').get('controller').get('aps')
-			for ap in ap_list:
-				if ap["status"].lower() == "disabled":
-					ap_info["down"] += 1
-				else:
-					ap_info["up"] += 1
-				ap_info["total"] += 1
-				db.aps.insert(ap)
+        if 'aps' in post_data.get('msgBody').get('controller'):
+            ap_list = post_data.get('msgBody').get('controller').get('aps')
+            for ap in ap_list:
+                if ap["status"].lower() == "disabled":
+                    ap_info["down"] += 1
+                else:
+                    ap_info["up"] += 1
+                ap_info["total"] += 1
+                db.aps.insert(ap)
 
-		if 'clients' in post_data.get('msgBody').get('controller'):
-                        client_list = post_data.get('msgBody').get('controller').get('clients')
-                        for client in client_list:
-				if client["status"].lower() == "associated":
-					client_info["up"] += 1
-				else:
-					client_info["down"] += 1
-				client_info["total"] += 1
-                                db.clients.insert(client)
+        if 'clients' in post_data.get('msgBody').get('controller'):
+            client_list = post_data.get('msgBody').get('controller').get('clients')
+            for client in client_list:
+                if client["status"].lower() == "associated":
+                    client_info["up"] += 1
+                else:
+                    client_info["down"] += 1
+                client_info["total"] += 1
+                db.clients.insert(client)
 
-	print post_data
+    print post_data
 
-	utc_1970 = datetime.datetime(1970, 1, 1)
-	utcnow = datetime.datetime.utcnow()
-	timestamp = int((utcnow - utc_1970).total_seconds())
-	
-	post_data['timestamp'] = timestamp
-	db.devices.insert(post_data)
+    utc_1970 = datetime.datetime(1970, 1, 1)
+    utcnow = datetime.datetime.utcnow()
+    timestamp = int((utcnow - utc_1970).total_seconds())
+    
+    post_data['timestamp'] = timestamp
+    db.devices.insert(post_data)
 
-	cursor = connection.cursor()
-	cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \
-		ap_up, ap_down, client_up, client_down, updated_on) VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
-		% (str(mac), client_info["total"], ap_info["total"], alarm_info["total"], ap_info["up"], ap_info["down"], \
-		client_info["up"], client_info["down"], timestamp))
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \
+        ap_up, ap_down, client_up, client_down, updated_on) VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
+        % (str(mac), client_info["total"], ap_info["total"], alarm_info["total"], ap_info["up"], ap_info["down"], \
+        client_info["up"], client_info["down"], timestamp))
 
-	transaction.commit_unless_managed()
+    transaction.commit_unless_managed()
 
-	config_data = isConfigData(mac)
+    config_data = isConfigData(mac)
 
-	return HttpResponse(json.dumps(config_data))
+    return HttpResponse(json.dumps(config_data))
 
 '''
     Generating the commands for the controller with
@@ -386,73 +393,312 @@ def isConfigData(mac):
 
     return config_data
 
-	
+    
 def clientThroughput(request):
-	db = MongoClient()['nms']
-	doc_list = []
-	clients = []
-	rx_bytes = 0
-	tx_bytes = 0
-	throughput = []
-	timestamp = []
-	rx_list = []
-	tx_list = []
-	response_list = 0
-	unix_timestamp = 0
+    db = MongoClient()['nms']
+    doc_list = []
+    clients = []
+    rx_bytes = 0
+    tx_bytes = 0
+    throughput = []
+    timestamp = []
+    rx_list = []
+    tx_list = []
+    response_list = 0
+    unix_timestamp = 0
 
-	print request.body
-	post_data = json.loads(request.body)
+    print request.body
+    post_data = json.loads(request.body)
 
-	if not len(post_data):
-		return HttpResponse(json.dumps({"status" : "false", \
-						"message" : "No POST data"}))
+    if not len(post_data):
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No POST data"}))
 
-	#post_data = ast.literal_eval(request.POST.lists()[0][0])
-	
-	if 'mac' in post_data:
-		mac_list = post_data['mac']
-		if 'time' in post_data:
-			time_frame = post_data['time']
-			start_time = time_frame[0]
-			end_time = time_frame[1]
+    #post_data = ast.literal_eval(request.POST.lists()[0][0])
+    
+    if 'mac' in post_data:
+        mac_list = post_data['mac']
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
 
-		else:
-			utc_1970 = datetime.datetime(1970, 1, 1)
-			utc_now = datetime.datetime.utcnow()
-			offset = utc_now - datetime.timedelta(minutes=30)
-			start_time = int((offset - utc_1970).total_seconds())
-			end_time = int((utc_now - utc_1970).total_seconds())
-			print start_time
-			print end_time			
-		
-		cursor = db.devices.find({ "snum" : mac_list[0], "timestamp" \
-						: { "$gt" : start_time, "$lt" : end_time}})	
-		for doc in cursor:
-			doc_list.append(doc)
-#		print doc_list
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+            print start_time
+            print end_time          
+        
+        cursor = db.devices.find({ "snum" : mac_list[0], "timestamp" \
+                        : { "$gt" : start_time, "$lt" : end_time}}) 
+        for doc in cursor:
+            doc_list.append(doc)
+#       print doc_list
 
-		for doc in doc_list:
-			if 'clients' in doc['msgBody'].get('controller'):
-				client = doc.get('msgBody').get('controller').get('clients')
-				for c in client:
-					unix_timestamp = int(doc['timestamp']) * 1000
-					c['timestamp'] = unix_timestamp
-					clients.append(c)
-		
-		#print clients
-		for c in clients:
-			rx_list.append([c['timestamp'], c['rxBytes']])
-			tx_list.append([c['timestamp'], c['txBytes']])
-			throughput.append([c['timestamp'], c['rxBytes']+c['txBytes']])
-		#print throughput
-		response_list = [{"label" : "rxBytes", "data": rx_list}, {"label" : "txBytes", "data" : \
-			tx_list}, {"label" : "throughput", "data" : throughput}]
-#		print response_list
-		return HttpResponse(json.dumps({"status" : "true", "values" : response_list, \
-					"message" : "values for station throughput bar graph"}))
-	else:
-		return HttpResponse(json.dumps({"status" : "false", \
-						"message" : "No mac provided"}))
+        for doc in doc_list:
+            if 'clients' in doc['msgBody'].get('controller'):
+                client = doc.get('msgBody').get('controller').get('clients')
+                for c in client:
+                    unix_timestamp = int(doc['timestamp']) * 1000
+                    c['timestamp'] = unix_timestamp
+                    clients.append(c)
+        
+        #print clients
+        for c in clients:
+            rx_list.append([c['timestamp'], c['rxBytes']])
+            tx_list.append([c['timestamp'], c['txBytes']])
+            throughput.append([c['timestamp'], c['rxBytes']+c['txBytes']])
+        #print throughput
+        response_list = [{"label" : "rxBytes", "data": rx_list}, {"label" : "txBytes", "data" : \
+            tx_list}, {"label" : "throughput", "data" : throughput}]
+#       print response_list
+        return HttpResponse(json.dumps({"status" : "true", "values" : response_list, \
+                    "message" : "values for station throughput bar graph"}))
+    else:
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No mac provided"}))
 
-	return HttpResponse(json.dumps({"status" : "false", \
-					"message" : "Malformed Request"}))
+    return HttpResponse(json.dumps({"status" : "false", \
+                    "message" : "Malformed Request"}))
+                    
+    
+def APThroughput(request):
+    db = MongoClient()['nms']
+    doc_list = []
+    clients = []
+    rx_bytes = 0
+    tx_bytes = 0
+    throughput = []
+    timestamp = []
+    rx_list = []
+    tx_list = []
+    response_list = 0
+    unix_timestamp = 0
+
+    print request.body
+    post_data = json.loads(request.body)
+
+    if not len(post_data):
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No POST data"}))
+
+    #post_data = ast.literal_eval(request.POST.lists()[0][0])
+    
+    if 'mac' in post_data:
+        mac_list = post_data['mac']
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+            print start_time
+            print end_time          
+        
+        cursor = db.devices.find({ "snum" : mac_list[0], "timestamp" \
+                        : { "$gt" : start_time, "$lt" : end_time}}) 
+        for doc in cursor:
+            doc_list.append(doc)
+#       print doc_list
+
+        for doc in doc_list:
+            if 'aps' in doc['msgBody'].get('controller'):
+                client = doc.get('msgBody').get('controller').get('aps')
+                for c in client:
+                    unix_timestamp = int(doc['timestamp']) * 1000
+                    c['timestamp'] = unix_timestamp
+                    clients.append(c)
+        
+        #print clients
+        for c in clients:
+            rx_list.append([c['timestamp'], c['rxBytes']])
+            tx_list.append([c['timestamp'], c['txBytes']])
+            throughput.append([c['timestamp'], c['rxBytes']+c['txBytes']])
+        #print throughput
+        response_list = [{"label" : "rxBytes", "data": rx_list}, {"label" : "txBytes", "data" : \
+            tx_list}, {"label" : "throughput", "data" : throughput}]
+#       print response_list
+        return HttpResponse(json.dumps({"status" : "true", "values" : response_list, \
+                    "message" : "values for station throughput bar graph"}))
+    else:
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No mac provided"}))
+
+    return HttpResponse(json.dumps({"status" : "false", \
+                    "message" : "Malformed Request"}))
+                    
+def OverallThroughput(request):
+    db = MongoClient()['nms']
+    doc_list = []
+    clients = []
+    rx_bytes = 0
+    tx_bytes = 0
+    throughput = []
+    timestamp = []
+    rx_list = []
+    tx_list = []
+    response_list = 0
+    unix_timestamp = 0
+
+    post_data = json.loads(request.body)
+
+    if not len(post_data):
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No POST data"}))
+
+    #post_data = ast.literal_eval(request.POST.lists()[0][0])
+    
+    if 'mac' in post_data:
+        mac_list = post_data['mac']
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+        
+        cursor = db.devices.find({ "snum" : mac_list[0], "timestamp" \
+                        : { "$gt" : start_time, "$lt" : end_time}}) 
+        for doc in cursor:
+            doc_list.append(doc)
+        print doc_list
+
+        for doc in doc_list:
+            rx_bytes = 0
+            tx_bytes = 0
+            unix_timestamp = int(doc['timestamp']) * 1000
+            if 'clients' in  doc['msgBody'].get('controller'):              
+                client = doc.get('msgBody').get('controller').get('clients')
+                for c in client:
+                    rx_bytes += c['rxBytes']
+                    tx_bytes += c['txBytes']
+                    
+            if 'aps' in doc['msgBody'].get('controller'):
+                aps = doc.get('msgBody').get('controller').get('aps')
+                for a in aps:
+                    rx_bytes += a['rxBytes']
+                    tx_bytes += a['txBytes']
+
+            rx_list.append([unix_timestamp, rx_bytes])
+            tx_list.append([unix_timestamp, tx_bytes])
+            throughput.append([unix_timestamp, rx_bytes + tx_bytes])
+        
+        #print throughput
+        response_list = [{"label" : "rxBytes", "data": rx_list}, {"label" : "txBytes", "data" : \
+            tx_list}, {"label" : "throughput", "data" : throughput}]
+#       print response_list
+        return HttpResponse(json.dumps({"status" : "true", "values" : response_list, \
+                    "message" : "values for station throughput bar graph"}))
+    else:
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No mac provided"}))
+
+    return HttpResponse(json.dumps({"status" : "false", \
+                    "message" : "Malformed Request"}))
+                    
+def WifiExperience(request):
+    db = MongoClient()['nms']
+    doc_list = []
+    clients = []
+    avg_ap_wifiexp = []
+    avg_cl_wifiexp = []
+    min_aplist =[]
+    max_aplist=[]
+    min_clist=[]
+    max_clist=[]
+    aps_count =0
+    client_count = 0
+    wifiexp_ap_sum  = 0
+    wifiexp_cl_sum = 0
+    response_list = 0
+    unix_timestamp = 0
+    post_data = json.loads(request.body)
+    if not len(post_data):
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No POST data"}))
+
+    #post_data = ast.literal_eval(request.POST.lists()[0][0])
+    
+    if 'mac' in post_data:
+        mac_list = post_data['mac']
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+        
+        cursor = db.devices.find({ "snum" : mac_list[0], "timestamp" \
+                        : { "$gt" : start_time, "$lt" : end_time}}) 
+        for doc in cursor:
+            doc_list.append(doc)
+
+#       print doc_list
+        for doc in doc_list:
+            min_cl = min_ap = 100
+            max_cl = max_ap = 0
+            if 'aps' in doc['msgBody'].get('controller'):
+                aps = doc.get('msgBody').get('controller').get('aps')
+                for ap in aps:
+                    if min_ap > ap["wifiExp"] : min_ap = ap["wifiExp"]
+                    if max_ap < ap["wifiExp"] : max_ap = ap["wifiExp"]
+                    unix_timestamp = int(doc['timestamp']) * 1000
+                    ap['timestamp'] = unix_timestamp
+                    clients.append(ap)
+                    wifiexp_ap_sum += ap['wifiExp']
+                    aps_count+=1
+                avg_ap_wifiexp.append([unix_timestamp , wifiexp_ap_sum/aps_count])
+                min_aplist.append([unix_timestamp ,min_ap ])
+                max_aplist.append([unix_timestamp ,max_ap ])
+            if 'clients' in doc['msgBody'].get('controller'):
+                client = doc.get('msgBody').get('controller').get('clients')
+                for c in client:
+                    if min_cl > c["wifiExp"] : min_cl = c["wifiExp"]
+                    if max_cl < c["wifiExp"] : max_cl = c["wifiExp"]
+                    
+                    unix_timestamp = int(doc['timestamp']) * 1000
+                    c['timestamp'] = unix_timestamp
+                    clients.append(c)
+                    wifiexp_cl_sum += c['wifiExp']
+                    client_count+=1
+                avg_cl_wifiexp.append([unix_timestamp , wifiexp_cl_sum/client_count])
+                min_clist.append([unix_timestamp ,min_cl ])
+                max_clist.append([unix_timestamp , max_cl])
+                    
+        
+        #print throughput
+        response_list = [
+                {"label" : "Maximum-Client-wifiExp", "data": max_clist},
+                {"label" : "Minimum-Client-wifiExp", "data": min_clist},
+                {"label" : "Maximum-AP-wifiExp", "data": max_aplist},
+                {"label" : "Minimum-AP-wifiExp", "data": min_aplist},
+                {"label" : "Average-AP-wifiExp", "data": avg_ap_wifiexp},
+                {"label" : "Average-client-wifiExp", "data": avg_cl_wifiexp}
+            ]
+        print response_list
+        return HttpResponse(json.dumps({"status" : "true", "values" : response_list, \
+                    "message" : "values for Wifi Experience bar graph"}))
+    else:
+        return HttpResponse(json.dumps({"status" : "false", \
+                        "message" : "No mac provided"}))
+
+    return HttpResponse(json.dumps({"status" : "false", \
+                    "message" : "Malformed Request"}))

@@ -35,6 +35,8 @@ def Welcome(request):
         return render_to_response('test_1_app/wifiexp.html', {"d": "Wifi Experience"}, context)
     if 'overall' in request.GET:
         return render_to_response('test_1_app/overallthru.html', {"d": "Overall Throughput"}, context)
+    if 'dist' in request.GET:
+	return render_to_response('test_1_app/devicedist.html', {"d" : "Device Dist Throughput"}, context)
 
 
 class DeviceApplication(View):

@@ -16,5 +16,6 @@ urlpatterns = patterns('',
                        url(r'^reports/APThroughput/$', views.APThroughput),
                        url(r'^reports/wifiexp/$', views.WifiExperience),
                        url(r'^reports/overallThroughput/$', views.OverallThroughput),
+			url(r'^reports/devicedist/$', views.devTypeDist),
 )
 

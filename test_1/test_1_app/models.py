@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class controller(models.Model):
     cid = models.AutoField(primary_key=True)
     mac_address = models.CharField(max_length=256)
@@ -24,7 +25,7 @@ class command(models.Model):
     timestamp = models.IntegerField()
 
 
-class alarm(models.Model):  
+class alarm(models.Model):
     alarm_id = models.BigIntegerField(primary_key=True)
     controller_mac_address = models.CharField(max_length=256)
     alarm_type = models.CharField(max_length=256)
@@ -35,6 +36,7 @@ class alarm(models.Model):
     updated_on = models.IntegerField()
     is_read = models.IntegerField()
     sent_status = models.IntegerField(default=0)
+
 
 class dashboard_info(models.Model):
     id = models.AutoField(primary_key=True)
@@ -48,6 +50,7 @@ class dashboard_info(models.Model):
     client_down = models.CharField(max_length=32)
     updated_on = models.CharField(max_length=32, blank=True)
 
+
 class ssid(models.Model):
     ssid = models.AutoField(primary_key=True)
     name = models.CharField(max_length=256)
@@ -58,6 +61,7 @@ class ssid(models.Model):
     dataplane_mode = models.CharField(max_length=256)
     security_profile_id = models.IntegerField()
 
+
 class security_profile(models.Model):
     security_profile_id = models.AutoField(primary_key=True)
     profile_name = models.CharField(max_length=256)
@@ -66,7 +70,8 @@ class security_profile(models.Model):
     passphrase = models.CharField(max_length=256)
     radius_server_id = models.IntegerField()
 
-class ssid_in_command(models.Model):    
+
+class ssid_in_command(models.Model):
     id = models.AutoField(primary_key=True)
     command_id = models.IntegerField()
     ssid = models.IntegerField()

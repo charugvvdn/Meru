@@ -49,12 +49,13 @@
 
         $.ajax({
             type: "POST",
-            url: "http://localhost:8000/meru-nms/reports/stationThroughput/",
+            url: "http://localhost:8000/meru-nms/reports/overallThroughput/",
             data: '{"mac" : ["AA:BB:CC:DD:00:DD"]}',
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function (result) {
                 if (result['status'] == 'true') {
+                    console.log(result['values'])
                     for (var i = 0; i < result['values'].length; i++) {
 
 
@@ -79,7 +80,7 @@
                             var h = date.getUTCHours()
                             var m = date.getUTCMinutes()
                             var s = date.getUTCSeconds()
-                            var formatted_date = h + ":" + m + ":" + s
+                            var formatted_date = h + ":" + m + ":" + s;
 
                             $("#tooltip").html(item.series.label + " of " + formatted_date + " = " + y)
                                     .css({top: item.pageY + 5, left: item.pageX + 5})

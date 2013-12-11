@@ -1,47 +1,46 @@
-
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
- <head>
+<head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>{{d}} Throughput graph</title>
+    <title>{{ d }} Throughput graph</title>
 
-    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../excanvas.min.js"></script><![endif]-->
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../excanvas.min.js"></script>
+    <![endif]-->
     <script language="javascript" type="text/javascript" src="http://people.iola.dk/olau/flot/jquery.js"></script>
     <script language="javascript" type="text/javascript" src="http://people.iola.dk/olau/flot/jquery.flot.js"></script>
- </head>
-    <body>
-    <h1>{{d}} Throughput graph</h1>
+</head>
+<body>
+<h1>{{ d }} Throughput graph</h1>
 
-    <div id="placeholder" style="width:600px;height:300px;"></div>
+<div id="placeholder" style="width:600px;height:300px;"></div>
 
-    
 
 <script type="text/javascript">
-$(function () {
+    $(function () {
 
-    $.ajax({
-    type: "POST",
-    url: "http://localhost:8000/meru-nms/reports/stationThroughput/",
-    data: {'mac' : ['AA:BB:CC:DD:00:DD'] ,'time' : [1386670300,1386670359]},
-    contentType: "application/json; charset=utf-8",
-    dataType: "json",
-    success: function(result) {
-        alert(result);
-    }
-    /*var d1 = [];
-    for (var i = 0; i < 14; i += 0.5)
-        d1.push([i, Math.sin(i)]);
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:8000/meru-nms/reports/stationThroughput/",
+            data: {'mac': ['AA:BB:CC:DD:00:DD'], 'time': [1386670300, 1386670359]},
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (result) {
+                alert(result);
+            }
+            /*var d1 = [];
+             for (var i = 0; i < 14; i += 0.5)
+             d1.push([i, Math.sin(i)]);
 
-    var d2 = [[0, 3], [4, 8], [8, 5], [9, 13]];
+             var d2 = [[0, 3], [4, 8], [8, 5], [9, 13]];
 
-    // a null signifies separate line segments
-    var d3 = [[0, 12], [7, 12], null, [7, 2.5], [12, 2.5]];
-    
-    $.plot($("#placeholder"), [ d1, d2, d3 ]);*/
-});
-});
+             // a null signifies separate line segments
+             var d3 = [[0, 12], [7, 12], null, [7, 2.5], [12, 2.5]];
+
+             $.plot($("#placeholder"), [ d1, d2, d3 ]);*/
+        });
+    });
 </script>
 
- </body>
+</body>
 </html>
 

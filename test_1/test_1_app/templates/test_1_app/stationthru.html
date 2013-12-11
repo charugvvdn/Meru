@@ -43,14 +43,14 @@ xaxis : {
            /* minTickSize: [1, "hour"],
             min: (new Date("2013/12/09")).getTime(),
             max: (new Date("2013/12/10")).getTime(),*/
-            timeformat : '%H:%M:%S'
+            timeformat : "%H:%M:%S"
        }
     };
 
     $.ajax({
     type: "POST",
     url: "http://localhost:8000/meru-nms/reports/stationThroughput/",
-    data: '{"mac" : ["AA:BB:CC:DD:00:DD"], "time" : [1386665377, 1386669999]}',
+    data: '{"mac" : ["AA:BB:CC:DD:00:DD"], "time" : [1386670380,1386670399]}',
     contentType: "application/json; charset=utf-8",
     dataType: "json",
     success: function(result) {
@@ -73,15 +73,17 @@ xaxis : {
 
 			//if ($("#enableTooltip:checked").length > 0) {
 				if (item) {
-					var x = item.datapoint[0].toFixed(2),
-						y = item.datapoint[1].toFixed(2);
-					var date = new Date(x*1000)
-                    var h = date.getHours()
-                    var m = date.getMinutes()
-                    var s = date.getSeconds()
+
+					var x = item.datapoint[0],
+						y = item.datapoint[1];
+
+					var date = new Date(x);
+					var h = date.getUTCHours()
+                    var m = date.getUTCMinutes()
+                    var s = date.getUTCSeconds()
                     var formatted_date = h + ":" + m + ":" + s
                 
-					$("#tooltip").html(item.series.label + " of " + formatted_date + " = " + y)
+					$("#tooltip").html(item.series.label + " of " + formatted_date+ " = " + y)
 						.css({top: item.pageY+5, left: item.pageX+5})
 						.fadeIn(200);
 				} else {
@@ -115,6 +117,7 @@ xaxis : {
     $.plot($("#placeholder"), [ d1, d2, d3 ]);*/
 
 });
+
 </script>
 
  </body>

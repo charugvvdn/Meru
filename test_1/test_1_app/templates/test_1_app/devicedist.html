@@ -1,0 +1,139 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+ <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Device Distribution graph</title>
+
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../excanvas.min.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.flot.time.js"></script>
+ </head>
+    <body>
+    <h1>Device Distribution graph</h1>
+
+    <div id="placeholder" style="width:600px;height:300px;"></div>
+
+    
+
+<script type="text/javascript">
+$(function () {
+    $("<div id='tooltip'></div>").css({
+			position: "absolute",
+			display: "none",
+			border: "1px solid #fdd",
+			padding: "2px",
+			"background-color": "#fee",
+			opacity: 0.80
+		}).appendTo("body");
+
+    var ary = new Array();
+    var options = {
+        series : {
+           pie : {  radius : 'auto',
+           			show : true
+           	}
+        }
+	};
+
+    $.ajax({
+    type: "POST",
+    url: "http://localhost:8000/meru-nms/reports/devicedist/",
+    data: '{"mac" : ["AA:BB:CC:DD:00:DD"], "time" : [1386665555, 1386669999]}',
+    contentType: "application/json; charset=utf-8",
+    dataType: "json",
+    success: function(result) {
+	if(result['status']=='true')
+	{
+		console.log(result['values'][0])
+		for(var i =0 ;i< result['values'].length;i++)
+		{
+		
+			
+			ary.push(result['values'][i])
+
+		}
+		$.plot($("#placeholder"), ary, options);
+		$("#placeholder").bind("plothover", function (event, pos, item) {
+
+
+
+      //if ($("#enablePosition:checked").length > 0) {
+
+        var str = "("   pos.x.toFixed(2)   ", "   pos.y.toFixed(2)   ")";
+
+        $("#hoverdata").text(str);
+
+      //}
+
+
+
+      //if ($("#enableTooltip:checked").length > 0) {
+
+         if (item) {
+
+ 
+
+           var x = item.datapoint[0],
+
+             y = item.datapoint[1];
+
+ 
+
+           var date = new Date(x);
+
+           var h = date.getUTCHours()
+
+                     var m = date.getUTCMinutes()
+
+                     var s = date.getUTCSeconds()
+
+                     var formatted_date = h   ":"   m   ":"   s
+
+                 
+
+           $("#tooltip").html(item.series.label   " of "   formatted_date  " = "   y)
+
+             .css({top: item.pageY 5, left: item.pageX 5})
+
+             .fadeIn(200);
+
+         } else {
+
+           $("#tooltip").hide();
+
+         }
+
+       //}
+
+     });
+
+ 
+
+     $("#placeholder").bind("plotclick", function (event, pos, item) {
+
+       if (item) {
+
+         $("#clickdata").text(" - click point "   item.dataIndex   " in "   item.series.label);
+
+         plot.highlight(item.series, item.datapoint);
+
+       }
+
+     });
+	
+	}
+	else
+		console.log('No graph to be plotted');
+       
+    }
+});
+
+});
+
+</script>
+
+ </body>
+</html>
+

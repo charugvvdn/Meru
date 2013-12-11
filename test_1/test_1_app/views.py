@@ -36,7 +36,6 @@ def Welcome(request):
     if 'overall' in request.GET:
         return render_to_response('test_1_app/overallthru.html', {"d": "Overall Throughput"}, context)
 
-
 class DeviceApplication(View):
     """
     Restful implementation for Controller
@@ -486,6 +485,69 @@ def clientThroughput(request):
                                         "message": "No mac provided"}))
 
 
+def devTypeDist(request):
+	post_data = json.loads(request.body)
+	db = MongoClient()['nms']
+	client_list = []
+	clients = []
+	device_types = {}
+	doc_list = []
+	response = []
+	context = RequestContext(request)
+	
+	if 'mac' in post_data:
+		mac_list = post_data['mac']
+		if 'time' in post_data:
+			time_frame = post_data['time']
+			start_time = time_frame[0]
+			end_time = time_frame[1]
+		else:
+			utc_1970 = datetime.datetime(1970, 1, 1)
+			utc_now = datetime.datetime.utcnow()
+			offset = utc_now - datetime.timedelta(minutes=30)
+			start_time = int((offset - utc_1970).total_seconds())
+			end_time = int((utc_now - utc_1970).total_seconds())
+			
+		cursor = db.devices.find({"snum" : mac_list[0], "timestamp" : \
+						{ "$gt" : start_time, "$lt" : end_time}})
+		for doc in cursor:	
+			doc_list.append(doc)
+		for doc in doc_list:
+			if 'clients' in doc.get('msgBody').get('controller'):
+				client_list.append(doc.get('msgBody').get('controller')\
+								.get('clients'))
+		clients = traverse(client_list, clients)
+		for c in clients:
+			if c['clientType'] in device_types:
+				device_types[c['clientType']] += 1
+			else:
+				device_types[c['clientType']] = 1
+		for d, n in device_types.iteritems():
+			d1 = {"label" : 0, "data" : 0}
+			d1["label"] = d
+			d1["data"] = n
+			response.append(d1)
+		return HttpResponse(json.dumps({"status" : "true", "values" : response}))
+#		return render_to_response('test_1_app/devicedist.html', {"response" : response},context)
+	else:
+		pass
+	return HttpResponse(json.dumps({"status" : "false"}))
+
+
+def traverse(obj, l):
+	if hasattr(obj, '__iter__'):
+		for o in obj:
+			if isinstance(o, dict):
+				l.append(o)
+			else:
+				traverse(o, l)
+	else:
+		pass
+
+	return l
+# =======
+
+
 def APThroughput(request):
     db = MongoClient()['nms']
     doc_list = []
@@ -717,3 +779,4 @@ def WifiExperience(request):
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
+# >>>>>>> 5a415a4fc7aea895a3cd0c00079e5b906753d74b

@@ -20,24 +20,20 @@ from django.views.generic.base import View
 #Connection with mongodb client
 client = MongoClient()
 db = client['nms']
-
-'''
-    To check whether specified mac has registered with the mac or not,
-    performing is_registered    
-'''
 def Welcome(request):
+    ''' Module for accessing the reports Api and display the graph plots'''
     context = RequestContext(request)
     if 'station' in request.GET:
-        print "station"
-        return render_to_response('test_1_app/stationthru.html',{"d":"Station"},context)
+        return render_to_response('test_1_app/stationthru.html', {"d":"Station"}, context)
     if 'ap' in request.GET:
-        return render_to_response('test_1_app/apthru.html',{"d":"AP"},context)  
+        return render_to_response('test_1_app/apthru.html', {"d":"AP"}, context)  
     if 'wifi' in request.GET:
-        return render_to_response('test_1_app/wifiexp.html',{"d":"Wifi Experience"},context) 
+        return render_to_response('test_1_app/wifiexp.html', {"d":"Wifi Experience"}, context) 
     if 'overall' in request.GET:
-        return render_to_response('test_1_app/overallthru.html',{"d":"Overall Throughput"},context) 
+        return render_to_response('test_1_app/overallthru.html', {"d":"Overall Throughput"}, context) 
+
 class DeviceApplication(View):
-    
+    ''' Restful implementation for Controller'''    
     false_response = { "status" : False, "mac" : ""}
     true_response = { "status" : True, "mac" : ""}
 
@@ -71,8 +67,6 @@ class DeviceApplication(View):
     '''
     def post(self, request, *args, **kwargs):
         post_data = json.loads(request.body)
-        #   mac = post_data['mac']
-
         ap_info = {"total" : 0, "up" : 0, "down" : 0}   
         client_info = {"total" : 0, "up" : 0, "down" : 0}
         alarm_info = {"total" : 0}
@@ -469,10 +463,7 @@ def APThroughput(request):
     db = MongoClient()['nms']
     doc_list = []
     clients = []
-    rx_bytes = 0
-    tx_bytes = 0
     throughput = []
-    timestamp = []
     rx_list = []
     tx_list = []
     response_list = 0
@@ -610,16 +601,17 @@ def OverallThroughput(request):
                     "message" : "Malformed Request"}))
                     
 def WifiExperience(request):
+    ''' Plotting Graph for Average Wifi Experience for Ap and Client along with the minimum and maximum values'''
     db = MongoClient()['nms']
     doc_list = []
     clients = []
     avg_ap_wifiexp = []
     avg_cl_wifiexp = []
-    min_aplist =[]
-    max_aplist=[]
-    min_clist=[]
-    max_clist=[]
-    aps_count =0
+    min_aplist = []
+    max_aplist = []
+    min_clist = []
+    max_clist = []
+    aps_count = 0
     client_count = 0
     wifiexp_ap_sum  = 0
     wifiexp_cl_sum = 0
@@ -664,10 +656,10 @@ def WifiExperience(request):
                     ap['timestamp'] = unix_timestamp
                     clients.append(ap)
                     wifiexp_ap_sum += ap['wifiExp']
-                    aps_count+=1
+                    aps_count += 1
                 avg_ap_wifiexp.append([unix_timestamp , wifiexp_ap_sum/aps_count])
-                min_aplist.append([unix_timestamp ,min_ap ])
-                max_aplist.append([unix_timestamp ,max_ap ])
+                min_aplist.append([unix_timestamp , min_ap ])
+                max_aplist.append([unix_timestamp , max_ap ])
             if 'clients' in doc['msgBody'].get('controller'):
                 client = doc.get('msgBody').get('controller').get('clients')
                 for c in client:
@@ -678,9 +670,9 @@ def WifiExperience(request):
                     c['timestamp'] = unix_timestamp
                     clients.append(c)
                     wifiexp_cl_sum += c['wifiExp']
-                    client_count+=1
+                    client_count += 1
                 avg_cl_wifiexp.append([unix_timestamp , wifiexp_cl_sum/client_count])
-                min_clist.append([unix_timestamp ,min_cl ])
+                min_clist.append([unix_timestamp , min_cl ])
                 max_clist.append([unix_timestamp , max_cl])
                     
         

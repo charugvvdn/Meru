@@ -1,4 +1,4 @@
-from django.http import HttpResponse, HttpResponseNotAllowed
+from django.http import HttpResponse, HttpResponseServerError
 from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
@@ -47,6 +47,187 @@ def welcome(request):
         return render_to_response('test_1_app/Ap-clients.html', \
             {"d" : "AP with number of Clients Connected"}, context)
 
+    return HttpResponseServerError()
+
+class Reports():
+    """
+    Reports common functionality and features
+    """
+    pass
+
+class Common():
+    """
+    Common functinality for all the modules
+    """
+    def traverse(self, obj, l):
+        if hasattr(obj, '__iter__'):
+            for o in obj:
+                if isinstance(o, dict):
+                    l.append(o)
+                else:
+                    self.traverse(o, l)
+        return l
+
+    def eval_request(self, request):
+        if request.method == "GET":
+            post_data = request.GET.dict()
+            for pd in post_data:
+                post_data[pd] = ast.literal_eval(post_data[pd])
+        
+        elif request.method == "POST":
+            post_data = json.loads(request.body)
+        
+        else:
+            post_data = None
+
+        return post_data
+
+    def let_the_docs_out(self, post_data):
+        """
+        find all the docs on the basis of list of MACS and time frame
+        """
+        doc_list = []
+        mac_list = post_data['mac']
+
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+            print start_time
+            print end_time
+
+        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
+            : {"$gt": start_time, "$lt": end_time}})
+
+        for doc in cursor:
+            doc_list.append(doc)
+
+        return doc_list
+
+    def calc_type(self, doc_list, get_type):
+        """
+        get the client list or the ap list or the alarm list on the basis of
+        get_type. by default it is None
+        """
+        return_dict = {}
+        for doc in doc_list:
+            if get_type in doc['msgBody'].get('controller'):
+                result = doc.get('msgBody').get('controller').get(get_type)
+                for c in result:
+                    unix_timestamp = int(doc['timestamp']) * 1000
+                    if unix_timestamp not in return_dict:
+                        return_dict[unix_timestamp] = []
+                    return_dict[unix_timestamp].append(c)
+
+        return return_dict;
+
+    def throughput_calc(self, clients):
+        rx_list = []
+        tx_list = []
+        throughput = []
+
+        for c in clients:
+            rx = 0
+            tx = 0
+            for ts in clients[c]:
+                rx += ts['rxBytes']
+                tx += ts['txBytes']
+
+            rx_list.append([c, rx])
+            tx_list.append([c, tx])
+            throughput.append([c, rx+tx])
+
+        return (rx_list, tx_list, throughput)
+
+class Raw_Model():
+    """
+    Raw SQL queries methods
+    """
+
+    def isConfigData(self, mac):
+        """
+        Generating the commands for the controller with
+        given controller mac address passed as `mac`
+        :param mac:
+        """
+        config_data = {}
+        sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "", \
+         "sec-profile-name": "", "sec-l2-mode": ""}
+        ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "", \
+         "ess-state": "", "ess-ssid-broadcast": "",
+                            "ess-security-profile": ""}
+
+        cursor = connection.cursor()
+
+        q = "SELECT test_1_app_ssid.ssid,\
+        test_1_app_security_profile.security_profile_id ,\
+        test_1_app_security_profile.enc_mode as\
+            'sec-enc-mode',test_1_app_security_profile.passphrase as\
+             'sec-passphrase',test_1_app_security_profile.profile_name as\
+            'sec-profile-name',test_1_app_security_profile.l2_mode as\
+             'sec-l2-mode',`test_1_app_ssid`.name as 'ess-profile-name',\
+            `test_1_app_ssid`.dataplane_mode as \
+            'ess-dataplane-mode',`test_1_app_ssid`.enabled as 'ess-state',\
+            `test_1_app_ssid`.visible as 'ess-ssid-broadcast',\
+            `test_1_app_security_profile`.profile_name as\
+            'ess-security-profile' FROM  `test_1_app_ssid`\
+                    LEFT JOIN\
+             `test_1_app_security_profile` ON \
+             (test_1_app_security_profile.security_profile_id=\
+                `test_1_app_ssid`.security_profile_id)\
+             INNER JOIN test_1_app_ssid_in_command ON \
+             (test_1_app_ssid_in_command.ssid=`test_1_app_ssid`.ssid)\
+             INNER JOIN test_1_app_command ON\
+              (test_1_app_ssid_in_command.command_id=\
+                `test_1_app_command`.command_id)\
+              WHERE `test_1_app_command`.`controller_mac_address` = \
+              '%s'  and (`test_1_app_command`.flag='0' or \
+                `test_1_app_command`.flag='1')\
+             ORDER BY  `test_1_app_command`.`timestamp` \
+              ASC limit 0,1" % str(mac)
+
+        cursor.execute(q)
+        result = cursor.fetchall()
+
+        if len(result) != 0:
+            if str(result[0][4]) == 'None':
+                ess_profile_dict["ess-profile-name"] = str(result[0][6])
+                ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
+                ess_profile_dict["ess-state"] = str(result[0][8])
+                ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
+                ess_profile_dict["ess-security-profile"] = str(result[0][10])
+
+                config_data["ESSProfiles"] = [ess_profile_dict]
+                config_data["status"] = "true"
+                config_data["mac"] = str(mac)
+
+            else:
+                sec_profile_dict["sec-enc-mode"] = str(result[0][2])
+                sec_profile_dict["sec-passphrase"] = str(result[0][3])
+                sec_profile_dict["sec-profile-name"] = str(result[0][4])
+                sec_profile_dict["sec-l2-mode"] = str(result[0][5])
+                ess_profile_dict["ess-profile-name"] = str(result[0][6])
+                ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
+                ess_profile_dict["ess-state"] = str(result[0][8])
+                ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
+                ess_profile_dict["ess-security-profile"] = str(result[0][10])
+
+                config_data["SecurityProfiles"] = [sec_profile_dict]
+                config_data["ESSProfiles"] = [ess_profile_dict]
+                config_data["status"] = "true"
+                config_data["mac"] = str(mac)
+        else:
+            return []
+
+        return config_data
+
 class DeviceApplication(View):
     """
     Restful implementation for Controller
@@ -56,7 +237,7 @@ class DeviceApplication(View):
 
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
-    	#dont worry about the CSRF here
+        #dont worry about the CSRF here
         return super(DeviceApplication, self).dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
@@ -191,7 +372,8 @@ class DeviceApplication(View):
 
         transaction.commit_unless_managed()
 
-        config_data = isConfigData(mac)
+        raw_model = Raw_Model()#Raw model class to access the sql
+        config_data = raw_model.isConfigData(mac)
 
         return HttpResponse(json.dumps(config_data))
 
@@ -244,104 +426,9 @@ class DeviceApplication(View):
 
             # return uHello(request)
 
-
-def getMacId(mac):
-    """
-
-    :param mac:
-    :return:
-    """
-    if mac == "":
-        return False
-
-    query_dict = controller.objects.filter(mac_address=mac).values('cid')
-
-    if 'cid' in query_dict[0]:
-        return query_dict[0]
-
-def isConfigData(mac):
-    """
-    Generating the commands for the controller with
-    given controller mac address passed as `mac`
-    :param mac:
-    """
-    config_data = {}
-    sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "", \
-     "sec-profile-name": "", "sec-l2-mode": ""}
-    ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "", \
-     "ess-state": "", "ess-ssid-broadcast": "",
-                        "ess-security-profile": ""}
-
-    cursor = connection.cursor()
-
-    q = "SELECT test_1_app_ssid.ssid,\
-    test_1_app_security_profile.security_profile_id ,\
-    test_1_app_security_profile.enc_mode as\
-        'sec-enc-mode',test_1_app_security_profile.passphrase as\
-         'sec-passphrase',test_1_app_security_profile.profile_name as\
-        'sec-profile-name',test_1_app_security_profile.l2_mode as\
-         'sec-l2-mode',`test_1_app_ssid`.name as 'ess-profile-name',\
-        `test_1_app_ssid`.dataplane_mode as \
-        'ess-dataplane-mode',`test_1_app_ssid`.enabled as 'ess-state',\
-        `test_1_app_ssid`.visible as 'ess-ssid-broadcast',\
-        `test_1_app_security_profile`.profile_name as\
-        'ess-security-profile' FROM  `test_1_app_ssid`\
-                LEFT JOIN\
-         `test_1_app_security_profile` ON \
-         (test_1_app_security_profile.security_profile_id=\
-            `test_1_app_ssid`.security_profile_id)\
-         INNER JOIN test_1_app_ssid_in_command ON \
-         (test_1_app_ssid_in_command.ssid=`test_1_app_ssid`.ssid)\
-         INNER JOIN test_1_app_command ON\
-          (test_1_app_ssid_in_command.command_id=\
-            `test_1_app_command`.command_id)\
-          WHERE `test_1_app_command`.`controller_mac_address` = \
-          '%s'  and (`test_1_app_command`.flag='0' or \
-            `test_1_app_command`.flag='1')\
-         ORDER BY  `test_1_app_command`.`timestamp` \
-          ASC limit 0,1" % str(mac)
-
-    cursor.execute(q)
-    result = cursor.fetchall()
-
-    if len(result) != 0:
-        if str(result[0][4]) == 'None':
-            ess_profile_dict["ess-profile-name"] = str(result[0][6])
-            ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
-            ess_profile_dict["ess-state"] = str(result[0][8])
-            ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
-            ess_profile_dict["ess-security-profile"] = str(result[0][10])
-
-            config_data["ESSProfiles"] = [ess_profile_dict]
-            config_data["status"] = "true"
-            config_data["mac"] = str(mac)
-
-        else:
-            sec_profile_dict["sec-enc-mode"] = str(result[0][2])
-            sec_profile_dict["sec-passphrase"] = str(result[0][3])
-            sec_profile_dict["sec-profile-name"] = str(result[0][4])
-            sec_profile_dict["sec-l2-mode"] = str(result[0][5])
-            ess_profile_dict["ess-profile-name"] = str(result[0][6])
-            ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
-            ess_profile_dict["ess-state"] = str(result[0][8])
-            ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
-            ess_profile_dict["ess-security-profile"] = str(result[0][10])
-
-            config_data["SecurityProfiles"] = [sec_profile_dict]
-            config_data["ESSProfiles"] = [ess_profile_dict]
-            config_data["status"] = "true"
-            config_data["mac"] = str(mac)
-    else:
-        return []
-
-    return config_data
-
-
 def client_throughput(request):
     '''Module to plot the Station throughput line chart containing rxByte,
     txByte and throughput plotting of Clients'''
-    db = MongoClient()['nms']
-    doc_list = []
     clients = []
     throughput = []
     rx_list = []
@@ -349,8 +436,8 @@ def client_throughput(request):
     response_list = 0
     unix_timestamp = 0
 
-    print request.body
-    post_data = json.loads(request.body)
+    common = Common()
+    post_data = common.eval_request(request)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
@@ -359,47 +446,24 @@ def client_throughput(request):
     #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
-        mac_list = post_data['mac']
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
+        
+        #start the report evaluation
+        #get the clients
+        get_type = "clients"
+        clients = common.calc_type(doc_list, get_type)
+        
+        rx_list, tx_list, throughput = common.throughput_calc(clients)
 
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-            print start_time
-            print end_time
-
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-
-        for doc in cursor:
-            doc_list.append(doc)
-            #       print doc_list
-
-        for doc in doc_list:
-            if 'clients' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').get('clients')
-                for c in client:
-                    unix_timestamp = int(doc['timestamp']) * 1000
-                    c['timestamp'] = unix_timestamp
-                    clients.append(c)
-
-        #print clients
-        for c in clients:
-            rx_list.append([c['timestamp'], c['rxBytes']])
-            tx_list.append([c['timestamp'], c['txBytes']])
-            throughput.append([c['timestamp'], c['rxBytes'] + c['txBytes']])
-            #print throughput
-        response_list = [{"label": "rxBytes", "data": rx_list}, \
-        {"label": "txBytes", "data": \
-            tx_list}, {"label": "throughput", "data": throughput}]
+        #print throughput
+        response_list = [
+                            {"label": "rxBytes", "data": rx_list}, \
+                            {"label": "txBytes", "data": tx_list}, \
+                            {"label": "throughput", "data": throughput}
+                        ]
         #       print response_list
+        
         return HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
             "message": "values for station throughput bar graph"}))
@@ -410,37 +474,27 @@ def client_throughput(request):
 
 def devicetype(request):
     '''Module to plot the device type distribution pie chart'''
-    post_data = json.loads(request.body)
-    db = MongoClient()['nms']
-    client_list = []
+    
     clients = []
     device_types = {}
-    doc_list = []
     response = []
     context = RequestContext(request)
 
-    if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
+    common = Common()
+    post_data = common.eval_request(request)
 
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp": \
-            {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
-        for doc in doc_list:
-            if 'clients' in doc.get('msgBody').get('controller'):
-                client_list.append(doc.get('msgBody').get('controller') \
-                    .get('clients'))
-        clients = traverse(client_list, clients)
+    if 'mac' in post_data:
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
+
+        #start the report evaluation
+        
+        #get the clients
+        get_type = "clients"
+        client_list = common.calc_type(doc_list, get_type)
+
+        clients = common.traverse(client_list, clients)
+
         for c in clients:
             if c['clientType'] in device_types:
                 device_types[c['clientType']] += 1
@@ -457,24 +511,12 @@ def devicetype(request):
         pass
     return HttpResponse(json.dumps({"status": "false"}))
 
-def traverse(obj, l):
-    if hasattr(obj, '__iter__'):
-        for o in obj:
-            if isinstance(o, dict):
-                l.append(o)
-            else:
-                traverse(o, l)
-    else:
-        pass
-
-    return l
-
-# =======
-
 
 def ap_throughput(request):
-    db = MongoClient()['nms']
-    doc_list = []
+    """
+    Total throughput of the access points
+    """
+
     clients = []
     throughput = []
     rx_list = []
@@ -482,8 +524,8 @@ def ap_throughput(request):
     response_list = 0
     unix_timestamp = 0
 
-    print request.body
-    post_data = json.loads(request.body)
+    common = Common()
+    post_data = common.eval_request(request)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
@@ -492,48 +534,28 @@ def ap_throughput(request):
     #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
 
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-            print start_time
-            print end_time
+        #start the report evaluation
+        #get the clients
+        get_type = "aps"
+        clients = common.calc_type(doc_list, get_type)
 
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
-            #       print doc_list
+        rx_list, tx_list, throughput = common.throughput_calc(clients)
 
-        for doc in doc_list:
-            if 'aps' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').get('aps')
-                for c in client:
-                    unix_timestamp = int(doc['timestamp']) * 1000
-                    c['timestamp'] = unix_timestamp
-                    clients.append(c)
-
-        #print clients
-        for c in clients:
-            rx_list.append([c['timestamp'], c['rxBytes']])
-            tx_list.append([c['timestamp'], c['txBytes']])
-            throughput.append([c['timestamp'], c['rxBytes'] + c['txBytes']])
-            #print throughput
-        response_list = [{"label": "rxBytes", "data": rx_list}, \
-        {"label": "txBytes", "data": \
-            tx_list}, {"label": "throughput", "data": throughput}]
+        response_list = [
+                            {"label": "rxBytes", "data": rx_list}, \
+                            {"label": "txBytes", "data": tx_list}, \
+                            {"label": "throughput", "data": throughput}
+                        ]
         #       print response_list
-        return HttpResponse(json.dumps({"status": "true", \
-            "values": response_list,\
-             "message": "values for station throughput bar graph"}))
+        return HttpResponse(json.dumps(
+                            {
+                                "status": "true", \
+                                "values": response_list,\
+                                "message": "values for station throughput bar graph"
+                            }))
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))
@@ -543,8 +565,7 @@ def overall_throughput(request):
     ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes 
         for Client, txbyte for Ap+ txByte for Client, and throughput 
         (rxbyte+txbyte)'''
-    db = MongoClient()['nms']
-    doc_list = []
+
     rx_bytes = 0
     tx_bytes = 0
     throughput = []
@@ -553,7 +574,8 @@ def overall_throughput(request):
     response_list = 0
     unix_timestamp = 0
 
-    post_data = json.loads(request.body)
+    common = Common()
+    post_data = common.eval_request(request)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
@@ -562,44 +584,24 @@ def overall_throughput(request):
     #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
 
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
+        get_type = "aps"
+        aps = common.calc_type(doc_list, get_type)
 
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
-        print doc_list
+        get_type = "clients"
+        clients = common.calc_type(doc_list, get_type)
+        
+        out_dict = aps
 
-        for doc in doc_list:
-            rx_bytes = 0
-            tx_bytes = 0
-            unix_timestamp = int(doc['timestamp']) * 1000
-            if 'clients' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').get('clients')
-                for c in client:
-                    rx_bytes += c['rxBytes']
-                    tx_bytes += c['txBytes']
-
-            if 'aps' in doc['msgBody'].get('controller'):
-                aps = doc.get('msgBody').get('controller').get('aps')
-                for a in aps:
-                    rx_bytes += a['rxBytes']
-                    tx_bytes += a['txBytes']
-
-            rx_list.append([unix_timestamp, rx_bytes])
-            tx_list.append([unix_timestamp, tx_bytes])
-            throughput.append([unix_timestamp, rx_bytes + tx_bytes])
+        #join both the dicts
+        for times in out_dict:
+            for client in clients[times]:
+                out_dict[times].append(client)
+        
+        #get overall result
+        rx_list, tx_list, throughput = common.throughput_calc(out_dict)
 
         #print throughput
         response_list = [{"label": "rxBytes", "data": rx_list}, \
@@ -619,8 +621,7 @@ def wifi_experience(request):
      for Ap and Client along with the minimum and maximum values
     :param request:
      """
-    db = MongoClient()['nms']
-    doc_list = []
+
     clients = []
     avg_ap_wifiexp = []
     avg_cl_wifiexp = []
@@ -634,31 +635,17 @@ def wifi_experience(request):
     wifiexp_cl_sum = 0
     response_list = 0
     unix_timestamp = 0
-    post_data = json.loads(request.body)
+    
+    common = Common()
+    post_data = common.eval_request(request)
+
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No POST data"}))
 
-    #post_data = ast.literal_eval(request.POST.lists()[0][0])
-
     if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
 
         #       print doc_list
         for doc in doc_list:

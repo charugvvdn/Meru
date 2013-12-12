@@ -43,7 +43,7 @@ def welcome(request):
     if 'dist' in request.GET:
         return render_to_response('test_1_app/devicedist.html', \
             {"d" : "Device Dist Throughput"}, context)
-    if 'ap-client' in request.GET:
+    if 'ap_client' in request.GET:
         return render_to_response('test_1_app/Ap-clients.html', \
             {"d" : "AP with number of Clients Connected"}, context)
 
@@ -721,10 +721,12 @@ def ap_clients(request):
     db = MongoClient()['nms']
     doc_list = []
     ap_dict = {}
+    result = {}
     clients = []
     no_of_client = {}
     response_list= []
     post_data = json.loads(request.body)
+
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No POST data"}))
@@ -747,10 +749,11 @@ def ap_clients(request):
 
         cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
             : {"$gt": start_time, "$lt": end_time}})
+
         for doc in cursor:
             doc_list.append(doc)
 
-        #       print doc_list
+        
         for doc in doc_list:
             unix_timestamp = int(doc['timestamp']) * 1000
             min_cl = min_ap = 100
@@ -759,28 +762,33 @@ def ap_clients(request):
                 aps = doc.get('msgBody').get('controller').get('aps')
                 for ap in aps:
                     
-                    if ap['id']  not in ap_dict:
+                    if ap['id'] not in ap_dict:
                         ap_dict[ap['id']] = ap['mac']
-                print ap_dict
-
                     
+                
             if 'clients' in doc['msgBody'].get('controller'):
                 client = doc.get('msgBody').get('controller').get('clients')
                 for c in client:
-                    no_of_client [c['mac']] = 0
-                    c['timestamp'] = unix_timestamp
-                    clients.append(c)
-                    for apkey in ap_dict:
-                        if apkey == c['id']:
-                                no_of_client [c['mac']] += 1
-            for mac,no in no_of_client.iteritems():
-                result={}
-                result ['label'] = mac
-                result [ 'data'] = no
-                response_list.apend(result)
-        print response_list
-       
-        
+                    client_dict = {}
+                    client_dict['timestamp'] = unix_timestamp
+                    client_dict['apId'] = c['apId']
+                    clients.append(client_dict)
+
+                            
+        for apkey,mac in ap_dict.iteritems():
+            no_mac = 0
+            timestamp = 0
+            for client in clients:
+                timestamp = client['timestamp']
+                if client['apId'] == apkey:
+                    no_mac += 1
+                    
+            result = {"label": mac, "data": [timestamp,no_mac]}
+            response_list.append(result)
+            
+
+
+                
         return HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Number of MAC bar graph"}))

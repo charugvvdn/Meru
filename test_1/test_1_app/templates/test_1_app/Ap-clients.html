@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>{{ d }} Throughput graph</title>
+
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../excanvas.min.js"></script>
+    <![endif]-->
+    <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="http://www.flotcharts.org/flot/jquery.flot.time.js"></script>
+</head>
+
+<script type="text/javascript">
+    $(function () {
+        $("<div id='tooltip'></div>").css({
+            position: "absolute",
+            display: "none",
+            border: "1px solid #fdd",
+            padding: "2px",
+            "background-color": "#fee",
+            opacity: 0.80
+        }).appendTo("body");
+
+        var ary = new Array();
+        var options = {
+            series: {
+                lines: { show: true},
+                points: {show: true}
+            },
+            grid: {
+                hoverable: true,
+                clickable: true
+            },
+            xaxis: {
+                mode: "time",
+                /* minTickSize: [1, "hour"],
+                 min: (new Date("2013/12/09")).getTime(),
+                 max: (new Date("2013/12/10")).getTime(),*/
+                timeformat: "%H:%M:%S"
+            }
+        };
+        var data1 = new Array();
+        
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:8000/meru-nms/reports/ap_client/",
+            data: '{"mac" : ["AA:BB:CC:DD:00:DD"]}',
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (result) {
+                if (result['status'] == 'true') {
+                    console.log(result['values'])
+                    for (var i = 0; i < result['values'].length; i++) {
+
+
+                        ary.push(result['values'][i])
+
+                    }
+                    console.log(ary)
+                    for (var x = 0;x<ary.length;x++){
+                        data1.push( 
+                        {
+                            label: ary[x]['label'],
+                            data: ary[x],
+                            bars: {
+                                show: true,
+                                barWidth: 12*24*60*60*300,
+                                fill: true,
+                                lineWidth: 1,
+                                order: 1,
+                                fillColor:  "#AA4643"
+                            },
+                            color: "#AA4643"
+                        })
+                        $.plot($("#placeholder"), data1, {
+                    xaxis: {
+                        mode: "time",
+                        timeformat: "%H:%M:%S"
+                    },
+                   
+                    series: {
+                        lines: { show: true},
+                        points: {show: true}
+                    },
+                    grid: {
+                        hoverable: true,
+                        clickable: true
+                    },
+                });
+                
+                $("#placeholder").bind("plothover", function (event, pos, item) {
+                    if (item) {
+                        if (previousPoint != item.datapoint) {
+                            previousPoint = item.datapoint;
+                            $("#flot-tooltip").remove();
+             
+                            var originalPoint;
+             
+                            if (item.datapoint[0] == item.series.data[0][3]) {
+                                originalPoint = item.series.data[0][0];
+                            } else if (item.datapoint[0] == item.series.data[1][3]){
+                                originalPoint = item.series.data[1][0];
+                            } else if (item.datapoint[0] == item.series.data[2][3]){
+                                originalPoint = item.series.data[2][0];
+                            } else if (item.datapoint[0] == item.series.data[3][3]){
+                                originalPoint = item.series.data[3][0];
+                            } else if (item.datapoint[0] == item.series.data[4][3]){
+                                originalPoint = item.series.data[4][0];
+                            }
+             
+                            var x = getMonthName(originalPoint);
+                            y = item.datapoint[1];
+                            z = item.series.color;
+             
+                            showTooltip(item.pageX, item.pageY,
+                                "<b>" + item.series.label + "</b><br /> " + x + " = " + y + "&deg;C",
+                                z);
+                        }
+                    } else {
+                        $("#flot-tooltip").remove();
+                        previousPoint = null;
+                    }
+                });
+                    }
+                }
+            }
+        });
+    });
+                        
+                    
+         </script>
+ 
+</head>
+ 
+<body>
+    
+    <div id="placeholder" style="width:600px;height:300px;"></div>
+</body>
+</html>
+

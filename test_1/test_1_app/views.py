@@ -128,6 +128,24 @@ class Common():
 
         return return_dict;
 
+    def throughput_calc(self, clients):
+        rx_list = []
+        tx_list = []
+        throughput = []
+
+        for c in clients:
+            rx = 0
+            tx = 0
+            for ts in clients[c]:
+                rx += ts['rxBytes']
+                tx += ts['txBytes']
+
+            rx_list.append([c, rx])
+            tx_list.append([c, tx])
+            throughput.append([c, rx+tx])
+
+        return (rx_list, tx_list, throughput)
+
 class Raw_Model():
     """
     Raw SQL queries methods
@@ -436,21 +454,14 @@ def client_throughput(request):
         get_type = "clients"
         clients = common.calc_type(doc_list, get_type)
         
-        for c in clients:
-            rx = 0
-            tx = 0
-            for ts in clients[c]:
-                rx += ts['rxBytes']
-                tx += ts['txBytes']
-
-            rx_list.append([c, rx])
-            tx_list.append([c, tx])
-            throughput.append([c, rx+tx])            
+        rx_list, tx_list, throughput = common.throughput_calc(clients)
 
         #print throughput
-        response_list = [{"label": "rxBytes", "data": rx_list}, \
-        {"label": "txBytes", "data": \
-            tx_list}, {"label": "throughput", "data": throughput}]
+        response_list = [
+                            {"label": "rxBytes", "data": rx_list}, \
+                            {"label": "txBytes", "data": tx_list}, \
+                            {"label": "throughput", "data": throughput}
+                        ]
         #       print response_list
         
         return HttpResponse(json.dumps({"status": "true", \
@@ -531,25 +542,20 @@ def ap_throughput(request):
         get_type = "aps"
         clients = common.calc_type(doc_list, get_type)
 
-        for c in clients:
-            rx = 0
-            tx = 0
+        rx_list, tx_list, throughput = common.throughput_calc(clients)
 
-            for ts in clients[c]:
-                rx += ts['rxBytes']
-                tx += ts['txBytes']
-
-            rx_list.append([c, rx])
-            tx_list.append([c, tx])
-            throughput.append([c, rx+tx]) 
-
-        response_list = [{"label": "rxBytes", "data": rx_list}, \
-        {"label": "txBytes", "data": \
-            tx_list}, {"label": "throughput", "data": throughput}]
+        response_list = [
+                            {"label": "rxBytes", "data": rx_list}, \
+                            {"label": "txBytes", "data": tx_list}, \
+                            {"label": "throughput", "data": throughput}
+                        ]
         #       print response_list
-        return HttpResponse(json.dumps({"status": "true", \
-            "values": response_list,\
-             "message": "values for station throughput bar graph"}))
+        return HttpResponse(json.dumps(
+                            {
+                                "status": "true", \
+                                "values": response_list,\
+                                "message": "values for station throughput bar graph"
+                            }))
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))
@@ -581,25 +587,21 @@ def overall_throughput(request):
         #fetch the docs
         doc_list = common.let_the_docs_out(post_data)
 
-        for doc in doc_list:
-            rx_bytes = 0
-            tx_bytes = 0
-            unix_timestamp = int(doc['timestamp']) * 1000
-            if 'clients' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').get('clients')
-                for c in client:
-                    rx_bytes += c['rxBytes']
-                    tx_bytes += c['txBytes']
+        get_type = "aps"
+        aps = common.calc_type(doc_list, get_type)
 
-            if 'aps' in doc['msgBody'].get('controller'):
-                aps = doc.get('msgBody').get('controller').get('aps')
-                for a in aps:
-                    rx_bytes += a['rxBytes']
-                    tx_bytes += a['txBytes']
+        get_type = "clients"
+        clients = common.calc_type(doc_list, get_type)
+        
+        out_dict = aps
 
-            rx_list.append([unix_timestamp, rx_bytes])
-            tx_list.append([unix_timestamp, tx_bytes])
-            throughput.append([unix_timestamp, rx_bytes + tx_bytes])
+        #join both the dicts
+        for times in out_dict:
+            for client in clients[times]:
+                out_dict[times].append(client)
+        
+        #get overall result
+        rx_list, tx_list, throughput = common.throughput_calc(out_dict)
 
         #print throughput
         response_list = [{"label": "rxBytes", "data": rx_list}, \

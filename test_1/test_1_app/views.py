@@ -22,7 +22,7 @@ client = MongoClient()
 db = client['nms']
 
 
-def Welcome(request):
+def welcome(request):
     """
 
     Module for accessing the reports Api and display the graph plots
@@ -56,7 +56,7 @@ class DeviceApplication(View):
 
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
-        # do something
+    	#dont worry about the CSRF here
         return super(DeviceApplication, self).dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
@@ -84,8 +84,8 @@ class DeviceApplication(View):
 
         Request:  Monitoring data from controller and insert that data into
         a mongodb data source.
-        Response: Respond with commands for the controller that has been registered
-        by a user for that particular controller
+        Response: Respond with commands for the controller that has been 
+        registered by a user for that particular controller
 
         :param request:
         :param args:
@@ -259,124 +259,6 @@ def getMacId(mac):
     if 'cid' in query_dict[0]:
         return query_dict[0]
 
-
-def cHello(request):
-    """
-
-    :param request:
-    Request:  Monitoring data from controller and insert that data into
-    a mongodb data source.
-    Response: Respond with commands for the controller that has been registered
-    by a user for that particular controller
-    """
-    post_data = ast.literal_eval(request.POST.lists()[0][0])
-    #   mac = post_data['mac']
-    print post_data
-    #   print mac
-    ap_info = {"total": 0, "up": 0, "down": 0}
-    client_info = {"total": 0, "up": 0, "down": 0}
-    alarm_info = {"total": 0}
-
-    if 'snum' in post_data.keys():
-        mac = post_data.get('snum')
-    else:
-        mac = post_data.get('controller')
-
-    no_mac = {"status": "false", "mac": mac}
-
-    if not controller.objects.filter(mac_address=mac).exists():
-        return HttpResponse(json.dumps(no_mac))
-
-    if 'type' in post_data.keys():
-        if post_data.get('type') == 'controller':
-            controller_dict = post_data.get('controller')
-            print type(controller_dict)
-            db.controllers.insert(controller_dict)
-
-        if post_data.get('type') == 'alarms':
-            alarm_list = post_data.get('alarms')
-            for alarm in alarm_list:
-                alarm_info["total"] += 1
-                db.alarms.insert(alarm)
-
-        if post_data.get('type') == 'aps':
-            ap_list = post_data.get('aps')
-            for ap in ap_list:
-                if ap["status"].lower() == "disabled":
-                    ap_info["down"] += 1
-                else:
-                    ap_info["up"] += 1
-            ap_info["total"] += 1
-            db.aps.insert(ap)
-
-        if post_data.get('type') == 'clients':
-            client_list = post_data.get('clients')
-            for client in client_list:
-                if client["status"].lower() == "associated":
-                    client_info["up"] += 1
-                else:
-                    client_info["down"] += 1
-            client_info["total"] += 1
-            db.clients.insert(client)
-    else:
-        controller_doc = post_data.get('msgBody').get('controller')
-        db.controllers.insert(controller_doc)
-
-        if 'alarms' in post_data.get('msgBody').get('controller'):
-            alarm_list = post_data.get('msgBody').get('controller')\
-            .get('alarms')
-            for alarm in alarm_list:
-                alarm_info["total"] += 1
-                db.alarms.insert(alarm)
-
-        if 'aps' in post_data.get('msgBody').get('controller'):
-            ap_list = post_data.get('msgBody').get('controller')\
-            .get('aps')
-            for ap in ap_list:
-                if ap["status"].lower() == "disabled":
-                    ap_info["down"] += 1
-                else:
-                    ap_info["up"] += 1
-                ap_info["total"] += 1
-                db.aps.insert(ap)
-
-        if 'clients' in post_data.get('msgBody').get('controller'):
-            client_list = post_data.get('msgBody').get('controller')\
-            .get('clients')
-            for client in client_list:
-                if client["status"].lower() == "associated":
-                    client_info["up"] += 1
-                else:
-                    client_info["down"] += 1
-                client_info["total"] += 1
-                db.clients.insert(client)
-
-    print post_data
-
-    utc_1970 = datetime.datetime(1970, 1, 1)
-    utcnow = datetime.datetime.utcnow()
-    timestamp = int((utcnow - utc_1970).total_seconds())
-
-    post_data['timestamp'] = timestamp
-    db.devices.insert(post_data)
-
-    cursor = connection.cursor()
-    cursor.execute("INSERT INTO test_1_app_dashboard_info \
-        (controller_mac, client_info, ap_info, alarm_info, \
-        ap_up, ap_down, client_up, client_down, updated_on) \
-    VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
-                   % (
-        str(mac), client_info["total"], ap_info["total"],\
-         alarm_info["total"], ap_info["up"], ap_info["down"], \
-        client_info["up"], client_info["down"], timestamp))
-
-    transaction.commit_unless_managed()
-
-    config_data = isConfigData(mac)
-
-    return HttpResponse(json.dumps(config_data))
-
-
 def isConfigData(mac):
     """
     Generating the commands for the controller with
@@ -455,7 +337,7 @@ def isConfigData(mac):
     return config_data
 
 
-def clientThroughput(request):
+def client_throughput(request):
     '''Module to plot the Station throughput line chart containing rxByte,
     txByte and throughput plotting of Clients'''
     db = MongoClient()['nms']
@@ -526,7 +408,7 @@ def clientThroughput(request):
                                         "message": "No mac provided"}))
 
 
-def devTypeDist(request):
+def devicetype(request):
     '''Module to plot the device type distribution pie chart'''
     post_data = json.loads(request.body)
     db = MongoClient()['nms']
@@ -590,7 +472,7 @@ def traverse(obj, l):
 # =======
 
 
-def APThroughput(request):
+def ap_throughput(request):
     db = MongoClient()['nms']
     doc_list = []
     clients = []
@@ -657,7 +539,7 @@ def APThroughput(request):
                                         "message": "No mac provided"}))
 
 
-def OverallThroughput(request):
+def overall_throughput(request):
     ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes 
         for Client, txbyte for Ap+ txByte for Client, and throughput 
         (rxbyte+txbyte)'''
@@ -732,7 +614,7 @@ def OverallThroughput(request):
                                     "message": "No mac provided"}))
 
 
-def WifiExperience(request):
+def wifi_experience(request):
     """ Plotting Graph for Average Wifi Experience
      for Ap and Client along with the minimum and maximum values
     :param request:

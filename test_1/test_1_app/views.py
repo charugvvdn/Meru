@@ -351,7 +351,7 @@ class DeviceApplication(View):
                     client_info["total"] += 1
                     db.clients.insert(client)
 
-        print post_data
+#        print post_data
 
         utc_1970 = datetime.datetime(1970, 1, 1)
         utcnow = datetime.datetime.utcnow()
@@ -377,7 +377,7 @@ class DeviceApplication(View):
 
         return HttpResponse(json.dumps(config_data))
 
-    def put(self, mac, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """
         Update from the controller with info that all the commands has
         been successfully executed on that controller
@@ -386,9 +386,8 @@ class DeviceApplication(View):
         :param args:
         :param kwargs:
         """
-
         if "mac" in kwargs:
-            mac = mac
+            mac = kwargs["mac"]
 
         null_mac = {"status": "Null mac"}
         not_registered = {"status": "not registered"}
@@ -402,21 +401,10 @@ class DeviceApplication(View):
             flag = 2
 
         try:
-            query_dict = command.objects.filter(
-                Q(controller_mac_address=mac, flag=0) | \
-                Q(controller_mac_address=mac, flag=1)
-            ).values('command_id', 'flag')
-
-            print query_dict
-            #Should we check for len(query_dict == 0) ??
-            #This query would return a single or multiple results ?
-
-
-            if 'command_id' in query_dict[0]:
-                command.objects.filter(command_id=query_dict[0]['command_id'])\
-                .update(flag=flag)
-            else:
-                return HttpResponse(json.dumps(self.false_response))
+            q = """ UPDATE test_1_app_command SET flag = %s WHERE \
+                    (controller_mac_address = '%s' AND (flag = 0 OR flag = 1))""" % (flag ,mac)
+            cursor = connection.cursor()
+            cursor.execute(q)
 
             return HttpResponse(json.dumps(self.true_response))
 
@@ -712,13 +700,12 @@ def ap_clients(request):
     clients = []
     no_of_client = {}
     response_list= []
+
     post_data = json.loads(request.body)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No POST data"}))
-
-    #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
         mac_list = post_data['mac']
@@ -782,5 +769,3 @@ def ap_clients(request):
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
-
-

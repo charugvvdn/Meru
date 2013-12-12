@@ -715,3 +715,77 @@ def wifi_experience(request):
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
+
+def ap_clients(request):
+    """ Plotting Graph for "Ap having clients connected to them "bar chart"""
+    db = MongoClient()['nms']
+    doc_list = []
+    ap_dict = {}
+    clients = []
+    no_of_client = {}
+    response_list= []
+    post_data = json.loads(request.body)
+    if not len(post_data):
+        return HttpResponse(json.dumps({"status": "false", \
+                                        "message": "No POST data"}))
+
+    #post_data = ast.literal_eval(request.POST.lists()[0][0])
+
+    if 'mac' in post_data:
+        mac_list = post_data['mac']
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+
+        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
+            : {"$gt": start_time, "$lt": end_time}})
+        for doc in cursor:
+            doc_list.append(doc)
+
+        #       print doc_list
+        for doc in doc_list:
+            unix_timestamp = int(doc['timestamp']) * 1000
+            min_cl = min_ap = 100
+            max_cl = max_ap = 0
+            if 'aps' in doc['msgBody'].get('controller'):
+                aps = doc.get('msgBody').get('controller').get('aps')
+                for ap in aps:
+                    
+                    if ap['id']  not in ap_dict:
+                        ap_dict[ap['id']] = ap['mac']
+                print ap_dict
+
+                    
+            if 'clients' in doc['msgBody'].get('controller'):
+                client = doc.get('msgBody').get('controller').get('clients')
+                for c in client:
+                    no_of_client [c['mac']] = 0
+                    c['timestamp'] = unix_timestamp
+                    clients.append(c)
+                    for apkey in ap_dict:
+                        if apkey == c['id']:
+                                no_of_client [c['mac']] += 1
+            for mac,no in no_of_client.iteritems():
+                result={}
+                result ['label'] = mac
+                result [ 'data'] = no
+                response_list.apend(result)
+        print response_list
+       
+        
+        return HttpResponse(json.dumps({"status": "true", \
+         "values": response_list,\
+         "message": "values for Number of MAC bar graph"}))
+
+    return HttpResponse(json.dumps({"status": "false", \
+                                    "message": "No mac provided"}))
+
+

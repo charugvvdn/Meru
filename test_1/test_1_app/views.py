@@ -43,7 +43,9 @@ def Welcome(request):
     if 'dist' in request.GET:
         return render_to_response('test_1_app/devicedist.html', \
             {"d" : "Device Dist Throughput"}, context)
-
+    if 'ap-client' in request.GET:
+        return render_to_response('test_1_app/Ap-clients.html', \
+            {"d" : "AP with number of Clients Connected"}, context)
 
 class DeviceApplication(View):
     """
@@ -831,5 +833,3 @@ def WifiExperience(request):
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
-
-

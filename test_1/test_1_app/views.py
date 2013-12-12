@@ -47,6 +47,107 @@ def welcome(request):
         return render_to_response('test_1_app/Ap-clients.html', \
             {"d" : "AP with number of Clients Connected"}, context)
 
+class Reports():
+    """
+    Reports common functionality and features
+    """
+    pass
+
+class Common():
+    """
+    Common functinality for all the modules
+    """
+    def traverse(self, obj, l):
+        if hasattr(obj, '__iter__'):
+            for o in obj:
+                if isinstance(o, dict):
+                    l.append(o)
+                else:
+                    self.traverse(o, l)
+        return l
+
+class Raw_Model():
+    """
+    Raw SQL queries methods
+    """
+
+    def isConfigData(self, mac):
+        """
+        Generating the commands for the controller with
+        given controller mac address passed as `mac`
+        :param mac:
+        """
+        config_data = {}
+        sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "", \
+         "sec-profile-name": "", "sec-l2-mode": ""}
+        ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "", \
+         "ess-state": "", "ess-ssid-broadcast": "",
+                            "ess-security-profile": ""}
+
+        cursor = connection.cursor()
+
+        q = "SELECT test_1_app_ssid.ssid,\
+        test_1_app_security_profile.security_profile_id ,\
+        test_1_app_security_profile.enc_mode as\
+            'sec-enc-mode',test_1_app_security_profile.passphrase as\
+             'sec-passphrase',test_1_app_security_profile.profile_name as\
+            'sec-profile-name',test_1_app_security_profile.l2_mode as\
+             'sec-l2-mode',`test_1_app_ssid`.name as 'ess-profile-name',\
+            `test_1_app_ssid`.dataplane_mode as \
+            'ess-dataplane-mode',`test_1_app_ssid`.enabled as 'ess-state',\
+            `test_1_app_ssid`.visible as 'ess-ssid-broadcast',\
+            `test_1_app_security_profile`.profile_name as\
+            'ess-security-profile' FROM  `test_1_app_ssid`\
+                    LEFT JOIN\
+             `test_1_app_security_profile` ON \
+             (test_1_app_security_profile.security_profile_id=\
+                `test_1_app_ssid`.security_profile_id)\
+             INNER JOIN test_1_app_ssid_in_command ON \
+             (test_1_app_ssid_in_command.ssid=`test_1_app_ssid`.ssid)\
+             INNER JOIN test_1_app_command ON\
+              (test_1_app_ssid_in_command.command_id=\
+                `test_1_app_command`.command_id)\
+              WHERE `test_1_app_command`.`controller_mac_address` = \
+              '%s'  and (`test_1_app_command`.flag='0' or \
+                `test_1_app_command`.flag='1')\
+             ORDER BY  `test_1_app_command`.`timestamp` \
+              ASC limit 0,1" % str(mac)
+
+        cursor.execute(q)
+        result = cursor.fetchall()
+
+        if len(result) != 0:
+            if str(result[0][4]) == 'None':
+                ess_profile_dict["ess-profile-name"] = str(result[0][6])
+                ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
+                ess_profile_dict["ess-state"] = str(result[0][8])
+                ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
+                ess_profile_dict["ess-security-profile"] = str(result[0][10])
+
+                config_data["ESSProfiles"] = [ess_profile_dict]
+                config_data["status"] = "true"
+                config_data["mac"] = str(mac)
+
+            else:
+                sec_profile_dict["sec-enc-mode"] = str(result[0][2])
+                sec_profile_dict["sec-passphrase"] = str(result[0][3])
+                sec_profile_dict["sec-profile-name"] = str(result[0][4])
+                sec_profile_dict["sec-l2-mode"] = str(result[0][5])
+                ess_profile_dict["ess-profile-name"] = str(result[0][6])
+                ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
+                ess_profile_dict["ess-state"] = str(result[0][8])
+                ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
+                ess_profile_dict["ess-security-profile"] = str(result[0][10])
+
+                config_data["SecurityProfiles"] = [sec_profile_dict]
+                config_data["ESSProfiles"] = [ess_profile_dict]
+                config_data["status"] = "true"
+                config_data["mac"] = str(mac)
+        else:
+            return []
+
+        return config_data
+
 class DeviceApplication(View):
     """
     Restful implementation for Controller
@@ -56,7 +157,7 @@ class DeviceApplication(View):
 
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
-    	#dont worry about the CSRF here
+        #dont worry about the CSRF here
         return super(DeviceApplication, self).dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
@@ -191,7 +292,8 @@ class DeviceApplication(View):
 
         transaction.commit_unless_managed()
 
-        config_data = isConfigData(mac)
+        raw_model = Raw_Model()#Raw model class to access the sql
+        config_data = raw_model.isConfigData(mac)
 
         return HttpResponse(json.dumps(config_data))
 
@@ -243,99 +345,6 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(self.false_response))
 
             # return uHello(request)
-
-
-def getMacId(mac):
-    """
-
-    :param mac:
-    :return:
-    """
-    if mac == "":
-        return False
-
-    query_dict = controller.objects.filter(mac_address=mac).values('cid')
-
-    if 'cid' in query_dict[0]:
-        return query_dict[0]
-
-def isConfigData(mac):
-    """
-    Generating the commands for the controller with
-    given controller mac address passed as `mac`
-    :param mac:
-    """
-    config_data = {}
-    sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "", \
-     "sec-profile-name": "", "sec-l2-mode": ""}
-    ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "", \
-     "ess-state": "", "ess-ssid-broadcast": "",
-                        "ess-security-profile": ""}
-
-    cursor = connection.cursor()
-
-    q = "SELECT test_1_app_ssid.ssid,\
-    test_1_app_security_profile.security_profile_id ,\
-    test_1_app_security_profile.enc_mode as\
-        'sec-enc-mode',test_1_app_security_profile.passphrase as\
-         'sec-passphrase',test_1_app_security_profile.profile_name as\
-        'sec-profile-name',test_1_app_security_profile.l2_mode as\
-         'sec-l2-mode',`test_1_app_ssid`.name as 'ess-profile-name',\
-        `test_1_app_ssid`.dataplane_mode as \
-        'ess-dataplane-mode',`test_1_app_ssid`.enabled as 'ess-state',\
-        `test_1_app_ssid`.visible as 'ess-ssid-broadcast',\
-        `test_1_app_security_profile`.profile_name as\
-        'ess-security-profile' FROM  `test_1_app_ssid`\
-                LEFT JOIN\
-         `test_1_app_security_profile` ON \
-         (test_1_app_security_profile.security_profile_id=\
-            `test_1_app_ssid`.security_profile_id)\
-         INNER JOIN test_1_app_ssid_in_command ON \
-         (test_1_app_ssid_in_command.ssid=`test_1_app_ssid`.ssid)\
-         INNER JOIN test_1_app_command ON\
-          (test_1_app_ssid_in_command.command_id=\
-            `test_1_app_command`.command_id)\
-          WHERE `test_1_app_command`.`controller_mac_address` = \
-          '%s'  and (`test_1_app_command`.flag='0' or \
-            `test_1_app_command`.flag='1')\
-         ORDER BY  `test_1_app_command`.`timestamp` \
-          ASC limit 0,1" % str(mac)
-
-    cursor.execute(q)
-    result = cursor.fetchall()
-
-    if len(result) != 0:
-        if str(result[0][4]) == 'None':
-            ess_profile_dict["ess-profile-name"] = str(result[0][6])
-            ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
-            ess_profile_dict["ess-state"] = str(result[0][8])
-            ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
-            ess_profile_dict["ess-security-profile"] = str(result[0][10])
-
-            config_data["ESSProfiles"] = [ess_profile_dict]
-            config_data["status"] = "true"
-            config_data["mac"] = str(mac)
-
-        else:
-            sec_profile_dict["sec-enc-mode"] = str(result[0][2])
-            sec_profile_dict["sec-passphrase"] = str(result[0][3])
-            sec_profile_dict["sec-profile-name"] = str(result[0][4])
-            sec_profile_dict["sec-l2-mode"] = str(result[0][5])
-            ess_profile_dict["ess-profile-name"] = str(result[0][6])
-            ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
-            ess_profile_dict["ess-state"] = str(result[0][8])
-            ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
-            ess_profile_dict["ess-security-profile"] = str(result[0][10])
-
-            config_data["SecurityProfiles"] = [sec_profile_dict]
-            config_data["ESSProfiles"] = [ess_profile_dict]
-            config_data["status"] = "true"
-            config_data["mac"] = str(mac)
-    else:
-        return []
-
-    return config_data
-
 
 def client_throughput(request):
     '''Module to plot the Station throughput line chart containing rxByte,
@@ -440,7 +449,8 @@ def devicetype(request):
             if 'clients' in doc.get('msgBody').get('controller'):
                 client_list.append(doc.get('msgBody').get('controller') \
                     .get('clients'))
-        clients = traverse(client_list, clients)
+        common = Common() #common method class
+        clients = common.traverse(client_list, clients)
         for c in clients:
             if c['clientType'] in device_types:
                 device_types[c['clientType']] += 1
@@ -456,20 +466,6 @@ def devicetype(request):
     else:
         pass
     return HttpResponse(json.dumps({"status": "false"}))
-
-def traverse(obj, l):
-    if hasattr(obj, '__iter__'):
-        for o in obj:
-            if isinstance(o, dict):
-                l.append(o)
-            else:
-                traverse(o, l)
-    else:
-        pass
-
-    return l
-
-# =======
 
 
 def ap_throughput(request):

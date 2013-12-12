@@ -1,4 +1,4 @@
-from django.http import HttpResponse, HttpResponseNotAllowed
+from django.http import HttpResponse, HttpResponseServerError
 from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
@@ -47,6 +47,8 @@ def welcome(request):
         return render_to_response('test_1_app/Ap-clients.html', \
             {"d" : "AP with number of Clients Connected"}, context)
 
+    return HttpResponseServerError()
+
 class Reports():
     """
     Reports common functionality and features
@@ -65,6 +67,66 @@ class Common():
                 else:
                     self.traverse(o, l)
         return l
+
+    def eval_request(self, request):
+        if request.method == "GET":
+            post_data = request.GET.dict()
+            for pd in post_data:
+                post_data[pd] = ast.literal_eval(post_data[pd])
+        
+        elif request.method == "POST":
+            post_data = json.loads(request.body)
+        
+        else:
+            post_data = None
+
+        return post_data
+
+    def let_the_docs_out(self, post_data):
+        """
+        find all the docs on the basis of list of MACS and time frame
+        """
+        doc_list = []
+        mac_list = post_data['mac']
+
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+            print start_time
+            print end_time
+
+        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
+            : {"$gt": start_time, "$lt": end_time}})
+
+        for doc in cursor:
+            doc_list.append(doc)
+
+        return doc_list
+
+    def calc_type(self, doc_list, get_type):
+        """
+        get the client list or the ap list or the alarm list on the basis of
+        get_type. by default it is None
+        """
+        return_dict = {}
+        for doc in doc_list:
+            if get_type in doc['msgBody'].get('controller'):
+                result = doc.get('msgBody').get('controller').get(get_type)
+                for c in result:
+                    unix_timestamp = int(doc['timestamp']) * 1000
+                    if unix_timestamp not in return_dict:
+                        return_dict[unix_timestamp] = []
+                    return_dict[unix_timestamp].append(c)
+
+        return return_dict;
 
 class Raw_Model():
     """
@@ -349,8 +411,6 @@ class DeviceApplication(View):
 def client_throughput(request):
     '''Module to plot the Station throughput line chart containing rxByte,
     txByte and throughput plotting of Clients'''
-    db = MongoClient()['nms']
-    doc_list = []
     clients = []
     throughput = []
     rx_list = []
@@ -358,8 +418,8 @@ def client_throughput(request):
     response_list = 0
     unix_timestamp = 0
 
-    print request.body
-    post_data = json.loads(request.body)
+    common = Common()
+    post_data = common.eval_request(request)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
@@ -368,47 +428,31 @@ def client_throughput(request):
     #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
-        mac_list = post_data['mac']
-
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-            print start_time
-            print end_time
-
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-
-        for doc in cursor:
-            doc_list.append(doc)
-            #       print doc_list
-
-        for doc in doc_list:
-            if 'clients' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').get('clients')
-                for c in client:
-                    unix_timestamp = int(doc['timestamp']) * 1000
-                    c['timestamp'] = unix_timestamp
-                    clients.append(c)
-
-        #print clients
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
+        
+        #start the report evaluation
+        #get the clients
+        get_type = "clients"
+        clients = common.calc_type(doc_list, get_type)
+        
         for c in clients:
-            rx_list.append([c['timestamp'], c['rxBytes']])
-            tx_list.append([c['timestamp'], c['txBytes']])
-            throughput.append([c['timestamp'], c['rxBytes'] + c['txBytes']])
-            #print throughput
+            rx = 0
+            tx = 0
+            for ts in clients[c]:
+                rx += ts['rxBytes']
+                tx += ts['txBytes']
+
+            rx_list.append([c, rx])
+            tx_list.append([c, tx])
+            throughput.append([c, rx+tx])            
+
+        #print throughput
         response_list = [{"label": "rxBytes", "data": rx_list}, \
         {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
         #       print response_list
+        
         return HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
             "message": "values for station throughput bar graph"}))
@@ -419,38 +463,27 @@ def client_throughput(request):
 
 def devicetype(request):
     '''Module to plot the device type distribution pie chart'''
-    post_data = json.loads(request.body)
-    db = MongoClient()['nms']
-    client_list = []
+    
     clients = []
     device_types = {}
-    doc_list = []
     response = []
     context = RequestContext(request)
 
-    if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
+    common = Common()
+    post_data = common.eval_request(request)
 
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp": \
-            {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
-        for doc in doc_list:
-            if 'clients' in doc.get('msgBody').get('controller'):
-                client_list.append(doc.get('msgBody').get('controller') \
-                    .get('clients'))
-        common = Common() #common method class
+    if 'mac' in post_data:
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
+
+        #start the report evaluation
+        
+        #get the clients
+        get_type = "clients"
+        client_list = common.calc_type(doc_list, get_type)
+
         clients = common.traverse(client_list, clients)
+
         for c in clients:
             if c['clientType'] in device_types:
                 device_types[c['clientType']] += 1
@@ -469,8 +502,10 @@ def devicetype(request):
 
 
 def ap_throughput(request):
-    db = MongoClient()['nms']
-    doc_list = []
+    """
+    Total throughput of the access points
+    """
+
     clients = []
     throughput = []
     rx_list = []
@@ -478,8 +513,8 @@ def ap_throughput(request):
     response_list = 0
     unix_timestamp = 0
 
-    print request.body
-    post_data = json.loads(request.body)
+    common = Common()
+    post_data = common.eval_request(request)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
@@ -488,41 +523,26 @@ def ap_throughput(request):
     #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
 
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-            print start_time
-            print end_time
+        #start the report evaluation
+        #get the clients
+        get_type = "aps"
+        clients = common.calc_type(doc_list, get_type)
 
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
-            #       print doc_list
-
-        for doc in doc_list:
-            if 'aps' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').get('aps')
-                for c in client:
-                    unix_timestamp = int(doc['timestamp']) * 1000
-                    c['timestamp'] = unix_timestamp
-                    clients.append(c)
-
-        #print clients
         for c in clients:
-            rx_list.append([c['timestamp'], c['rxBytes']])
-            tx_list.append([c['timestamp'], c['txBytes']])
-            throughput.append([c['timestamp'], c['rxBytes'] + c['txBytes']])
-            #print throughput
+            rx = 0
+            tx = 0
+
+            for ts in clients[c]:
+                rx += ts['rxBytes']
+                tx += ts['txBytes']
+
+            rx_list.append([c, rx])
+            tx_list.append([c, tx])
+            throughput.append([c, rx+tx]) 
+
         response_list = [{"label": "rxBytes", "data": rx_list}, \
         {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
@@ -539,8 +559,7 @@ def overall_throughput(request):
     ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes 
         for Client, txbyte for Ap+ txByte for Client, and throughput 
         (rxbyte+txbyte)'''
-    db = MongoClient()['nms']
-    doc_list = []
+
     rx_bytes = 0
     tx_bytes = 0
     throughput = []
@@ -549,7 +568,8 @@ def overall_throughput(request):
     response_list = 0
     unix_timestamp = 0
 
-    post_data = json.loads(request.body)
+    common = Common()
+    post_data = common.eval_request(request)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
@@ -558,24 +578,8 @@ def overall_throughput(request):
     #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
-        print doc_list
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
 
         for doc in doc_list:
             rx_bytes = 0
@@ -615,8 +619,7 @@ def wifi_experience(request):
      for Ap and Client along with the minimum and maximum values
     :param request:
      """
-    db = MongoClient()['nms']
-    doc_list = []
+
     clients = []
     avg_ap_wifiexp = []
     avg_cl_wifiexp = []
@@ -630,31 +633,17 @@ def wifi_experience(request):
     wifiexp_cl_sum = 0
     response_list = 0
     unix_timestamp = 0
-    post_data = json.loads(request.body)
+    
+    common = Common()
+    post_data = common.eval_request(request)
+
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No POST data"}))
 
-    #post_data = ast.literal_eval(request.POST.lists()[0][0])
-
     if 'mac' in post_data:
-        mac_list = post_data['mac']
-        if 'time' in post_data:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
-        for doc in cursor:
-            doc_list.append(doc)
+        #fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
 
         #       print doc_list
         for doc in doc_list:

@@ -274,9 +274,6 @@ class DeviceApplication(View):
         :return:
         """
         post_data = json.loads(request.body)
-        ap_info = {"total": 0, "up": 0, "down": 0}
-        client_info = {"total": 0, "up": 0, "down": 0}
-        alarm_info = {"total": 0}
 
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
@@ -288,89 +285,12 @@ class DeviceApplication(View):
         if not controller.objects.filter(mac_address=mac).exists():
             return HttpResponse(json.dumps(no_mac))
 
-        if 'type' in post_data.keys():
-            if post_data.get('type') == 'controller':
-                controller_dict = post_data.get('controller')
-                print type(controller_dict)
-                db.controllers.insert(controller_dict)
-
-            if post_data.get('type') == 'alarms':
-                alarm_list = post_data.get('alarms')
-                for alarm in alarm_list:
-                    alarm_info["total"] += 1
-                    db.alarms.insert(alarm)
-
-            if post_data.get('type') == 'aps':
-                ap_list = post_data.get('aps')
-                for ap in ap_list:
-                    if ap["status"].lower() == "disabled":
-                        ap_info["down"] += 1
-                    else:
-                        ap_info["up"] += 1
-                ap_info["total"] += 1
-                db.aps.insert(ap)
-
-            if post_data.get('type') == 'clients':
-                client_list = post_data.get('clients')
-                for client in client_list:
-                    if client["state"].lower() == "associated":
-                        client_info["up"] += 1
-                    else:
-                        client_info["down"] += 1
-                client_info["total"] += 1
-                db.clients.insert(client)
-        else:
-            controller_doc = post_data.get('msgBody').get('controller')
-            db.controllers.insert(controller_doc)
-
-            if 'alarms' in post_data.get('msgBody').get('controller'):
-                alarm_list = post_data.get('msgBody').get('controller')\
-                .get('alarms')
-                for alarm in alarm_list:
-                    alarm_info["total"] += 1
-                    db.alarms.insert(alarm)
-
-            if 'aps' in post_data.get('msgBody').get('controller'):
-                ap_list = post_data.get('msgBody').get('controller').get('aps')
-                for ap in ap_list:
-                    if ap["status"].lower() == "disabled":
-                        ap_info["down"] += 1
-                    else:
-                        ap_info["up"] += 1
-                    ap_info["total"] += 1
-                    db.aps.insert(ap)
-
-            if 'clients' in post_data.get('msgBody').get('controller'):
-                client_list = post_data.get('msgBody').get('controller')\
-                .get('clients')
-                for client in client_list:
-                    if client["state"].lower() == "associated":
-                        client_info["up"] += 1
-                    else:
-                        client_info["down"] += 1
-                    client_info["total"] += 1
-                    db.clients.insert(client)
-
-#        print post_data
-
         utc_1970 = datetime.datetime(1970, 1, 1)
         utcnow = datetime.datetime.utcnow()
         timestamp = int((utcnow - utc_1970).total_seconds())
 
         post_data['timestamp'] = timestamp
         db.devices.insert(post_data)
-
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO test_1_app_dashboard_info \
-            (controller_mac, client_info, ap_info, alarm_info, \
-            ap_up, ap_down, client_up, client_down, updated_on)\
-             VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
-                       % (
-            str(mac), client_info["total"], ap_info["total"], \
-            alarm_info["total"], ap_info["up"], ap_info["down"], \
-            client_info["up"], client_info["down"], timestamp))
-
-        transaction.commit_unless_managed()
 
         raw_model = Raw_Model()#Raw model class to access the sql
         config_data = raw_model.isConfigData(mac)
@@ -763,9 +683,8 @@ def ap_clients(request):
 
 
                 
-        return HttpResponse(json.dumps({"status": "true", \
-         "values": response_list,\
-         "message": "values for Number of MAC bar graph"}))
+        return HttpResponse(json.dumps({"status": "true","values": response_list,\
+                            "message": "values for Number of MAC bar graph"}))
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))

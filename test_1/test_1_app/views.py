@@ -11,7 +11,8 @@ import itertools
 import ast
 import json
 
-from test_1_app.models import controller, command, alarm, dashboard_info, ssid, security_profile, ssid_in_command
+from test_1_app.models import controller, command, alarm, dashboard_info, \
+ ssid, security_profile, ssid_in_command
 
 from django.views.generic.base import View
 
@@ -28,15 +29,20 @@ def Welcome(request):
     """
     context = RequestContext(request)
     if 'station' in request.GET:
-        return render_to_response('test_1_app/stationthru.html', {"d": "Station"}, context)
+        return render_to_response('test_1_app/stationthru.html', \
+            {"d": "Station"}, context)
     if 'ap' in request.GET:
-        return render_to_response('test_1_app/apthru.html', {"d": "AP"}, context)
+        return render_to_response('test_1_app/apthru.html', \
+            {"d": "AP"}, context)
     if 'wifi' in request.GET:
-        return render_to_response('test_1_app/wifiexp.html', {"d": "Wifi Experience"}, context)
+        return render_to_response('test_1_app/wifiexp.html', \
+            {"d": "Wifi Experience"}, context)
     if 'overall' in request.GET:
-        return render_to_response('test_1_app/overallthru.html', {"d": "Overall Throughput"}, context)
+        return render_to_response('test_1_app/overallthru.html', \
+         {"d": "Overall Throughput"}, context)
     if 'dist' in request.GET:
-	return render_to_response('test_1_app/devicedist.html', {"d" : "Device Dist Throughput"}, context)
+        return render_to_response('test_1_app/devicedist.html', \
+            {"d" : "Device Dist Throughput"}, context)
 
 
 class DeviceApplication(View):
@@ -135,7 +141,8 @@ class DeviceApplication(View):
             db.controllers.insert(controller_doc)
 
             if 'alarms' in post_data.get('msgBody').get('controller'):
-                alarm_list = post_data.get('msgBody').get('controller').get('alarms')
+                alarm_list = post_data.get('msgBody').get('controller')\
+                .get('alarms')
                 for alarm in alarm_list:
                     alarm_info["total"] += 1
                     db.alarms.insert(alarm)
@@ -151,7 +158,8 @@ class DeviceApplication(View):
                     db.aps.insert(ap)
 
             if 'clients' in post_data.get('msgBody').get('controller'):
-                client_list = post_data.get('msgBody').get('controller').get('clients')
+                client_list = post_data.get('msgBody').get('controller')\
+                .get('clients')
                 for client in client_list:
                     if client["state"].lower() == "associated":
                         client_info["up"] += 1
@@ -170,10 +178,13 @@ class DeviceApplication(View):
         db.devices.insert(post_data)
 
         cursor = connection.cursor()
-        cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \
-            ap_up, ap_down, client_up, client_down, updated_on) VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
+        cursor.execute("INSERT INTO test_1_app_dashboard_info \
+            (controller_mac, client_info, ap_info, alarm_info, \
+            ap_up, ap_down, client_up, client_down, updated_on)\
+             VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
                        % (
-            str(mac), client_info["total"], ap_info["total"], alarm_info["total"], ap_info["up"], ap_info["down"], \
+            str(mac), client_info["total"], ap_info["total"], \
+            alarm_info["total"], ap_info["up"], ap_info["down"], \
             client_info["up"], client_info["down"], timestamp))
 
         transaction.commit_unless_managed()
@@ -208,7 +219,8 @@ class DeviceApplication(View):
 
         try:
             query_dict = command.objects.filter(
-                Q(controller_mac_address=mac, flag=0) | Q(controller_mac_address=mac, flag=1)
+                Q(controller_mac_address=mac, flag=0) | \
+                Q(controller_mac_address=mac, flag=1)
             ).values('command_id', 'flag')
 
             print query_dict
@@ -217,7 +229,8 @@ class DeviceApplication(View):
 
 
             if 'command_id' in query_dict[0]:
-                command.objects.filter(command_id=query_dict[0]['command_id']).update(flag=flag)
+                command.objects.filter(command_id=query_dict[0]['command_id'])\
+                .update(flag=flag)
             else:
                 return HttpResponse(json.dumps(self.false_response))
 
@@ -308,13 +321,15 @@ def cHello(request):
         db.controllers.insert(controller_doc)
 
         if 'alarms' in post_data.get('msgBody').get('controller'):
-            alarm_list = post_data.get('msgBody').get('controller').get('alarms')
+            alarm_list = post_data.get('msgBody').get('controller')\
+            .get('alarms')
             for alarm in alarm_list:
                 alarm_info["total"] += 1
                 db.alarms.insert(alarm)
 
         if 'aps' in post_data.get('msgBody').get('controller'):
-            ap_list = post_data.get('msgBody').get('controller').get('aps')
+            ap_list = post_data.get('msgBody').get('controller')\
+            .get('aps')
             for ap in ap_list:
                 if ap["status"].lower() == "disabled":
                     ap_info["down"] += 1
@@ -324,7 +339,8 @@ def cHello(request):
                 db.aps.insert(ap)
 
         if 'clients' in post_data.get('msgBody').get('controller'):
-            client_list = post_data.get('msgBody').get('controller').get('clients')
+            client_list = post_data.get('msgBody').get('controller')\
+            .get('clients')
             for client in client_list:
                 if client["status"].lower() == "associated":
                     client_info["up"] += 1
@@ -343,10 +359,13 @@ def cHello(request):
     db.devices.insert(post_data)
 
     cursor = connection.cursor()
-    cursor.execute("INSERT INTO test_1_app_dashboard_info (controller_mac, client_info, ap_info, alarm_info, \
-        ap_up, ap_down, client_up, client_down, updated_on) VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
+    cursor.execute("INSERT INTO test_1_app_dashboard_info \
+        (controller_mac, client_info, ap_info, alarm_info, \
+        ap_up, ap_down, client_up, client_down, updated_on) \
+    VALUE ('%s', %s, %s, %s, %s, %s, %s, %s, %s)" \
                    % (
-        str(mac), client_info["total"], ap_info["total"], alarm_info["total"], ap_info["up"], ap_info["down"], \
+        str(mac), client_info["total"], ap_info["total"],\
+         alarm_info["total"], ap_info["up"], ap_info["down"], \
         client_info["up"], client_info["down"], timestamp))
 
     transaction.commit_unless_managed()
@@ -363,24 +382,40 @@ def isConfigData(mac):
     :param mac:
     """
     config_data = {}
-    sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "", "sec-profile-name": "", "sec-l2-mode": ""}
-    ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "", "ess-state": "", "ess-ssid-broadcast": "",
+    sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "", \
+     "sec-profile-name": "", "sec-l2-mode": ""}
+    ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "", \
+     "ess-state": "", "ess-ssid-broadcast": "",
                         "ess-security-profile": ""}
 
     cursor = connection.cursor()
 
-    q = "SELECT test_1_app_ssid.ssid,test_1_app_security_profile.security_profile_id ,test_1_app_security_profile.enc_mode as\
-        'sec-enc-mode',test_1_app_security_profile.passphrase as 'sec-passphrase',test_1_app_security_profile.profile_name as\
-        'sec-profile-name',test_1_app_security_profile.l2_mode as 'sec-l2-mode',`test_1_app_ssid`.name as 'ess-profile-name',\
-        `test_1_app_ssid`.dataplane_mode as 'ess-dataplane-mode',`test_1_app_ssid`.enabled as 'ess-state',\
-        `test_1_app_ssid`.visible as 'ess-ssid-broadcast',`test_1_app_security_profile`.profile_name as\
+    q = "SELECT test_1_app_ssid.ssid,\
+    test_1_app_security_profile.security_profile_id ,\
+    test_1_app_security_profile.enc_mode as\
+        'sec-enc-mode',test_1_app_security_profile.passphrase as\
+         'sec-passphrase',test_1_app_security_profile.profile_name as\
+        'sec-profile-name',test_1_app_security_profile.l2_mode as\
+         'sec-l2-mode',`test_1_app_ssid`.name as 'ess-profile-name',\
+        `test_1_app_ssid`.dataplane_mode as \
+        'ess-dataplane-mode',`test_1_app_ssid`.enabled as 'ess-state',\
+        `test_1_app_ssid`.visible as 'ess-ssid-broadcast',\
+        `test_1_app_security_profile`.profile_name as\
         'ess-security-profile' FROM  `test_1_app_ssid`\
                 LEFT JOIN\
-         `test_1_app_security_profile` ON (test_1_app_security_profile.security_profile_id=`test_1_app_ssid`.security_profile_id)\
-         INNER JOIN test_1_app_ssid_in_command ON (test_1_app_ssid_in_command.ssid=`test_1_app_ssid`.ssid)\
-         INNER JOIN test_1_app_command ON (test_1_app_ssid_in_command.command_id=`test_1_app_command`.command_id)\
-          WHERE `test_1_app_command`.`controller_mac_address` = '%s'  and (`test_1_app_command`.flag='0' or `test_1_app_command`.flag='1')\
-         ORDER BY  `test_1_app_command`.`timestamp`  ASC limit 0,1" % str(mac)
+         `test_1_app_security_profile` ON \
+         (test_1_app_security_profile.security_profile_id=\
+            `test_1_app_ssid`.security_profile_id)\
+         INNER JOIN test_1_app_ssid_in_command ON \
+         (test_1_app_ssid_in_command.ssid=`test_1_app_ssid`.ssid)\
+         INNER JOIN test_1_app_command ON\
+          (test_1_app_ssid_in_command.command_id=\
+            `test_1_app_command`.command_id)\
+          WHERE `test_1_app_command`.`controller_mac_address` = \
+          '%s'  and (`test_1_app_command`.flag='0' or \
+            `test_1_app_command`.flag='1')\
+         ORDER BY  `test_1_app_command`.`timestamp` \
+          ASC limit 0,1" % str(mac)
 
     cursor.execute(q)
     result = cursor.fetchall()
@@ -419,13 +454,12 @@ def isConfigData(mac):
 
 
 def clientThroughput(request):
+    '''Module to plot the Station throughput line chart containing rxByte,
+    txByte and throughput plotting of Clients'''
     db = MongoClient()['nms']
     doc_list = []
     clients = []
-    rx_bytes = 0
-    tx_bytes = 0
     throughput = []
-    timestamp = []
     rx_list = []
     tx_list = []
     response_list = 0
@@ -478,17 +512,20 @@ def clientThroughput(request):
             tx_list.append([c['timestamp'], c['txBytes']])
             throughput.append([c['timestamp'], c['rxBytes'] + c['txBytes']])
             #print throughput
-        response_list = [{"label": "rxBytes", "data": rx_list}, {"label": "txBytes", "data": \
+        response_list = [{"label": "rxBytes", "data": rx_list}, \
+        {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
         #       print response_list
-        return HttpResponse(json.dumps({"status": "true", "values": response_list, \
-                                        "message": "values for station throughput bar graph"}))
+        return HttpResponse(json.dumps({"status": "true", \
+            "values": response_list,\
+            "message": "values for station throughput bar graph"}))
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))
 
 
 def devTypeDist(request):
+    '''Module to plot the device type distribution pie chart'''
     post_data = json.loads(request.body)
     db = MongoClient()['nms']
     client_list = []
@@ -530,12 +567,11 @@ def devTypeDist(request):
             d1["label"] = d
             d1["data"] = n
             response.append(d1)
-        return HttpResponse(json.dumps({"status": "true", "values": response}))
-    #		return render_to_response('test_1_app/devicedist.html', {"response" : response},context)
+        return HttpResponse(json.dumps({"status": "true", \
+            "values": response}))
     else:
         pass
     return HttpResponse(json.dumps({"status": "false"}))
-
 
 def traverse(obj, l):
     if hasattr(obj, '__iter__'):
@@ -607,24 +643,27 @@ def APThroughput(request):
             tx_list.append([c['timestamp'], c['txBytes']])
             throughput.append([c['timestamp'], c['rxBytes'] + c['txBytes']])
             #print throughput
-        response_list = [{"label": "rxBytes", "data": rx_list}, {"label": "txBytes", "data": \
+        response_list = [{"label": "rxBytes", "data": rx_list}, \
+        {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
         #       print response_list
-        return HttpResponse(json.dumps({"status": "true", "values": response_list, \
-                                        "message": "values for station throughput bar graph"}))
+        return HttpResponse(json.dumps({"status": "true", \
+            "values": response_list,\
+             "message": "values for station throughput bar graph"}))
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))
 
 
 def OverallThroughput(request):
+    ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes 
+        for Client, txbyte for Ap+ txByte for Client, and throughput 
+        (rxbyte+txbyte)'''
     db = MongoClient()['nms']
     doc_list = []
-    clients = []
     rx_bytes = 0
     tx_bytes = 0
     throughput = []
-    timestamp = []
     rx_list = []
     tx_list = []
     response_list = 0
@@ -679,11 +718,13 @@ def OverallThroughput(request):
             throughput.append([unix_timestamp, rx_bytes + tx_bytes])
 
         #print throughput
-        response_list = [{"label": "rxBytes", "data": rx_list}, {"label": "txBytes", "data": \
+        response_list = [{"label": "rxBytes", "data": rx_list}, \
+        {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
         #       print response_list
-        return HttpResponse(json.dumps({"status": "true", "values": response_list, \
-                                        "message": "values for station throughput bar graph"}))
+        return HttpResponse(json.dumps({"status": "true", \
+            "values": response_list,\
+             "message": "values for station throughput bar graph"}))
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
@@ -742,28 +783,34 @@ def WifiExperience(request):
             if 'aps' in doc['msgBody'].get('controller'):
                 aps = doc.get('msgBody').get('controller').get('aps')
                 for ap in aps:
-                    if min_ap > ap["wifiExp"]: min_ap = ap["wifiExp"]
-                    if max_ap < ap["wifiExp"]: max_ap = ap["wifiExp"]
+                    if min_ap > ap["wifiExp"]:
+                        min_ap = ap["wifiExp"]
+                    if max_ap < ap["wifiExp"]:
+                        max_ap = ap["wifiExp"]
                     unix_timestamp = int(doc['timestamp']) * 1000
                     ap['timestamp'] = unix_timestamp
                     clients.append(ap)
                     wifiexp_ap_sum += ap['wifiExp']
                     aps_count += 1
-                avg_ap_wifiexp.append([unix_timestamp, wifiexp_ap_sum / aps_count])
+                avg_ap_wifiexp.append([unix_timestamp, \
+                    wifiexp_ap_sum / aps_count])
                 min_aplist.append([unix_timestamp, min_ap])
                 max_aplist.append([unix_timestamp, max_ap])
             if 'clients' in doc['msgBody'].get('controller'):
                 client = doc.get('msgBody').get('controller').get('clients')
                 for c in client:
-                    if min_cl > c["wifiExp"]: min_cl = c["wifiExp"]
-                    if max_cl < c["wifiExp"]: max_cl = c["wifiExp"]
+                    if min_cl > c["wifiExp"]:
+                        min_cl = c["wifiExp"]
+                    if max_cl < c["wifiExp"]:
+                        max_cl = c["wifiExp"]
 
                     unix_timestamp = int(doc['timestamp']) * 1000
                     c['timestamp'] = unix_timestamp
                     clients.append(c)
                     wifiexp_cl_sum += c['wifiExp']
                     client_count += 1
-                avg_cl_wifiexp.append([unix_timestamp, wifiexp_cl_sum / client_count])
+                avg_cl_wifiexp.append([unix_timestamp, \
+                    wifiexp_cl_sum / client_count])
                 min_clist.append([unix_timestamp, min_cl])
                 max_clist.append([unix_timestamp, max_cl])
 
@@ -778,10 +825,11 @@ def WifiExperience(request):
             {"label": "Average-client-wifiExp", "data": avg_cl_wifiexp}
         ]
         print response_list
-        return HttpResponse(json.dumps({"status": "true", "values": response_list, \
-                                        "message": "values for Wifi Experience bar graph"}))
+        return HttpResponse(json.dumps({"status": "true", \
+         "values": response_list,\
+         "message": "values for Wifi Experience bar graph"}))
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
 
-# >>>>>>> 5a415a4fc7aea895a3cd0c00079e5b906753d74b
+

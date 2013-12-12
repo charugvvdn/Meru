@@ -419,13 +419,12 @@ def isConfigData(mac):
 
 
 def clientThroughput(request):
+    '''Module to plot the Station throughput line chart containing rxByte,
+    txByte and throughput plotting of Clients'''
     db = MongoClient()['nms']
     doc_list = []
     clients = []
-    rx_bytes = 0
-    tx_bytes = 0
     throughput = []
-    timestamp = []
     rx_list = []
     tx_list = []
     response_list = 0
@@ -489,6 +488,7 @@ def clientThroughput(request):
 
 
 def devTypeDist(request):
+    '''Module to plot the device type distribution pie chart'''
     post_data = json.loads(request.body)
     db = MongoClient()['nms']
     client_list = []
@@ -535,7 +535,6 @@ def devTypeDist(request):
     else:
         pass
     return HttpResponse(json.dumps({"status": "false"}))
-
 
 def traverse(obj, l):
     if hasattr(obj, '__iter__'):
@@ -618,13 +617,14 @@ def APThroughput(request):
 
 
 def OverallThroughput(request):
+    ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes 
+        for Client, txbyte for Ap+ txByte for Client, and throughput 
+        (rxbyte+txbyte)'''
     db = MongoClient()['nms']
     doc_list = []
-    clients = []
     rx_bytes = 0
     tx_bytes = 0
     throughput = []
-    timestamp = []
     rx_list = []
     tx_list = []
     response_list = 0
@@ -742,8 +742,10 @@ def WifiExperience(request):
             if 'aps' in doc['msgBody'].get('controller'):
                 aps = doc.get('msgBody').get('controller').get('aps')
                 for ap in aps:
-                    if min_ap > ap["wifiExp"]: min_ap = ap["wifiExp"]
-                    if max_ap < ap["wifiExp"]: max_ap = ap["wifiExp"]
+                    if min_ap > ap["wifiExp"]:
+                        min_ap = ap["wifiExp"]
+                    if max_ap < ap["wifiExp"]:
+                        max_ap = ap["wifiExp"]
                     unix_timestamp = int(doc['timestamp']) * 1000
                     ap['timestamp'] = unix_timestamp
                     clients.append(ap)
@@ -755,8 +757,10 @@ def WifiExperience(request):
             if 'clients' in doc['msgBody'].get('controller'):
                 client = doc.get('msgBody').get('controller').get('clients')
                 for c in client:
-                    if min_cl > c["wifiExp"]: min_cl = c["wifiExp"]
-                    if max_cl < c["wifiExp"]: max_cl = c["wifiExp"]
+                    if min_cl > c["wifiExp"]:
+                        min_cl = c["wifiExp"]
+                    if max_cl < c["wifiExp"]:
+                        max_cl = c["wifiExp"]
 
                     unix_timestamp = int(doc['timestamp']) * 1000
                     c['timestamp'] = unix_timestamp

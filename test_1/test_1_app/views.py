@@ -160,7 +160,7 @@ class DeviceApplication(View):
                     client_info["total"] += 1
                     db.clients.insert(client)
 
-        print post_data
+#        print post_data
 
         utc_1970 = datetime.datetime(1970, 1, 1)
         utcnow = datetime.datetime.utcnow()
@@ -182,7 +182,7 @@ class DeviceApplication(View):
 
         return HttpResponse(json.dumps(config_data))
 
-    def put(self, mac, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """
         Update from the controller with info that all the commands has
         been successfully executed on that controller
@@ -191,9 +191,8 @@ class DeviceApplication(View):
         :param args:
         :param kwargs:
         """
-
         if "mac" in kwargs:
-            mac = mac
+            mac = kwargs["mac"]
 
         null_mac = {"status": "Null mac"}
         not_registered = {"status": "not registered"}
@@ -207,19 +206,10 @@ class DeviceApplication(View):
             flag = 2
 
         try:
-            query_dict = command.objects.filter(
-                Q(controller_mac_address=mac, flag=0) | Q(controller_mac_address=mac, flag=1)
-            ).values('command_id', 'flag')
-
-            print query_dict
-            #Should we check for len(query_dict == 0) ??
-            #This query would return a single or multiple results ?
-
-
-            if 'command_id' in query_dict[0]:
-                command.objects.filter(command_id=query_dict[0]['command_id']).update(flag=flag)
-            else:
-                return HttpResponse(json.dumps(self.false_response))
+            q = """ UPDATE test_1_app_command SET flag = %s WHERE \
+                    (controller_mac_address = '%s' AND (flag = 0 OR flag = 1))""" % (flag ,mac)
+            cursor = connection.cursor()
+            cursor.execute(q)
 
             return HttpResponse(json.dumps(self.true_response))
 
@@ -784,4 +774,59 @@ def WifiExperience(request):
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
 
-# >>>>>>> 5a415a4fc7aea895a3cd0c00079e5b906753d74b
+def ap_clients(request):
+    db = MongoClient()['nms']
+    doc_list = []
+    client_list = []
+    clients = []
+    ap_list = []
+    ap_dict = {}
+    aps = []
+    no_of_clients = {}
+    result = []
+    timestamp = []
+    response_list = 0
+    unix_timestamp = 0
+
+    post_data = json.loads(request.body)
+
+    if not len(post_data):
+        return HttpResponse(json.dumps({"status": "false", \
+                                        "message": "No POST data"}))
+
+    if 'mac' in post_data:
+        mac_list = post_data['mac']
+        if 'time' in post_data:
+            time_frame = post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+
+        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
+            : {"$gt": start_time, "$lt": end_time}})
+
+        for doc in cursor:
+            doc_list.append(doc)
+        for doc in doc_list:
+            if 'aps' in doc.get('msgBody').get('controller'):
+                ap_list.append(doc.get('msgBody').get('controller').get('aps'))   
+
+            if 'clients' in doc.get('msgBody').get('controller'):
+                client_list.append(doc.get('msgBody').get('controller') \
+                    .get('clients'))
+        aps = traverse(ap_list, aps)
+        clients = traverse(client_list, clients)
+        for ap in aps:
+            if ap['id'] not in ap_dict:
+                ap_dict[ap['id']] = ap['mac']
+
+        for c in clients:
+            if c['apId'] not in client_dict:
+                client_dict['id'] = c['apId']
+        return HttpResponse(json.dumps({"status" : "true"}))

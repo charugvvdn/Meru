@@ -374,7 +374,7 @@ def client_throughput(request):
         
         return HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
-            "message": "values for station throughput bar graph"}))
+            "message": "values for client throughput bar graph"}))
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))
@@ -462,7 +462,7 @@ def ap_throughput(request):
                             {
                                 "status": "true", \
                                 "values": response_list,\
-                                "message": "values for station throughput bar graph"
+                                "message": "values for AP throughput bar graph"
                             }))
     else:
         return HttpResponse(json.dumps({"status": "false", \
@@ -518,7 +518,7 @@ def overall_throughput(request):
         #       print response_list
         return HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
-             "message": "values for station throughput bar graph"}))
+             "message": "values for Overall throughput bar graph"}))
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
@@ -679,12 +679,10 @@ def ap_clients(request):
                     
             result = {"label": mac, "data": [timestamp,no_mac]}
             response_list.append(result)
-            
 
-
-                
-        return HttpResponse(json.dumps({"status": "true","values": response_list,\
-                            "message": "values for Number of MAC bar graph"}))
+        return HttpResponse(json.dumps({"status": "true", \
+         "values": response_list,\
+         "message": "values for Number of clients for AP"}))
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))

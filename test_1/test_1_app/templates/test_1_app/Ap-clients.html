@@ -2,32 +2,28 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>{{ d }} Throughput graph</title>
+    <title>AP with number of clients Connected</title>
 
     <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../excanvas.min.js"></script>
     <![endif]-->
     <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.js"></script>
     <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.flot.js"></script>
-    <script language="javascript" type="text/javascript"
-            src="http://www.flotcharts.org/flot/jquery.flot.time.js"></script>
+    <script language="javascript" type="text/javascript" src="http://www.flotcharts.org/flot/jquery.flot.time.js"></script>
 </head>
+<body>
+<h1>AP with number of clients Connected</h1>
+
+<div id="placeholder" style="width:600px;height:300px;"></div>
+
 
 <script type="text/javascript">
-    $(function () {
-        $("<div id='tooltip'></div>").css({
-            position: "absolute",
-            display: "none",
-            border: "1px solid #fdd",
-            padding: "2px",
-            "background-color": "#fee",
-            opacity: 0.80
-        }).appendTo("body");
-
-        var ary = new Array();
-        var options = {
+var ap_data = new Array()
+var mac_data = new Array()
+var colors = ["#AA4643","89A54E","#4572A7","80699B"]
+$(document).ready(function () {
+    var options = {
             series: {
-                lines: { show: true},
-                points: {show: true}
+                shadowSize: 1
             },
             grid: {
                 hoverable: true,
@@ -41,9 +37,7 @@
                 timeformat: "%H:%M:%S"
             }
         };
-        var data1 = new Array();
-        
-        $.ajax({
+    $.ajax({
             type: "POST",
             url: "http://localhost:8000/meru-nms/reports/ap_client/",
             data: '{"mac" : ["AA:BB:CC:DD:00:DD"]}',
@@ -51,92 +45,89 @@
             dataType: "json",
             success: function (result) {
                 if (result['status'] == 'true') {
-                    console.log(result['values'])
+                    
                     for (var i = 0; i < result['values'].length; i++) {
-
-
-                        ary.push(result['values'][i])
-
+                        ap_data.push(result['values'][i]['data'])
+                        console.log(result['values'][i]['data'])
+                        mac_data.push(result['values'][i]['label'])
+                        
                     }
-                    console.log(ary)
-                    for (var x = 0;x<ary.length;x++){
-                        data1.push( 
-                        {
-                            label: ary[x]['label'],
-                            data: ary[x],
-                            bars: {
-                                show: true,
-                                barWidth: 12*24*60*60*300,
-                                fill: true,
-                                lineWidth: 1,
-                                order: 1,
-                                fillColor:  "#AA4643"
-                            },
-                            color: "#AA4643"
-                        })
-                        $.plot($("#placeholder"), data1, {
-                    xaxis: {
-                        mode: "time",
-                        timeformat: "%H:%M:%S"
-                    },
-                   
-                    series: {
-                        lines: { show: true},
-                        points: {show: true}
-                    },
-                    grid: {
-                        hoverable: true,
-                        clickable: true
-                    },
-                });
-                
-                $("#placeholder").bind("plothover", function (event, pos, item) {
-                    if (item) {
-                        if (previousPoint != item.datapoint) {
-                            previousPoint = item.datapoint;
-                            $("#flot-tooltip").remove();
-             
-                            var originalPoint;
-             
-                            if (item.datapoint[0] == item.series.data[0][3]) {
-                                originalPoint = item.series.data[0][0];
-                            } else if (item.datapoint[0] == item.series.data[1][3]){
-                                originalPoint = item.series.data[1][0];
-                            } else if (item.datapoint[0] == item.series.data[2][3]){
-                                originalPoint = item.series.data[2][0];
-                            } else if (item.datapoint[0] == item.series.data[3][3]){
-                                originalPoint = item.series.data[3][0];
-                            } else if (item.datapoint[0] == item.series.data[4][3]){
-                                originalPoint = item.series.data[4][0];
+                    
+                    
+                    var data1 = [
+                    {
+                        label: "Product 1",
+                        data: ap_data,
+                        bars: {
+                            show: true,
+                            barWidth: 12*24*60*60*300,
+                            fill: true,
+                            lineWidth: 1,
+                            order: 1,
+                            fillColor:  "#AA4643"
+                        },
+                        color: "#AA4643"
+                    }];
+                    $.plot($("#placeholder"), data1, options);
+                 
+                    function showTooltip(x, y, contents, z) {
+                        $('<div id="flot-tooltip">' + contents + '</div>').css({
+                            top: y - 20,
+                            left: x - 90,
+                            'border-color': z,
+                        }).appendTo("body").show();
+                    }
+                 
+                    
+                 
+                    $("#placeholder").bind("plothover", function (event, pos, item) {
+                        if (item) {
+                            if (previousPoint != item.datapoint) {
+                                previousPoint = item.datapoint;
+                                $("#flot-tooltip").remove();
+                 
+                                var originalPoint;
+                 
+                                if (item.datapoint[0] == item.series.data[0][3]) {
+                                    originalPoint = item.series.data[0][0];
+                                } else if (item.datapoint[0] == item.series.data[1][3]){
+                                    originalPoint = item.series.data[1][0];
+                                } else if (item.datapoint[0] == item.series.data[2][3]){
+                                    originalPoint = item.series.data[2][0];
+                                } else if (item.datapoint[0] == item.series.data[3][3]){
+                                    originalPoint = item.series.data[3][0];
+                                } else if (item.datapoint[0] == item.series.data[4][3]){
+                                    originalPoint = item.series.data[4][0];
+                                }
+                 
+                                var x = item.datapoint[0];
+                                y = item.datapoint[1];
+                                z = item.series.color;
+                                var date = new Date(x);
+                                var h = date.getUTCHours()
+                                var m = date.getUTCMinutes()
+                                var s = date.getUTCSeconds()
+                                var formatted_date = h + ":" + m + ":" + s;
+                                showTooltip(item.pageX, item.pageY,
+                                    "<b>" + item.series.label + "</b><br /> " + formatted_date + " = " + y,
+                                    z);
                             }
-             
-                            var x = getMonthName(originalPoint);
-                            y = item.datapoint[1];
-                            z = item.series.color;
-             
-                            showTooltip(item.pageX, item.pageY,
-                                "<b>" + item.series.label + "</b><br /> " + x + " = " + y + "&deg;C",
-                                z);
+                        } else {
+                            $("#flot-tooltip").remove();
+                            previousPoint = null;
                         }
-                    } else {
-                        $("#flot-tooltip").remove();
-                        previousPoint = null;
-                    }
-                });
-                    }
+                    });
                 }
             }
         });
-    });
-                        
-                    
-         </script>
- 
+    
+});
+</script>
 </head>
  
 <body>
     
-    <div id="placeholder" style="width:600px;height:300px;"></div>
+    <div id="placeholder"></div>
 </body>
 </html>
 

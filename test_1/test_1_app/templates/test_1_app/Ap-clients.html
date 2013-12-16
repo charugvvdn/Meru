@@ -56,7 +56,7 @@ $(document).ready(function () {
     $.ajax({
             type: "POST",
             url: " http://54.200.222.233:8000/meru-nms/reports/ap_clients/",
-            data: '{"mac" : ["AA:BB:CC:DD:00:DD"],"time":[1387188904000,1387188907000]}',
+            data: '{"mac" : ["AA:BB:CC:DD:00:DD"]}',
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function (result) {

@@ -92,7 +92,7 @@ class Common():
         """
         doc_list = []
         mac_list = post_data['mac']
-
+        
         if 'time' in post_data:
             time_frame = post_data['time']
             start_time = time_frame[0]
@@ -107,11 +107,13 @@ class Common():
             
         print mac_list
         print start_time, end_time
-        cursor = db.devices.find({"snum": mac_list, "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
+        for mac in mac_list:
+        
+            cursor = db.devices.find({"snum": mac, "timestamp" \
+                : {"$gt": start_time, "$lt": end_time}})
 
-        for doc in cursor:
-            doc_list.append(doc)
+            for doc in cursor:
+                doc_list.append(doc)
 
         return doc_list
 
@@ -456,7 +458,7 @@ def ap_throughput(request):
         #get the clients
         get_type = "aps"
         clients = common.calc_type(doc_list, get_type)
-
+        
         rx_list, tx_list, throughput = common.throughput_calc(clients)
 
         response_list = [
@@ -471,6 +473,7 @@ def ap_throughput(request):
                                 "values": response_list,\
                                 "message": "values for AP throughput bar graph"
                             }))
+        print response
 	response["Access-Control-Allow-Origin"] = "*"
 	return response
     else:

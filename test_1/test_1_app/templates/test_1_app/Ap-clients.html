@@ -34,7 +34,7 @@ $(document).ready(function () {
                 stack: 1,
                 bars: {
                             show: true,
-                            barWidth: 12*24*60*60*300,
+                            barWidth: 12*24*60,
                             fill: true,
                             lineWidth: 1,
                             order: 1,
@@ -56,15 +56,15 @@ $(document).ready(function () {
     $.ajax({
             type: "POST",
             url: "http://localhost:8000/meru-nms/reports/ap_clients/",
-            data: '{"mac" : ["AA:BB:CC:DD:00:DD"]}',
+            data: '{"mac" : ["AA:BB:CC:DD:00:DD"],"time":[1387188904000,1387188907000]}',
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function (result) {
                 if (result['status'] == 'true') {
                     
                     for (var i = 0; i < result['values'].length; i++) {
-                        ap_data.push(result['values'][i])
-                        console.log(ap_data)
+                        ap_data.push([result['values'][i]['data']])
+                        
                     }
                     
                     /*var d1_3 = [
@@ -74,13 +74,14 @@ $(document).ready(function () {
                         [1333238400000, 20],
                         [1335830400000, 10]
                     ];
+                    
                     var data1 = [
                     {
-                        label: "MAC",
+                        
                         data: d1_3,
                         
-                    }];
-                    console.log(data1)*/
+                    }];*/
+                    
                     $.plot($("#placeholder"), ap_data, options);
                   $("#placeholder").bind("plotclick", function (event, pos, item) {
                         if (item) {
@@ -88,8 +89,6 @@ $(document).ready(function () {
                             plot.highlight(item.series, item.datapoint);
                         }
                     });
-
-                    
                  
                     $("#placeholder").bind("plothover", function (event, pos, item) {
 

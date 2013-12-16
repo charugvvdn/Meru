@@ -49,8 +49,8 @@
 
         $.ajax({
             type: "POST",
-            url: "http://localhost:8000/meru-nms/reports/stationThroughput/",
-            data: '{"mac" : ["AA:BB:CC:DD:00:DD"]}',
+            url: "http://54.200.222.233:8000/meru-nms/reports/stationThroughput/",
+            data: '{"mac" : ["AA:BB:CC:DD:00:DD"], "time" : [1386962155, 1397012155]}',
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function (result) {

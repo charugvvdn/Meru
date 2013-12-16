@@ -81,7 +81,10 @@ class Common():
         else:
             post_data = None
 
-        return post_data
+        print "Data is " 
+	print  post_data
+	print "end_of_data"
+	return post_data
 
     def let_the_docs_out(self, post_data):
         """
@@ -101,10 +104,10 @@ class Common():
             offset = utc_now - datetime.timedelta(minutes=30)
             start_time = int((offset - utc_1970).total_seconds())
             end_time = int((utc_now - utc_1970).total_seconds())
-            print start_time
-            print end_time
-
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
+            
+        print mac_list
+        print start_time, end_time
+        cursor = db.devices.find({"snum": mac_list, "timestamp" \
             : {"$gt": start_time, "$lt": end_time}})
 
         for doc in cursor:
@@ -447,6 +450,7 @@ def ap_throughput(request):
     if 'mac' in post_data:
         #fetch the docs
         doc_list = common.let_the_docs_out(post_data)
+        print len(doc_list)
 
         #start the report evaluation
         #get the clients
@@ -461,12 +465,14 @@ def ap_throughput(request):
                             {"label": "throughput", "data": throughput}
                         ]
         #       print response_list
-        return HttpResponse(json.dumps(
+        response = HttpResponse(json.dumps(
                             {
                                 "status": "true", \
                                 "values": response_list,\
                                 "message": "values for AP throughput bar graph"
                             }))
+	response["Access-Control-Allow-Origin"] = "*"
+	return response
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))

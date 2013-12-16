@@ -381,9 +381,16 @@ def client_throughput(request):
                         ]
         #       print response_list
         
-        return HttpResponse(json.dumps({"status": "true", \
+        response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
             "message": "values for client throughput bar graph"}))
+
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))
@@ -424,8 +431,14 @@ def devicetype(request):
             d1["data"] = n
             response.append(d1)
             
-        return HttpResponse(json.dumps({"status": "true", \
+        response =  HttpResponse(json.dumps({"status": "true", \
             "values": response}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+
     else:
         pass
     return HttpResponse(json.dumps({"status": "false"}))
@@ -476,9 +489,11 @@ def ap_throughput(request):
                                 "values": response_list,\
                                 "message": "values for AP throughput bar graph"
                             }))
-        print response
-	response["Access-Control-Allow-Origin"] = "*"
-	return response
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
     else:
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No mac provided"}))
@@ -531,9 +546,15 @@ def overall_throughput(request):
         {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
         #       print response_list
-        return HttpResponse(json.dumps({"status": "true", \
+        response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
              "message": "values for Overall throughput bar graph"}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
@@ -619,9 +640,15 @@ def wifi_experience(request):
             {"label": "Average-client-wifiExp", "data": avg_cl_wifiexp}
         ]
         print response_list
-        return HttpResponse(json.dumps({"status": "true", \
+        response = HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Wifi Experience bar graph"}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))
@@ -702,9 +729,15 @@ def ap_clients(request):
         #result = {"label": mac, "data": [timestamp,no_mac]}
         #response_list.append(result)
 
-        return HttpResponse(json.dumps({"status": "true", \
+        response =  HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Number of clients for AP"}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+
 
     return HttpResponse(json.dumps({"status": "false", \
                                     "message": "No mac provided"}))

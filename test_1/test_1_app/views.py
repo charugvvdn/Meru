@@ -8,6 +8,7 @@ from django.shortcuts import render, render_to_response
 from django.template import RequestContext
 import datetime
 import itertools
+from collections import Counter
 import ast
 import json
 
@@ -386,7 +387,7 @@ def client_throughput(request):
 def devicetype(request):
     '''Module to plot the device type distribution pie chart'''
     
-    clients = []
+    #clients = []
     device_types = {}
     response = []
     context = RequestContext(request)
@@ -397,25 +398,27 @@ def devicetype(request):
     if 'mac' in post_data:
         #fetch the docs
         doc_list = common.let_the_docs_out(post_data)
-
+        for doc in doc_list:
         #start the report evaluation
         
         #get the clients
-        get_type = "clients"
-        client_list = common.calc_type(doc_list, get_type)
-
-        clients = common.traverse(client_list, clients)
-
-        for c in clients:
-            if c['clientType'] in device_types:
-                device_types[c['clientType']] += 1
-            else:
-                device_types[c['clientType']] = 1
+            get_type = "clients"
+            client_list = common.calc_type(doc_list, get_type)
+            clients = doc.get('msgBody').get('controller').get('clients')
+            #clients = common.traverse(client_list, clients)
+            
+            for c in clients:
+                if c['clientType'] in device_types:
+                    device_types[c['clientType']] += 1
+                else:
+                    device_types[c['clientType']] = 1
+            print device_types
         for d, n in device_types.iteritems():
             d1 = {"label": 0, "data": 0}
             d1["label"] = d
             d1["data"] = n
             response.append(d1)
+            
         return HttpResponse(json.dumps({"status": "true", \
             "values": response}))
     else:
@@ -498,7 +501,7 @@ def overall_throughput(request):
     #post_data = ast.literal_eval(request.POST.lists()[0][0])
 
     if 'mac' in post_data:
-        #fetch the docs
+        #fetch thdevicedistdevicedistdevicedistdevicedistdevicediste docs
         doc_list = common.let_the_docs_out(post_data)
 
         get_type = "aps"
@@ -622,7 +625,7 @@ def ap_clients(request):
     db = MongoClient()['nms']
     doc_list = []
     ap_dict = {}
-    result = {}
+    result=Counter()
     clients = []
     no_of_client = {}
     response_list= []
@@ -664,27 +667,34 @@ def ap_clients(request):
                     
                     if ap['id'] not in ap_dict:
                         ap_dict[ap['id']] = ap['mac']
-                    
+                        ap_dict[str(ap['id'])+"time"] =  unix_timestamp
                 
             if 'clients' in doc['msgBody'].get('controller'):
                 client = doc.get('msgBody').get('controller').get('clients')
                 for c in client:
                     client_dict = {}
-                    client_dict['timestamp'] = unix_timestamp
+                    #client_dict['timestamp'] = unix_timestamp
                     client_dict['apId'] = c['apId']
                     clients.append(client_dict)
-
-                            
-        for apkey,mac in ap_dict.iteritems():
-            no_mac = 0
-            timestamp = 0
-            for client in clients:
-                timestamp = client['timestamp']
-                if client['apId'] == apkey:
-                    no_mac += 1
+         
+        for client in clients:
+        
+            response = {}
+            if client['apId'] in ap_dict:
+                result[str(client['apId'])] += 1
+         
+        for apid,count in result.iteritems()  :
+            
+            response = {}
+            
+            response['data']  = [ap_dict[str(apid)+"time"],result[str(apid)]]
+            response['label'] = ap_dict[int(apid)]
+            response_list.append(response)
+        
+            
                     
-            result = {"label": mac, "data": [timestamp,no_mac]}
-            response_list.append(result)
+        #result = {"label": mac, "data": [timestamp,no_mac]}
+        #response_list.append(result)
 
         return HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\

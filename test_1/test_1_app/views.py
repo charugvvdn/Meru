@@ -72,8 +72,14 @@ class Common():
     def eval_request(self, request):
         if request.method == "GET":
             post_data = request.GET.dict()
+            print post_data
+            get_data = {}
             for pd in post_data:
-                post_data[pd] = ast.literal_eval(post_data[pd])
+                temp_var = ast.literal_eval(pd)
+                for t in temp_var:
+                    get_data[t] = temp_var[t]
+            post_data = get_data
+                
         
         elif request.method == "POST":
             post_data = json.loads(request.body)
@@ -81,9 +87,6 @@ class Common():
         else:
             post_data = None
 
-        print "Data is " 
-	print  post_data
-	print "end_of_data"
 	return post_data
 
     def let_the_docs_out(self, post_data):

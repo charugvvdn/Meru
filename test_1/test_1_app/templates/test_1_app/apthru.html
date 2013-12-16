@@ -47,10 +47,16 @@
             }
         };
 
+/*	$.get("http://54.200.222.233:8000/meru-nms/reports/APThroughput/", {'mac' : ["AA:BB:CC:DD:00:DD", "AA:BB:CC:DD:11:DD"]}, function (result) {
+
+			console.log(result);
+		
+	});
+*/
         $.ajax({
-            type: "POST",
+            type: "GET",
             url: "http://54.200.222.233:8000/meru-nms/reports/APThroughput/",
-            data: '{"mac" : ["AA:BB:CC:DD:00:DD"], "time" : [1386962155, 1397012155]}',
+            data: '{"mac" : ["AA:BB:CC:DD:00:DD", "AA:BB:CC:DD:11:DD"]}',
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function (result) {

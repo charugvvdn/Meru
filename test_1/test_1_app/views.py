@@ -662,7 +662,7 @@ def ap_clients(request):
     clients = []
     no_of_client = {}
     response_list= []
-
+    list_new = []
     post_data = json.loads(request.body)
 
     if not len(post_data):
@@ -715,17 +715,16 @@ def ap_clients(request):
             response = {}
             if client['apId'] in ap_dict:
                 result[str(client['apId'])] += 1
-         
+        
         for apid,count in result.iteritems()  :
             
             response = {}
-            
-            response['data']  = [ap_dict[str(apid)+"time"],result[str(apid)]]
+            list_new = []
+            list_new.append( [ap_dict[str(apid)+"time"],result[str(apid)]])
+            response['data']  = list_new
             response['label'] = ap_dict[int(apid)]
             response_list.append(response)
         
-            
-                    
         #result = {"label": mac, "data": [timestamp,no_mac]}
         #response_list.append(result)
 

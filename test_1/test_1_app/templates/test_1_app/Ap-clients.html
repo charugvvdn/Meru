@@ -17,7 +17,10 @@
 
 
 <script type="text/javascript">
-var ap_data = new Array()
+var data = new Array()
+var label = new Array()
+var data1 = new Array()
+var d = new Object();
 
 $(document).ready(function () {
     $("<div id='tooltip'></div>").css({
@@ -38,7 +41,7 @@ $(document).ready(function () {
                             fill: true,
                             lineWidth: 1,
                             order: 1,
-                            fillColor:  "#AA4643"
+                            
                         }
             },
             grid: {
@@ -63,26 +66,32 @@ $(document).ready(function () {
                 if (result['status'] == 'true') {
                     
                     for (var i = 0; i < result['values'].length; i++) {
-                        ap_data.push([result['values'][i]['data']])
+                        data.push(result['values'][i])
                         
                     }
                     
-                    /*var d1_3 = [
-                        [1325376000000, 80],
-                        [1328054400000, 40],
-                        [1330560000000, 30],
-                        [1333238400000, 20],
-                        [1335830400000, 10]
-                    ];
-                    
-                    var data1 = [
+                    /*var data1 = [
                     {
+                        label:'mac',
+                        data: [
+                        [1325376000000, 80]],
                         
-                        data: d1_3,
+                    },
+                    {
+                        label:'mac1',
+                        data: [
+                        [1328054400000, 40]],
                         
-                    }];*/
+                    },
+                    {
+                        label:'mac2',
+                        data: [
+                        [1330560000000, 30]],
+                        
+                    }];
+                    console.log(data1)*/
                     
-                    $.plot($("#placeholder"), ap_data, options);
+                    $.plot($("#placeholder"), data, options);
                   $("#placeholder").bind("plotclick", function (event, pos, item) {
                         if (item) {
                             $("#clickdata").text(" - click point " + item.dataIndex + " in " + item.series.label);
@@ -91,7 +100,7 @@ $(document).ready(function () {
                     });
                  
                     $("#placeholder").bind("plothover", function (event, pos, item) {
-
+                        console.log(item)
                         //if ($("#enablePosition:checked").length > 0) {
                         var str = "(" + pos.x.toFixed(2) + ", " + pos.y.toFixed(2) + ")";
                         $("#hoverdata").text(str);

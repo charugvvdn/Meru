@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
-from test_1_app import views
+from test_1_app import views,api
 from test_1_app.views import DeviceApplication as dav
-
+from test_1_app.api import HomeApi
 
 urlpatterns = patterns('',
                        url(r'^welcome/$', views.welcome, name='welcome'),
@@ -16,7 +16,8 @@ urlpatterns = patterns('',
                        url(r'^reports/APThroughput/$', views.ap_throughput),
                        url(r'^reports/wifi_experience/$', views.wifi_experience),
                        url(r'^reports/overall_throughput/$', views.overall_throughput),
-			url(r'^reports/devicedist/$', views.devicetype),
+            url(r'^reports/devicedist/$', views.devicetype),
 			url(r'^reports/ap_clients/$', views.ap_clients),
+            url(r'^home/api/$', HomeApi.as_view()),
 )
 

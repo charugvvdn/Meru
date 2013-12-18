@@ -111,7 +111,8 @@ class Common():
         print mac_list
         print start_time, end_time
         for mac in mac_list:
-        
+            if not db.devices.find({"snum": mac}).count():
+                continue
             cursor = db.devices.find({"snum": mac, "timestamp" \
                 : {"$gt": start_time, "$lt": end_time}})
 

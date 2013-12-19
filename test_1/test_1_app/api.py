@@ -5,6 +5,7 @@ import json
 from django.views.generic.base import View
 from views import Common
 import ast
+import pprint
 #Connection with mongodb client
 client = MongoClient()
 db = client['nms']
@@ -28,7 +29,6 @@ class HomeStats():
             threshhold_max = threshhold[1]
 
         else:
-            threshhold_min = int(0)
             threshhold_max = int(78799)
 
         for doc in doc_list:
@@ -49,9 +49,9 @@ class HomeStats():
         self.result_dict["access_pt"]['count'] = len(mac_list)
         self.result_dict["access_pt"]['status'] = True
         self.result_dict["access_pt"]['mac'] = mac_list
-        print self.result_dict['access_pt']
+        return self.result_dict['access_pt']
 
-        ''' SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
+        
     def sites_critical_health(self, doc_list, typeof="aps"):
         '''SITES WITH CRITICAL HEALTH'''
         mac_list = []
@@ -68,13 +68,14 @@ class HomeStats():
                 if flag and mac not in mac_list:
                     mac_list.append(mac)
         self.result_dict["sites_critcal_health"] = {}
-        self.result_dict["sites_critcal_health"]['message'] = "SITES WITH CRITICAL HEALTH"
+        self.result_dict["sites_critcal_health"]['message'] = \
+        "SITES WITH CRITICAL HEALTH"
         self.result_dict["sites_critcal_health"]['count'] = len(mac_list)
         self.result_dict["sites_critcal_health"]['status'] = True
         self.result_dict["sites_critcal_health"]['mac'] = mac_list
-        print self.result_dict["sites_critcal_health"]
+        return self.result_dict["sites_critcal_health"]
 
-        '''SITES WITH CRITICAL HEALTH'''
+        
 
     def sites_down(self, doc_list, typeof="aps"):
         '''b. SITES WITH DEVICES DOWN'''
@@ -96,9 +97,9 @@ class HomeStats():
         self.result_dict["sites_down"]['count'] = len(mac_list)
         self.result_dict["sites_down"]['status'] = True
         self.result_dict["sites_down"]['mac'] = mac_list
-        print self.result_dict["sites_down"]
+        return self.result_dict["sites_down"]
 
-        '''SITES WITH DEVICES DOWN'''
+        
 
     def critical_alarms(self, doc_list, typeof="alarms"):
         '''SITES WITH CRITICAL ALARMS'''
@@ -121,10 +122,112 @@ class HomeStats():
         self.result_dict["critical_alarm"]['count'] = len(mac_list)
         self.result_dict["critical_alarm"]['status'] = True
         self.result_dict["critical_alarm"]['mac'] = mac_list
-        print self.result_dict["critical_alarm"]
+        return self.result_dict["critical_alarm"]
 
-        '''SITES WITH CRITICAL ALARMS'''
+        
+    def controller_util(self, doc_list, typeof = 'controller'):
+        '''API calculating controller utilization count'''
+        gt_50_count = 10
+        _50_75_count = 20
+        lt_75_count = 33
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                controllers = doc.get('msgBody').get('controller').get(typeof)
+                '''for controller in controllers:
+                    pass
+                    # logic to be implemented'''
+        result_dict['label'] = 'Controller Utilization'
+        result_dict['data'] = [gt_50_count, _50_75_count, lt_75_count]
+        return result_dict
+            
+    def alarms(self, doc_list, typeof = 'alarms'):
+        '''API calculating critical, high, minor alarms'''
+        critical_count = 0
+        high_count = 0
+        minor_count = 0
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                alarms = doc.get('msgBody').get('controller').get(typeof)
+                for alarm in alarms:
+                    if alarm['severity'] == 'High':
+                        high_count  += 1
+        result_dict['label'] = 'Alarms'
+        result_dict['data'] = [critical_count, high_count, minor_count]
+        return result_dict
+            
 
+    def access_points(self, doc_list, typeof = 'aps'):
+        ''' API Calculating online, offline, down aps # '''
+        online_count = 0
+        offline_count = 0
+        down_aps = 0
+        result_dict = {}
+    
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                aps = doc.get('msgBody').get('controller').get(typeof)
+                for ap in aps:
+                    if ap['status'] == 'DOWN':
+                        down_aps += 1
+        result_dict['label'] = 'Access point'
+        result_dict['data'] = [online_count, offline_count, down_aps]
+        return result_dict
+        
+
+    def wireless_clients(self, p_data, typeof = 'clients'):
+        ''' API Calculating wireless clients count according to timestamp '''
+        mac_list = p_data['mac']
+        time_list = []
+        if 'time' in p_data:
+            time_frame = p_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
+        
+        cursor = db.devices.find({"timestamp" \
+            : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
+        
+        result_list = []
+        result_dict = {}
+        for doc in cursor:
+        
+            if doc['timestamp'] not in time_list:
+                time_list.append(doc['timestamp'])
+        
+        for time in time_list: 
+            count = 0
+            for mac in mac_list:
+                cursor = db.devices.find({"snum": mac, "timestamp" :time})
+                for doc in cursor:
+                    if typeof in doc['msgBody'].get('controller'):
+                        clients = doc.get('msgBody').get('controller').\
+                        get(typeof)
+                        for client in clients:
+                            count += 1
+            result_list.append(count)
+
+        current = result_list[0] if result_list else 0
+        peak = max(result_list) if result_list else 0
+        avg = reduce(lambda x, y: x + y, result_list) / \
+        len(result_list) if result_list else 0
+        result_dict['label'] = 'Wireless Clients'
+        result_dict['data'] = [current, peak, avg]
+        return result_dict
+
+        
     def wireless_stats(self, p_data, typeof="aps"):
         '''SITES WITH DECREASE IN WIRELESS EXPERIENCES'''
         wifiexp_ap_sum = 0
@@ -195,12 +298,13 @@ class HomeStats():
         self.result_dict["wifi_exp"]['count'] = len(controller_list)
         self.result_dict["wifi_exp"]['status'] = True
         self.result_dict["wifi_exp"]['mac'] = controller_list
-        print self.result_dict['wifi_exp']
-        '''a. SITES WITH DECREASE IN WIRELESS EXPERIENCES'''
+        return self.result_dict['wifi_exp']
+        
 
 class HomeApi(View):
     ''' Home page API'''
     def get(self, request):
+        response = []
         ''' API calls initaited for home page'''
         home_stats = HomeStats()
         
@@ -217,24 +321,52 @@ class HomeApi(View):
         
 
         # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
-        home_stats.wireless_stats(home_stats.post_data)
+        response.append(home_stats.wireless_stats(home_stats.post_data))
         #------------------------
         # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
-        home_stats.access_pt_util(doc_list, home_stats.post_data)
+        response.append(home_stats.access_pt_util(doc_list, home_stats.post_data))
         #-------------------------
         # SITES WITH DEVICES DOWN#
-        home_stats.sites_down(doc_list)
+        response.append(home_stats.sites_down(doc_list))
         #--------------------------
         # SITES WITH CRITICAL HEALTH
-        home_stats.sites_critical_health(doc_list)
+        response.append(home_stats.sites_critical_health(doc_list))
         #--------------------------
         # SITES WITH CRITICAL ALARMS#
-        home_stats.critical_alarms(doc_list)
+        response.append(home_stats.critical_alarms(doc_list))
         #----------------------------
-        return HttpResponse(json.dumps({"status": "OK" }))
+        return HttpResponse(json.dumps(response))
         
 
         
 
+class HomeApi2(View):
+    ''' Home page API'''
+    def get(self, request):
+        ''' API calls initaited for home page'''
+        home_stats = HomeStats()
+        response = []
+        for key in request.GET:
+            home_stats.post_data[key] = \
+            ast.literal_eval(request.GET.get(key).strip())
 
+        if 'mac' not in home_stats.post_data:
+            return HttpResponse(json.dumps({"status": "false", \
+                "message": "No MAC data"}))
+        else:
+            #fetch the docs
+            doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
+        # WIRELESS CLIENTS
+        response.append( home_stats.wireless_clients(home_stats.post_data))
+        # ACCESS POINTS
+        response.append(home_stats.access_points(doc_list))
+        # ALARMS
+        response.append(home_stats.alarms(doc_list))
+        # CONTROLLER UTILIZATION
+        response.append(home_stats.controller_util(doc_list))
+
+        return HttpResponse(json.dumps(response))
+
+
+        
         

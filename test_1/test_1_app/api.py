@@ -9,6 +9,108 @@ import pprint
 #Connection with mongodb client
 client = MongoClient()
 db = client['nms']
+class DashboardStats():
+    '''Common variable used under the class methods'''
+    def __init__(self):
+        self.common = Common()
+        self.post_data = {}
+        self.mac_list = []
+        self.doc_list = []
+        self.response = []
+        self.result_dict = {}
+    def number_sites(self, doc_list, typeof = 'clients'):
+        '''API calculating NUMBER OF SITES '''
+        count = 0
+        result_dict = {}
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                clients = doc.get('msgBody').get('controller').get(typeof)
+                for client in clients:
+                    count += 1
+        result_dict['label'] = 'Number of sites'
+        result_dict['data'] = [count]
+        return result_dict
+
+    def number_stations(self, doc_list, typeof = 'controller'):
+        '''API calculating NUMBER OF STATIONS '''
+        online_count = 0
+        offline_count = 0
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if doc['msgBody'].get(typeof):
+                controllers = doc.get('msgBody').get(typeof)
+                for controller in controllers:
+                    if controller['operState'].lower() == 'up':
+                        online_count += 1
+                    else:
+                        offline_count += 1
+        result_dict['label'] = 'Number of stations'
+        result_dict['data'] = [online_count, offline_count]
+        return result_dict
+
+    def wifi_exp(self, doc_list, typeof = 'clients'):
+        '''API calculating WI-FI EXPERIENCE '''
+        count = 0
+        wifi_client = 0
+
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                clients = doc.get('msgBody').get('controller').get(typeof)
+                for client in clients:
+                    wifi_client += client['wifiExp']
+                    count += 1
+        result_dict['label'] = 'Wifi experience'
+        result_dict['data'] = [wifi_client/count]
+        return result_dict
+
+    def number_aps(self, doc_list, typeof = 'aps'):
+        '''API calculating NUMBER OF APS '''
+        count = 0
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                aps = doc.get('msgBody').get('controller').get(typeof)
+                for ap in aps:
+                    count += 1
+        result_dict['label'] = 'Number of aps'
+        result_dict['data'] = [count]
+        return result_dict
+
+    def status_last_login(self, doc_list):
+        '''API calculating STATUS SINCE LAST LOGIN '''
+        sites_count = 0
+        controller_count = 0
+        critical_alarm_count = 0
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if 'clients' in doc['msgBody'].get('controller'):
+                clients = doc.get('msgBody').get('controller').get('clients')
+                for client in clients:
+                    sites_count += 1
+            if doc['msgBody'].get('controller'):
+                controllers = doc.get('msgBody').get('controller')
+                for controller in controllers:
+                    controller_count += 1
+            if 'alarms' in doc['msgBody'].get('controller'):
+                alarms = doc.get('msgBody').get('controller').get('alarms')
+                for alarm in alarms:
+                    if alarm['severity'].lower() == 'high':
+                        critical_alarm_count += 1
+        result_dict['label'] = 'Number of aps'
+        result_dict['data'] = [sites_count, controller_count, \
+        critical_alarm_count]
+        return result_dict
+
 
 class HomeStats():
     '''Common variable used under the class methods'''
@@ -63,7 +165,7 @@ class HomeStats():
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
                     
-                    if ap['status'] == 'DOWN':
+                    if ap['status'].lower() == 'down':
                         flag   = 1 
                 if flag and mac not in mac_list:
                     mac_list.append(mac)
@@ -88,7 +190,7 @@ class HomeStats():
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
                     
-                    if ap['status'] == 'DOWN':
+                    if ap['status'].lower() == 'down':
                         flag   = 1 
                 if flag and mac not in mac_list:
                     mac_list.append(mac)
@@ -112,7 +214,7 @@ class HomeStats():
                 alarms = doc.get('msgBody').get('controller').get(typeof)
                 for alarm in alarms:
                     
-                    if alarm['severity'] == 'High':
+                    if alarm['severity'].lower() == 'high':
                         flag   = 1 
                 if flag and mac not in mac_list:
                     mac_list.append(mac)
@@ -155,8 +257,12 @@ class HomeStats():
             if typeof in doc['msgBody'].get('controller'):
                 alarms = doc.get('msgBody').get('controller').get(typeof)
                 for alarm in alarms:
-                    if alarm['severity'] == 'High':
+                    if alarm['severity'].lower() == 'high':
                         high_count  += 1
+                    elif alarm['severity'].lower() == 'critical':
+                        critical_count += 1
+                    elif alarm['severity'].lower() == 'minor':
+                        minor_count += 1
         result_dict['label'] = 'Alarms'
         result_dict['data'] = [critical_count, high_count, minor_count]
         return result_dict
@@ -174,8 +280,12 @@ class HomeStats():
             if typeof in doc['msgBody'].get('controller'):
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
-                    if ap['status'] == 'DOWN':
+                    if ap['status'].lower() == 'down':
                         down_aps += 1
+                        offline_count += 1
+                    else:
+                        online_count += 1
+
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]
         return result_dict
@@ -261,7 +371,6 @@ class HomeStats():
             res = cursor.count()
             if res == 0:
                 continue
-            import pprint
             avg_controller  = 0
             for doc in cursor:
                 doc_list.append(doc)
@@ -304,8 +413,8 @@ class HomeStats():
 class HomeApi(View):
     ''' Home page API'''
     def get(self, request):
-        response = []
         ''' API calls initaited for home page'''
+        response = []
         home_stats = HomeStats()
         
         for key in request.GET:
@@ -324,7 +433,8 @@ class HomeApi(View):
         response.append(home_stats.wireless_stats(home_stats.post_data))
         #------------------------
         # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
-        response.append(home_stats.access_pt_util(doc_list, home_stats.post_data))
+        response.append(home_stats.access_pt_util(doc_list, \
+            home_stats.post_data))
         #-------------------------
         # SITES WITH DEVICES DOWN#
         response.append(home_stats.sites_down(doc_list))
@@ -366,6 +476,44 @@ class HomeApi2(View):
         response.append(home_stats.controller_util(doc_list))
 
         return HttpResponse(json.dumps(response))
+
+class DashboardApi(View):
+    ''' Dashboard status API'''
+    def get(self, request):
+        ''' API calls initaited for Dashboard Stats'''
+        response = []
+        dash_stats = DashboardStats()
+        
+        for key in request.GET:
+            dash_stats.post_data[key] = \
+            ast.literal_eval(request.GET.get(key).strip())
+
+        if 'mac' not in dash_stats.post_data:
+            return HttpResponse(json.dumps({"status": "false", \
+                "message": "No MAC data"}))
+        else:
+            #fetch the docs
+            doc_list = dash_stats.common.let_the_docs_out(dash_stats.post_data)
+
+
+        # NUMBER OF SITES #
+        response.append(dash_stats.number_sites(doc_list))
+
+        # NUMBER OF STATIONS #
+        response.append(dash_stats.number_stations(doc_list))
+
+        # WI-FI EXPERIENCE #
+        response.append(dash_stats.wifi_exp(doc_list))
+
+        # NUMBER OF APS #
+        response.append(dash_stats.number_aps(doc_list))
+
+        # Status Since Last Login #
+        response.append(dash_stats.status_last_login(doc_list))
+
+
+        return HttpResponse(json.dumps(response))
+
 
 
         

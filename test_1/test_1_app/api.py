@@ -41,12 +41,12 @@ class DashboardStats():
         for doc in doc_list:
             
             if doc['msgBody'].get(typeof):
-                controllers = doc.get('msgBody').get(typeof)
-                for controller in controllers:
-                    if controller['operState'].lower() == 'up':
-                        online_count += 1
-                    else:
-                        offline_count += 1
+                controller = doc.get('msgBody').get(typeof)
+                #for controller in controllers:
+                if controller['operState'].lower() == 'up':
+                    online_count += 1
+                else:
+                    offline_count += 1
         result_dict['label'] = 'Number of stations'
         result_dict['data'] = [online_count, offline_count]
         return result_dict
@@ -98,15 +98,13 @@ class DashboardStats():
                 for client in clients:
                     sites_count += 1
             if doc['msgBody'].get('controller'):
-                controllers = doc.get('msgBody').get('controller')
-                for controller in controllers:
-                    controller_count += 1
+                controller_count += 1
             if 'alarms' in doc['msgBody'].get('controller'):
                 alarms = doc.get('msgBody').get('controller').get('alarms')
                 for alarm in alarms:
                     if alarm['severity'].lower() == 'high':
                         critical_alarm_count += 1
-        result_dict['label'] = 'Number of aps'
+        result_dict['label'] = 'Status since last login'
         result_dict['data'] = [sites_count, controller_count, \
         critical_alarm_count]
         return result_dict
@@ -431,7 +429,7 @@ class HomeApi(View):
                 return HttpResponse(json.dumps({"status": "false", \
                     "message": "No matching MAC data"}))
         
-
+                
         # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
         response.append(home_stats.wireless_stats(home_stats.post_data))
         #------------------------

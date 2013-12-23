@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse,StreamingHttpResponse
 from pymongo import MongoClient
 import datetime
 import json
@@ -18,7 +18,7 @@ class DashboardStats():
         self.doc_list = []
         self.response = []
         self.result_dict = {}
-    def number_sites(self, doc_list, typeof = 'clients'):
+    def number_stations(self, doc_list, typeof = 'clients'):
         '''API calculating NUMBER OF SITES '''
         count = 0
         result_dict = {}
@@ -28,27 +28,23 @@ class DashboardStats():
                 clients = doc.get('msgBody').get('controller').get(typeof)
                 for client in clients:
                     count += 1
-        result_dict['label'] = 'Number of sites'
+        result_dict['label'] = 'Number of stations'
         result_dict['data'] = [count]
         return result_dict
 
-    def number_stations(self, doc_list, typeof = 'controller'):
+    def number_controllers(self, doc_list, typeof = 'controller'):
         '''API calculating NUMBER OF STATIONS '''
-        online_count = 0
-        offline_count = 0
+        count = 0
         result_dict = {}
             
         for doc in doc_list:
             
             if doc['msgBody'].get(typeof):
-                controllers = doc.get('msgBody').get(typeof)
-                for controller in controllers:
-                    if controller['operState'].lower() == 'up':
-                        online_count += 1
-                    else:
-                        offline_count += 1
-        result_dict['label'] = 'Number of stations'
-        result_dict['data'] = [online_count, offline_count]
+                controller = doc.get('msgBody').get(typeof)
+                #for controller in controllers:
+                count += 1
+        result_dict['label'] = 'Number of controllers'
+        result_dict['data'] = [count]
         return result_dict
 
     def wifi_exp(self, doc_list, typeof = 'clients'):
@@ -84,6 +80,25 @@ class DashboardStats():
         result_dict['data'] = [count]
         return result_dict
 
+    def online_offline_aps(self, doc_list, typeof = 'aps'):
+        '''API calculating NUMBER OF APS '''
+        online_count = 0
+        offline_count = 0
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                aps = doc.get('msgBody').get('controller').get(typeof)
+                for ap in aps:
+                    if ap['status'].lower() == 'up':
+                        online_count += 1
+                    else:
+                        offline_count  += 1
+        result_dict['label'] = 'Number of online offline aps'
+        result_dict['data'] = [online_count, offline_count]
+        return result_dict
+
     def status_last_login(self, doc_list):
         '''API calculating STATUS SINCE LAST LOGIN '''
         sites_count = 0
@@ -98,15 +113,13 @@ class DashboardStats():
                 for client in clients:
                     sites_count += 1
             if doc['msgBody'].get('controller'):
-                controllers = doc.get('msgBody').get('controller')
-                for controller in controllers:
-                    controller_count += 1
+                controller_count += 1
             if 'alarms' in doc['msgBody'].get('controller'):
                 alarms = doc.get('msgBody').get('controller').get('alarms')
                 for alarm in alarms:
                     if alarm['severity'].lower() == 'high':
                         critical_alarm_count += 1
-        result_dict['label'] = 'Number of aps'
+        result_dict['label'] = 'Status since last login'
         result_dict['data'] = [sites_count, controller_count, \
         critical_alarm_count]
         return result_dict
@@ -153,6 +166,21 @@ class HomeStats():
         self.result_dict["access_pt"]['mac'] = mac_list
         return self.result_dict['access_pt']
 
+    def change_security(self, doc_list, typeof = 'aps'):
+        ''' API Calculating change in security # '''
+        count = 10
+        mac_list = []
+        
+    
+        ''' logic to be implemented'''
+
+        self.result_dict["change_security"] = {}
+        self.result_dict["change_security"]['message'] = \
+        "SITES WITH CHANGE IN SECURITY"
+        self.result_dict["change_security"]['count'] = 1
+        self.result_dict["change_security"]['status'] = True
+        self.result_dict["change_security"]['mac'] = mac_list
+        return self.result_dict['change_security']
         
     def sites_critical_health(self, doc_list, typeof="aps"):
         '''SITES WITH CRITICAL HEALTH'''
@@ -289,8 +317,8 @@ class HomeStats():
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]
         return result_dict
-        
 
+    
     def wireless_clients(self, p_data, typeof = 'clients'):
         ''' API Calculating wireless clients count according to timestamp '''
         mac_list = p_data['mac']
@@ -414,38 +442,54 @@ class HomeApi(View):
     ''' Home page API'''
     def get(self, request):
         ''' API calls initaited for home page'''
-        response = []
+        response_list = []
         home_stats = HomeStats()
         
         for key in request.GET:
             home_stats.post_data[key] = \
-            ast.literal_eval(request.GET.get(key).strip())
+            ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
-        if 'mac' not in home_stats.post_data:
+        if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
+            if not len(doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
         
-
+                
         # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
-        response.append(home_stats.wireless_stats(home_stats.post_data))
+        response_list.append(home_stats.wireless_stats(home_stats.post_data))
+        #------------------------
+        # SITES WITH CHANGE IN SECURITY#
+        response_list.append(home_stats.change_security(doc_list))
         #------------------------
         # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
-        response.append(home_stats.access_pt_util(doc_list, \
+        response_list.append(home_stats.access_pt_util(doc_list, \
             home_stats.post_data))
         #-------------------------
         # SITES WITH DEVICES DOWN#
-        response.append(home_stats.sites_down(doc_list))
+        response_list.append(home_stats.sites_down(doc_list))
         #--------------------------
         # SITES WITH CRITICAL HEALTH
-        response.append(home_stats.sites_critical_health(doc_list))
+        response_list.append(home_stats.sites_critical_health(doc_list))
         #--------------------------
         # SITES WITH CRITICAL ALARMS#
-        response.append(home_stats.critical_alarms(doc_list))
+        response_list.append(home_stats.critical_alarms(doc_list))
         #----------------------------
-        return HttpResponse(json.dumps(response))
+
+        response = HttpResponse(json.dumps({"status": "true", \
+         "values": response_list,\
+         "message": "Home page API for pannel 1 stats"}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+
+        
         
 
         
@@ -455,64 +499,94 @@ class HomeApi2(View):
     def get(self, request):
         ''' API calls initaited for home page'''
         home_stats = HomeStats()
-        response = []
+        response_list = []
         for key in request.GET:
             home_stats.post_data[key] = \
-            ast.literal_eval(request.GET.get(key).strip())
+            ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
-        if 'mac' not in home_stats.post_data:
+        if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
-        # WIRELESS CLIENTS
-        response.append( home_stats.wireless_clients(home_stats.post_data))
-        # ACCESS POINTS
-        response.append(home_stats.access_points(doc_list))
-        # ALARMS
-        response.append(home_stats.alarms(doc_list))
-        # CONTROLLER UTILIZATION
-        response.append(home_stats.controller_util(doc_list))
+            if not len(doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
 
-        return HttpResponse(json.dumps(response))
+        # WIRELESS CLIENTS
+        response_list.append( home_stats.wireless_clients(home_stats.post_data))
+        # ACCESS POINTS
+        response_list.append(home_stats.access_points(doc_list))
+        # ALARMS
+        response_list.append(home_stats.alarms(doc_list))
+        # CONTROLLER UTILIZATION
+        response_list.append(home_stats.controller_util(doc_list))
+
+        response = HttpResponse(json.dumps({"status": "true", \
+         "values": response_list , \
+         "message": "Home page API for pannel 2 stats"}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
 
 class DashboardApi(View):
     ''' Dashboard status API'''
     def get(self, request):
         ''' API calls initaited for Dashboard Stats'''
-        response = []
+        response_list= []
+        doc_list = []
+        all_doc_list = []
         dash_stats = DashboardStats()
         
         for key in request.GET:
             dash_stats.post_data[key] = \
-            ast.literal_eval(request.GET.get(key).strip())
+            ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
-        if 'mac' not in dash_stats.post_data:
+        if 'mac' not in dash_stats.post_data or not dash_stats.post_data['mac']:
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = dash_stats.common.let_the_docs_out(dash_stats.post_data)
+            if not len(doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
+        mac_list = dash_stats.post_data['mac']
+        for mac in mac_list:
+            cursor = db.devices.find({"snum":mac })
 
+            for doc in cursor:
+                all_doc_list.append(doc)
 
-        # NUMBER OF SITES #
-        response.append(dash_stats.number_sites(doc_list))
+        # NUMBER OF CONTROLLERS #
+        response_list.append(dash_stats.number_controllers(all_doc_list))
 
         # NUMBER OF STATIONS #
-        response.append(dash_stats.number_stations(doc_list))
+        response_list.append(dash_stats.number_stations(all_doc_list))
 
         # WI-FI EXPERIENCE #
-        response.append(dash_stats.wifi_exp(doc_list))
+        response_list.append(dash_stats.wifi_exp(all_doc_list))
 
         # NUMBER OF APS #
-        response.append(dash_stats.number_aps(doc_list))
+        response_list.append(dash_stats.number_aps(doc_list))
+
+        # NUMBER OF ONLINE OFFLINE APS #
+        response_list.append(dash_stats.online_offline_aps(all_doc_list))
 
         # Status Since Last Login #
-        response.append(dash_stats.status_last_login(doc_list))
+        response_list.append(dash_stats.status_last_login(doc_list))
 
-
-        return HttpResponse(json.dumps(response))
+        response = HttpResponse(json.dumps({"status": "true", \
+         "values": response_list , \
+         "message": "Dashboard page API for stats"}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
 
 
 

@@ -177,7 +177,7 @@ class HomeStats():
         self.result_dict["change_security"] = {}
         self.result_dict["change_security"]['message'] = \
         "SITES WITH CHANGE IN SECURITY"
-        self.result_dict["change_security"]['count'] = 10
+        self.result_dict["change_security"]['count'] = 1
         self.result_dict["change_security"]['status'] = True
         self.result_dict["change_security"]['mac'] = mac_list
         return self.result_dict['change_security']

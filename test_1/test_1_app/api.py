@@ -166,6 +166,18 @@ class HomeStats():
         self.result_dict["access_pt"]['mac'] = mac_list
         return self.result_dict['access_pt']
 
+    def change_security(self, doc_list, typeof = 'aps'):
+        ''' API Calculating change in security # '''
+        count = 10
+        result_dict = {}
+    
+        ''' logic to be implemented'''
+
+        result_dict['label'] = 'SITES WITH CHANGE IN SECURITY'
+        result_dict['data'] = [count]
+        return result_dict
+        
+
         
     def sites_critical_health(self, doc_list, typeof="aps"):
         '''SITES WITH CRITICAL HEALTH'''
@@ -302,8 +314,8 @@ class HomeStats():
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]
         return result_dict
-        
 
+    
     def wireless_clients(self, p_data, typeof = 'clients'):
         ''' API Calculating wireless clients count according to timestamp '''
         mac_list = p_data['mac']
@@ -447,6 +459,9 @@ class HomeApi(View):
                 
         # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
         response_list.append(home_stats.wireless_stats(home_stats.post_data))
+        #------------------------
+        # SITES WITH CHANGE IN SECURITY#
+        response_list.append(home_stats.change_security(doc_list))
         #------------------------
         # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
         response_list.append(home_stats.access_pt_util(doc_list, \

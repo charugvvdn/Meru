@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse,StreamingHttpResponse
 from pymongo import MongoClient
 import datetime
 import json
@@ -41,12 +41,12 @@ class DashboardStats():
         for doc in doc_list:
             
             if doc['msgBody'].get(typeof):
-                controllers = doc.get('msgBody').get(typeof)
-                for controller in controllers:
-                    if controller['operState'].lower() == 'up':
-                        online_count += 1
-                    else:
-                        offline_count += 1
+                controller = doc.get('msgBody').get(typeof)
+                #for controller in controllers:
+                if controller['operState'].lower() == 'up':
+                    online_count += 1
+                else:
+                    offline_count += 1
         result_dict['label'] = 'Number of stations'
         result_dict['data'] = [online_count, offline_count]
         return result_dict
@@ -98,15 +98,13 @@ class DashboardStats():
                 for client in clients:
                     sites_count += 1
             if doc['msgBody'].get('controller'):
-                controllers = doc.get('msgBody').get('controller')
-                for controller in controllers:
-                    controller_count += 1
+                controller_count += 1
             if 'alarms' in doc['msgBody'].get('controller'):
                 alarms = doc.get('msgBody').get('controller').get('alarms')
                 for alarm in alarms:
                     if alarm['severity'].lower() == 'high':
                         critical_alarm_count += 1
-        result_dict['label'] = 'Number of aps'
+        result_dict['label'] = 'Status since last login'
         result_dict['data'] = [sites_count, controller_count, \
         critical_alarm_count]
         return result_dict
@@ -419,16 +417,19 @@ class HomeApi(View):
         
         for key in request.GET:
             home_stats.post_data[key] = \
-            ast.literal_eval(request.GET.get(key).strip())
+            ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
-        if 'mac' not in home_stats.post_data:
+        if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
+            if not len(doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
         
-
+                
         # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
         response.append(home_stats.wireless_stats(home_stats.post_data))
         #------------------------
@@ -458,14 +459,18 @@ class HomeApi2(View):
         response = []
         for key in request.GET:
             home_stats.post_data[key] = \
-            ast.literal_eval(request.GET.get(key).strip())
+            ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
-        if 'mac' not in home_stats.post_data:
+        if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
+            if not len(doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
+
         # WIRELESS CLIENTS
         response.append( home_stats.wireless_clients(home_stats.post_data))
         # ACCESS POINTS
@@ -482,19 +487,22 @@ class DashboardApi(View):
     def get(self, request):
         ''' API calls initaited for Dashboard Stats'''
         response = []
+        doc_list = []
         dash_stats = DashboardStats()
         
         for key in request.GET:
             dash_stats.post_data[key] = \
-            ast.literal_eval(request.GET.get(key).strip())
+            ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
-        if 'mac' not in dash_stats.post_data:
+        if 'mac' not in dash_stats.post_data or not dash_stats.post_data['mac']:
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = dash_stats.common.let_the_docs_out(dash_stats.post_data)
-
+            if not len(doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
 
         # NUMBER OF SITES #
         response.append(dash_stats.number_sites(doc_list))

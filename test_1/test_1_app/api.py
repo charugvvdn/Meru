@@ -110,7 +110,7 @@ class DashboardStats():
             
             if 'clients' in doc['msgBody'].get('controller'):
                 clients = doc.get('msgBody').get('controller').get('clients')
-                for client in clients:
+                for client in clientents:
                     sites_count += 1
             if doc['msgBody'].get('controller'):
                 controller_count += 1
@@ -461,6 +461,10 @@ class HomeApi(View):
         # SITES WITH CRITICAL ALARMS#
         response.append(home_stats.critical_alarms(doc_list))
         #----------------------------
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
         return HttpResponse(json.dumps(response))
         
 
@@ -495,6 +499,10 @@ class HomeApi2(View):
         # CONTROLLER UTILIZATION
         response.append(home_stats.controller_util(doc_list))
 
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
         return HttpResponse(json.dumps(response))
 
 class DashboardApi(View):
@@ -544,7 +552,10 @@ class DashboardApi(View):
         # Status Since Last Login #
         response.append(dash_stats.status_last_login(doc_list))
 
-
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
         return HttpResponse(json.dumps(response))
 
 

@@ -18,7 +18,7 @@ class DashboardStats():
         self.doc_list = []
         self.response = []
         self.result_dict = {}
-    def number_sites(self, doc_list, typeof = 'clients'):
+    def number_stations(self, doc_list, typeof = 'clients'):
         '''API calculating NUMBER OF SITES '''
         count = 0
         result_dict = {}
@@ -28,14 +28,13 @@ class DashboardStats():
                 clients = doc.get('msgBody').get('controller').get(typeof)
                 for client in clients:
                     count += 1
-        result_dict['label'] = 'Number of sites'
+        result_dict['label'] = 'Number of stations'
         result_dict['data'] = [count]
         return result_dict
 
-    def number_stations(self, doc_list, typeof = 'controller'):
+    def number_controllers(self, doc_list, typeof = 'controller'):
         '''API calculating NUMBER OF STATIONS '''
-        online_count = 0
-        offline_count = 0
+        count = 0
         result_dict = {}
             
         for doc in doc_list:
@@ -43,12 +42,9 @@ class DashboardStats():
             if doc['msgBody'].get(typeof):
                 controller = doc.get('msgBody').get(typeof)
                 #for controller in controllers:
-                if controller['operState'].lower() == 'up':
-                    online_count += 1
-                else:
-                    offline_count += 1
-        result_dict['label'] = 'Number of stations'
-        result_dict['data'] = [online_count, offline_count]
+                count += 1
+        result_dict['label'] = 'Number of controllers'
+        result_dict['data'] = [count]
         return result_dict
 
     def wifi_exp(self, doc_list, typeof = 'clients'):
@@ -82,6 +78,25 @@ class DashboardStats():
                     count += 1
         result_dict['label'] = 'Number of aps'
         result_dict['data'] = [count]
+        return result_dict
+
+    def online_offline_aps(self, doc_list, typeof = 'aps'):
+        '''API calculating NUMBER OF APS '''
+        online_count = 0
+        offline_count = 0
+        result_dict = {}
+            
+        for doc in doc_list:
+            
+            if typeof in doc['msgBody'].get('controller'):
+                aps = doc.get('msgBody').get('controller').get(typeof)
+                for ap in aps:
+                    if ap['status'].lower() == 'up':
+                        online_count += 1
+                    else:
+                        offline_count  += 1
+        result_dict['label'] = 'Number of online offline aps'
+        result_dict['data'] = [online_count, offline_count]
         return result_dict
 
     def status_last_login(self, doc_list):
@@ -488,6 +503,7 @@ class DashboardApi(View):
         ''' API calls initaited for Dashboard Stats'''
         response = []
         doc_list = []
+        all_doc_list = []
         dash_stats = DashboardStats()
         
         for key in request.GET:
@@ -503,18 +519,27 @@ class DashboardApi(View):
             if not len(doc_list):
                 return HttpResponse(json.dumps({"status": "false", \
                     "message": "No matching MAC data"}))
+        mac_list = dash_stats.post_data['mac']
+        for mac in mac_list:
+            cursor = db.devices.find({"snum":mac })
 
-        # NUMBER OF SITES #
-        response.append(dash_stats.number_sites(doc_list))
+            for doc in cursor:
+                all_doc_list.append(doc)
+
+        # NUMBER OF CONTROLLERS #
+        response.append(dash_stats.number_controllers(all_doc_list))
 
         # NUMBER OF STATIONS #
-        response.append(dash_stats.number_stations(doc_list))
+        response.append(dash_stats.number_stations(all_doc_list))
 
         # WI-FI EXPERIENCE #
-        response.append(dash_stats.wifi_exp(doc_list))
+        response.append(dash_stats.wifi_exp(all_doc_list))
 
         # NUMBER OF APS #
         response.append(dash_stats.number_aps(doc_list))
+
+        # NUMBER OF ONLINE OFFLINE APS #
+        response.append(dash_stats.online_offline_aps(all_doc_list))
 
         # Status Since Last Login #
         response.append(dash_stats.status_last_login(doc_list))

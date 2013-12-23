@@ -169,15 +169,18 @@ class HomeStats():
     def change_security(self, doc_list, typeof = 'aps'):
         ''' API Calculating change in security # '''
         count = 10
-        result_dict = {}
+        mac_list = []
+        
     
         ''' logic to be implemented'''
 
-        result_dict['label'] = 'SITES WITH CHANGE IN SECURITY'
-        result_dict['data'] = [count]
-        return result_dict
-        
-
+        self.result_dict["change_security"] = {}
+        self.result_dict["change_security"]['message'] = \
+        "SITES WITH CHANGE IN SECURITY"
+        self.result_dict["change_security"]['count'] = 10
+        self.result_dict["change_security"]['status'] = True
+        self.result_dict["change_security"]['mac'] = mac_list
+        return self.result_dict['change_security']
         
     def sites_critical_health(self, doc_list, typeof="aps"):
         '''SITES WITH CRITICAL HEALTH'''

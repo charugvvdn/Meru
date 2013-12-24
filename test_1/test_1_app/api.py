@@ -548,22 +548,23 @@ class DashboardApi(View):
         for key in request.GET:
             dash_stats.post_data[key] = \
             ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
-
+            #print dash_stats.post_data['mac']
         if 'mac' not in dash_stats.post_data or not dash_stats.post_data['mac']:
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = dash_stats.common.let_the_docs_out(dash_stats.post_data)
-            if not len(doc_list):
-                return HttpResponse(json.dumps({"status": "false", \
-                    "message": "No matching MAC data"}))
+            
         mac_list = dash_stats.post_data['mac']
         for mac in mac_list:
             cursor = db.devices.find({"snum":mac })
-
             for doc in cursor:
                 all_doc_list.append(doc)
+
+        if not len(doc_list) and not len(all_doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
 
         # NUMBER OF CONTROLLERS #
         response_list.append(dash_stats.number_controllers(all_doc_list))
@@ -575,7 +576,7 @@ class DashboardApi(View):
         response_list.append(dash_stats.wifi_exp(all_doc_list))
 
         # NUMBER OF APS #
-        response_list.append(dash_stats.number_aps(doc_list))
+        response_list.append(dash_stats.number_aps(all_doc_list))
 
         # NUMBER OF ONLINE OFFLINE APS #
         response_list.append(dash_stats.online_offline_aps(all_doc_list))

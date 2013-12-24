@@ -20,16 +20,20 @@ class DashboardStats():
         self.result_dict = {}
     def number_stations(self, doc_list, typeof = 'clients'):
         '''API calculating NUMBER OF SITES '''
-        count = 0
+        online_count = 0
+        critical_count = 0
         result_dict = {}
         for doc in doc_list:
             
             if typeof in doc['msgBody'].get('controller'):
                 clients = doc.get('msgBody').get('controller').get(typeof)
                 for client in clients:
-                    count += 1
+                    if client['state'].lower() == 'associated':
+                        online_count += 1
+                    else:
+                        critical_count += 1
         result_dict['label'] = 'Number of stations'
-        result_dict['data'] = [count]
+        result_dict['data'] = [online_count, critical_count]
         return result_dict
 
     def number_controllers(self, doc_list, typeof = 'controller'):

@@ -511,12 +511,10 @@ class HomeApi2(View):
             ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
         if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
-            print "No mac data"
             return HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
-            print "No matching mac data"
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
             if not len(doc_list):
                 return HttpResponse(json.dumps({"status": "false", \
@@ -524,16 +522,13 @@ class HomeApi2(View):
 
         # WIRELESS CLIENTS
         response_list.append( home_stats.wireless_clients(home_stats.post_data))
-        print "response1"
         # ACCESS POINTS
         response_list.append(home_stats.access_points(doc_list))
-        print "response2"
         # ALARMS
         response_list.append(home_stats.alarms(doc_list))
-        print "response3"
         # CONTROLLER UTILIZATION
         response_list.append(home_stats.controller_util(doc_list))
-        print "response4"
+
         response = HttpResponse(json.dumps({"status": "true", \
          "values": response_list , \
          "message": "Home page API for pannel 2 stats"}))
@@ -541,7 +536,6 @@ class HomeApi2(View):
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
         response["Access-Control-Allow-Headers"] = "*"
-        print response
         return response
 
 class DashboardApi(View):

@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 from test_1_app import views,api
 from test_1_app.views import DeviceApplication as dav
-from test_1_app.api import HomeApi,HomeApi2,DashboardApi
+from test_1_app.api import HomeApi,HomeApi2,DashboardApi, AlarmsApi
 
 urlpatterns = patterns('',
                        url(r'^welcome/$', views.welcome, name='welcome'),
@@ -21,6 +21,9 @@ urlpatterns = patterns('',
             url(r'^home/api/$', HomeApi.as_view()),
             url(r'^home/api2/$', HomeApi2.as_view()),
             url(r'^dashboard/api/$', DashboardApi.as_view()),
+            url(r'^alarms/api/$', AlarmsApi.as_view()),
+            
+
 
 
 )

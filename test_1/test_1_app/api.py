@@ -9,6 +9,8 @@ import pprint
 #Connection with mongodb client
 client = MongoClient()
 db = client['nms']
+
+
 class DashboardStats():
     '''Common variable used under the class methods'''
     def __init__(self):
@@ -592,6 +594,53 @@ class DashboardApi(View):
         response["Access-Control-Max-Age"] = "1000"
         response["Access-Control-Allow-Headers"] = "*"
         return response
+
+class AlarmsApi(View):
+    ''' Alarms list API'''
+    def get(self, request):
+        ''' API calls initaited for Alarms list'''
+        response_list= []
+        doc_list = []
+        all_doc_list = []
+        post_data = {}
+        
+        for key in request.GET:
+            post_data[key] = ast.literal_eval(request.GET.get(key).strip()) \
+             if request.GET.get(key) else 0
+            
+        if 'mac' not in post_data or not post_data['mac']:
+            return HttpResponse(json.dumps({"status": "false", \
+                "message": "No MAC data"}))
+        
+        mac_list = post_data['mac']
+        for mac in mac_list:
+            cursor = db.devices.find({"snum":mac })
+            for doc in cursor:
+                all_doc_list.append(doc)
+
+        if not len(doc_list) and not len(all_doc_list):
+                return HttpResponse(json.dumps({"status": "false", \
+                    "message": "No matching MAC data"}))
+
+        # LIST OF ALARMS #
+
+        for doc in all_doc_list:
+            
+            if 'alarms' in doc['msgBody'].get('controller'):
+                alarms = doc.get('msgBody').get('controller').get('alarms')
+                for alarm in alarms:
+                    
+                    response_list.append(alarm)
+        
+        response = HttpResponse(json.dumps({"status": "true", \
+         "values": response_list , \
+         "message": "Alarms page API for alarms list"}))
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Max-Age"] = "1000"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+
 
 
 

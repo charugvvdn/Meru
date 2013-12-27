@@ -338,7 +338,8 @@ class DeviceApplication(View):
         """
         if "mac" in kwargs:
             mac = kwargs["mac"]
-
+        else:
+            return HttpResponse(json.dumps(self.false_response))
         null_mac = {"status": "Null mac"}
         not_registered = {"status": "not registered"}
 

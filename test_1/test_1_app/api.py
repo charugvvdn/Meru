@@ -650,7 +650,7 @@ class AlarmsApi(View):
             if 'alarms' in doc['msgBody'].get('controller'):
                 alarms = doc.get('msgBody').get('controller').get('alarms')
                 for alarm in alarms:
-                    
+                    alarm['mac'] = doc['snum']
                     response_list.append(alarm)
         
         response = HttpResponse(json.dumps({"status": "true", \

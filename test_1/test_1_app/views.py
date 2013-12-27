@@ -1,5 +1,5 @@
 from django.http import HttpResponse, HttpResponseServerError
-from django.db import connection, transaction
+from django.db import connections, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
@@ -174,39 +174,42 @@ class Raw_Model():
          "ess-state": "", "ess-ssid-broadcast": "",
                             "ess-security-profile": ""}
 
-        cursor = connection.cursor()
+        cursor = connections['meru_cnms'].cursor()
 
-        q = "SELECT test_1_app_ssid.ssid,\
-        test_1_app_security_profile.security_profile_id ,\
-        test_1_app_security_profile.enc_mode as\
-            'sec-enc-mode',test_1_app_security_profile.passphrase as\
-             'sec-passphrase',test_1_app_security_profile.profile_name as\
-            'sec-profile-name',test_1_app_security_profile.l2_mode as\
-             'sec-l2-mode',`test_1_app_ssid`.name as 'ess-profile-name',\
-            `test_1_app_ssid`.dataplane_mode as \
-            'ess-dataplane-mode',`test_1_app_ssid`.enabled as 'ess-state',\
-            `test_1_app_ssid`.visible as 'ess-ssid-broadcast',\
-            `test_1_app_security_profile`.profile_name as\
-            'ess-security-profile' FROM  `test_1_app_ssid`\
+        '''q = "SELECT ssid.ssid,\
+        security_profile.security_profile_id ,\
+        security_profile.enc_mode as\
+            'sec-enc-mode',security_profile.passphrase as\
+             'sec-passphrase',security_profile.profile_name as\
+            'sec-profile-name',security_profile.l2_mode as\
+             'sec-l2-mode',`ssid`.name as 'ess-profile-name',\
+            `ssid`.dataplane_mode as \
+            'ess-dataplane-mode',`ssid`.enabled as 'ess-state',\
+            `ssid`.visible as 'ess-ssid-broadcast',\
+            `security_profile`.profile_name as\
+            'ess-security-profile' FROM  `ssid`\
                     LEFT JOIN\
-             `test_1_app_security_profile` ON \
-             (test_1_app_security_profile.security_profile_id=\
-                `test_1_app_ssid`.security_profile_id)\
-             INNER JOIN test_1_app_ssid_in_command ON \
-             (test_1_app_ssid_in_command.ssid=`test_1_app_ssid`.ssid)\
-             INNER JOIN test_1_app_command ON\
-              (test_1_app_ssid_in_command.command_id=\
-                `test_1_app_command`.command_id)\
-              WHERE `test_1_app_command`.`controller_mac_address` = \
-              '%s'  and (`test_1_app_command`.flag='0' or \
-                `test_1_app_command`.flag='1')\
-             ORDER BY  `test_1_app_command`.`timestamp` \
-              ASC limit 0,1" % str(mac)
+             `security_profile` ON \
+             (security_profile.security_profile_id=\
+                `ssid`.security_profile_id)\
+             INNER JOIN ssid_in_command ON \
+             (ssid_in_command.ssid=`ssid`.ssid)\
+             INNER JOIN command ON\
+              (ssid_in_command.command_id=\
+                `command`.command_id)\
+              WHERE `command`.`controller_mac_address` = \
+              '%s'  and (`command`.flag='0' or \
+                `command`.flag='1')\
+             ORDER BY  `command`.`timestamp` \
+              ASC limit 0,1" % str(mac)'''
+
+        q = """SELECT command_json FROM meru_command WHERE `command_mac` = '%s' \
+                ORDER BY command_createdon DESC LIMIT 1""" % mac
 
         cursor.execute(q)
         result = cursor.fetchall()
 
-        if len(result) != 0:
+        '''if len(result) != 0:
             if str(result[0][4]) == 'None':
                 ess_profile_dict["ess-profile-name"] = str(result[0][6])
                 ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
@@ -234,9 +237,9 @@ class Raw_Model():
                 config_data["status"] = "true"
                 config_data["mac"] = str(mac)
         else:
-            return []
-
-        return config_data
+            return []'''
+        response = ast.literal_eval(result[0][0])
+        return response
 
 class DeviceApplication(View):
     """
@@ -264,11 +267,21 @@ class DeviceApplication(View):
         if 'snum' in request.GET.keys():
             mac = request.GET.get('snum')
 
-        if controller.objects.filter(mac_address=mac).exists():
+        '''if controller.objects.filter(mac_address=mac).exists():
             self.true_response["mac"] = mac
-            return HttpResponse(json.dumps(self.true_response))
-        self.false_response["mac"] = mac
-        return HttpResponse(json.dumps(self.false_response))
+            return HttpResponse(json.dumps(self.true_response))'''
+
+        q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
+        cursor = connections['meru_cnms'].cursor()
+        cursor.execute(q)
+        result = cursor.fetchall()
+        if not result[0][0]:
+            self.false_response["status"] = "false"
+            self.false_response["mac"] = mac
+            return HttpResponse(json.dumps(self.false_response))
+        self.true_response["status"] = "true"
+        self.true_response["mac"] = mac
+        return HttpResponse(json.dumps(self.true_response))
 
     def post(self, request, *args, **kwargs):
         """
@@ -292,7 +305,14 @@ class DeviceApplication(View):
 
         no_mac = {"status": "false", "mac": mac}
 
-        if not controller.objects.filter(mac_address=mac).exists():
+        '''if not controller.objects.filter(mac_address=mac).exists():
+            return HttpResponse(json.dumps(no_mac))'''
+
+        q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
+        cursor = connections['meru_cnms'].cursor()
+        cursor.execute(q)
+        result = cursor.fetchall()
+        if not result[0][0]:
             return HttpResponse(json.dumps(no_mac))
 
         utc_1970 = datetime.datetime(1970, 1, 1)
@@ -325,17 +345,18 @@ class DeviceApplication(View):
         self.true_response["mac"] = mac
         self.false_response["mac"] = mac
 
-        if not controller.objects.filter(mac_address=mac).exists():
-            return HttpResponse(json.dumps(self.false_response))
-        else:
-            flag = 2
+        q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
+        cursor = connections['meru_cnms'].cursor()
+        cursor.execute(q)
+        result = cursor.fetchall()
+        if not result[0][0]:
+            return HttpResponse(json.dumps(no_mac))
 
         try:
-            q = """ UPDATE test_1_app_command SET flag = %s WHERE \
-                    (controller_mac_address = '%s' AND (flag = 0 OR flag = 1))""" % (flag ,mac)
-            cursor = connection.cursor()
+            q = """ UPDATE meru_command SET command_status = 1 WHERE \
+                    command_mac = '%s'""" % mac
+            cursor = connections['meru_cnms'].cursor()
             cursor.execute(q)
-
             return HttpResponse(json.dumps(self.true_response))
 
         except Exception as e:

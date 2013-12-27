@@ -621,6 +621,7 @@ class AlarmsApi(View):
     def get(self, request):
         ''' API calls initaited for Alarms list'''
         response_list= []
+        response = {}
         doc_list = []
         all_doc_list = []
         post_data = {}
@@ -630,7 +631,7 @@ class AlarmsApi(View):
              if request.GET.get(key) else 0
             
         if 'mac' not in post_data or not post_data['mac']:
-            return HttpResponse(json.dumps({"status": "false", \
+            response = HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         
         mac_list = post_data['mac']
@@ -639,8 +640,8 @@ class AlarmsApi(View):
             for doc in cursor:
                 all_doc_list.append(doc)
 
-        if not len(doc_list) and not len(all_doc_list):
-                return HttpResponse(json.dumps({"status": "false", \
+        if not len(doc_list) and not len(all_doc_list) and not len(response):
+                response = HttpResponse(json.dumps({"status": "false", \
                     "message": "No matching MAC data"}))
 
         # LIST OF ALARMS #
@@ -652,10 +653,10 @@ class AlarmsApi(View):
                 for alarm in alarms:
                     alarm['mac'] = doc['snum']
                     response_list.append(alarm)
-        
-        response = HttpResponse(json.dumps({"status": "true", \
-         "values": response_list , \
-         "message": "Alarms page API for alarms list"}))
+        if not len(response):
+            response = HttpResponse(json.dumps({"status": "true", \
+             "values": response_list , \
+             "message": "Alarms page API for alarms list"}))
         response["Access-Control-Allow-Origin"] = "*"
         response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"

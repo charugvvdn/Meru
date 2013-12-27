@@ -490,6 +490,7 @@ class HomeApi(View):
          "values": response_list,\
          "message": "Home page API for pannel 1 stats"}))
         response["Access-Control-Allow-Origin"] = "*"
+        response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
         response["Access-Control-Allow-Headers"] = "*"
@@ -533,6 +534,7 @@ class HomeApi2(View):
          "values": response_list , \
          "message": "Home page API for pannel 2 stats"}))
         response["Access-Control-Allow-Origin"] = "*"
+        response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
         response["Access-Control-Allow-Headers"] = "*"
@@ -590,6 +592,7 @@ class DashboardApi(View):
          "values": response_list , \
          "message": "Dashboard page API for stats"}))
         response["Access-Control-Allow-Origin"] = "*"
+        response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
         response["Access-Control-Allow-Headers"] = "*"
@@ -636,6 +639,7 @@ class AlarmsApi(View):
          "values": response_list , \
          "message": "Alarms page API for alarms list"}))
         response["Access-Control-Allow-Origin"] = "*"
+        response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
         response["Access-Control-Allow-Headers"] = "*"

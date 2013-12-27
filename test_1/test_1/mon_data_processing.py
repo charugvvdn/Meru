@@ -1,6 +1,3 @@
-from django.core.management import setup_environ
-import settings
-setup_environ(settings)
 import MySQLdb as mydb
 from pymongo import MongoClient
 import datetime as d
@@ -10,7 +7,7 @@ import time
     Standalone script to process mongodb data for mysql.
 '''
 
-db = mydb.connect(host='localhost', user='root', db='nms_test_1', passwd='root')
+db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
 cursor = db.cursor()
 t_stmp = int(time.time())
 
@@ -65,10 +62,11 @@ def main():
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
     ap_mon_data = traverse(ap_list, ap_mon_data)
     client_mon_data = traverse(client_list, client_mon_data)
-    insert_alarm_data(alarm_mon_data)
+    print ap_mon_data
+#    insert_alarm_data(alarm_mon_data)
     insert_ap_data(ap_mon_data)
-    insert_client_data(client_mon_data)
-
+#   insert_client_data(client_mon_data)
+'''
 def insert_alarm_data(alarm_list):
     alarm_data = []
     t = ()
@@ -79,35 +77,35 @@ def insert_alarm_data(alarm_list):
         alarm_data.append(t)
         t = ()
     cursor.executemany(
-        '''INSERT INTO alarm (controller_mac_address, alarm_type, severity,\
+        """INSERT INTO alarm (controller_mac_address, alarm_type, severity,\
                 timestamp, content, cid, updated_on, is_read, sent_status) \
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', alarm_data
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", alarm_data
         )
     db.commit()
 
     return "Success msg from alarm_data\n"
-
+'''
 def insert_ap_data(ap_list):
     ap_data = []
     t = ()
     for ap in ap_list:
         t = (str(ap['mac']), str(ap['c_mac']), str(ap['ip']), str(ap['status']), \
                 str(ap['uptime']), str(ap['name']), 'Default', str(ap['model']), str(ap['id']), \
-                str(ap['swVersion']), str(ap['rxBytes']), str(ap['txBytes']), \
+                str(ap.get('swVersion')), str(ap['rxBytes']), str(ap['txBytes']), \
                 str(ap['wifiExp']), str(ap['wifiExpDescr']), 4600, t_stmp)
         ap_data.append(t)
         t = ()
     cursor.executemany(
-        '''INSERT INTO access_point (ap_mac_address, controller_mac_address,\
+        """INSERT INTO meru_ap (ap_mac_address, controller_mac_address,\
              ip_address, status, uptime, name, location, model, ap_id, ap_sw, \
              rxBytes, txBytes, wifiExp, wifiExpDescr, cid, updated_on)\
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             ap_data
         )
     db.commit()
 
     return "Succ from ap_data"
-
+'''
 def insert_client_data(client_list):
     client_data = []
     t = ()
@@ -118,15 +116,15 @@ def insert_client_data(client_list):
         client_data.append(t)
         t = ()
     cursor.executemany(
-            '''INSERT INTO ap_client (client_mac_address, ap_mac_address, client_ip_address, \
+            """INSERT INTO ap_client (client_mac_address, ap_mac_address, client_ip_address, \
                 type, RFband, SSID, rxBytes, txBytes, wifiExp, wifiExpDescr, cid, updated_on)\
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 client_data
         )
     db.commit()
 
     return "Succ from client_data"
-
+'''
 def traverse(obj, l):
     if hasattr(obj, '__iter__'):
         for o in obj:

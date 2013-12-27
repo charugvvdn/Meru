@@ -18,7 +18,15 @@ DATABASES = {
         'PASSWORD': 'zaqwsxCDE',
         'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
         'PORT': '',                      # Set to empty string for default.
-    }
+    },
+    'meru_cnms' : {
+	'ENGINE' : 'django.db.backends.mysql',
+	'NAME' : 'meru_cnms',
+	'USER' : 'root',
+	'PASSWORD' : 'zaqwsxCDE',
+	'HOST' : '',
+	'PORT' : '',
+	}
 }
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False

@@ -28,6 +28,7 @@ class DashboardStats():
         for doc in doc_list:
             
             if typeof in doc['msgBody'].get('controller'):
+                #get clients
                 clients = doc.get('msgBody').get('controller').get(typeof)
                 for client in clients:
                     if client['state'].lower() == 'associated':
@@ -46,8 +47,8 @@ class DashboardStats():
         for doc in doc_list:
             
             if doc['msgBody'].get(typeof):
+                # get controller
                 controller = doc.get('msgBody').get(typeof)
-                #for controller in controllers:
                 count += 1
         result_dict['label'] = 'Number of controllers'
         result_dict['data'] = [count]
@@ -68,7 +69,7 @@ class DashboardStats():
                     wifi_client += client['wifiExp']
                     count += 1
         result_dict['label'] = 'Wifi experience'
-        result_dict['data'] = [wifi_client/count]
+        result_dict['data'] = [wifi_client/count] if count > 0 else [0]
         return result_dict
 
     def number_aps(self, doc_list, typeof = 'aps'):
@@ -79,6 +80,7 @@ class DashboardStats():
         for doc in doc_list:
             
             if typeof in doc['msgBody'].get('controller'):
+                #get the aps
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
                     count += 1
@@ -95,6 +97,7 @@ class DashboardStats():
         for doc in doc_list:
             
             if typeof in doc['msgBody'].get('controller'):
+                #get the aps
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
                     if ap['status'].lower() == 'up':
@@ -115,12 +118,15 @@ class DashboardStats():
         for doc in doc_list:
             
             if 'clients' in doc['msgBody'].get('controller'):
+                #get clients to count sites
                 clients = doc.get('msgBody').get('controller').get('clients')
                 for client in clients:
                     sites_count += 1
             if doc['msgBody'].get('controller'):
+                #get controller count
                 controller_count += 1
             if 'alarms' in doc['msgBody'].get('controller'):
+                #get alarms to count critical alarms
                 alarms = doc.get('msgBody').get('controller').get('alarms')
                 for alarm in alarms:
                     if alarm['severity'].lower() == 'high':
@@ -157,9 +163,12 @@ class HomeStats():
             flag = 0
             rx_tx = 0
             if typeof in doc['msgBody'].get('controller'):
+                #get the aps
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
-                    rx_tx = ap['rxBytes']+ap['txBytes']
+                    # sum of rx + tx bytes
+                    rx_tx = ap['rxBytes']+ap['txBytes'] 
+                    # mark the mac where sum of rx+tx bytes is > threshold
                     if rx_tx > threshhold_max:
                         flag   = 1 
                 if flag and mac not in mac_list:
@@ -196,9 +205,10 @@ class HomeStats():
             flag = 0
             
             if typeof in doc['msgBody'].get('controller'):
+                #get the access points
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
-                    
+                    # mark the mac where ap is down
                     if ap['status'].lower() == 'down':
                         flag   = 1 
                 if flag and mac not in mac_list:
@@ -223,7 +233,7 @@ class HomeStats():
             if typeof in doc['msgBody'].get('controller'):
                 aps = doc.get('msgBody').get('controller').get(typeof)
                 for ap in aps:
-                    
+                    # mark the mac where ap is down
                     if ap['status'].lower() == 'down':
                         flag   = 1 
                 if flag and mac not in mac_list:
@@ -247,7 +257,7 @@ class HomeStats():
             if typeof in doc['msgBody'].get('controller'):
                 alarms = doc.get('msgBody').get('controller').get(typeof)
                 for alarm in alarms:
-                    
+                    # mark the mac where alarms severity is high
                     if alarm['severity'].lower() == 'high':
                         flag   = 1 
                 if flag and mac not in mac_list:
@@ -329,42 +339,51 @@ class HomeStats():
         ''' API Calculating wireless clients count according to timestamp '''
         mac_list = p_data['mac']
         time_list = []
+        
         if 'time' in p_data:
+            ''' timestamp as mentioned in query string'''
             time_frame = p_data['time']
             start_time = time_frame[0]
             end_time = time_frame[1]
 
         else:
+            ''' if timestamp not mentioned in query string,
+             it takes last 30 minutes data'''
             utc_1970 = datetime.datetime(1970, 1, 1)
             utc_now = datetime.datetime.utcnow()
             offset = utc_now - datetime.timedelta(minutes=30)
             start_time = int((offset - utc_1970).total_seconds())
             end_time = int((utc_now - utc_1970).total_seconds())
         
+        #query over mongo db to get the data between the given timestamp in desc
         cursor = db.devices.find({"timestamp" \
             : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
         
         result_list = []
         result_dict = {}
         for doc in cursor:
-        
+            # creating a list of timestamps found in 'cursor'
             if doc['timestamp'] not in time_list:
                 time_list.append(doc['timestamp'])
         
         for time in time_list: 
             count = 0
             for mac in mac_list:
+                # under each timestamp in the list , filter the mac 
                 cursor = db.devices.find({"snum": mac, "timestamp" :time})
                 for doc in cursor:
+                    # count the clients in each document at a single timestamp and matching mac
                     if typeof in doc['msgBody'].get('controller'):
                         clients = doc.get('msgBody').get('controller').\
                         get(typeof)
                         for client in clients:
                             count += 1
             result_list.append(count)
-
+        # count of clients currently (near or at last timestamp)
         current = result_list[0] if result_list else 0
+        # max count of clients among count of clients at every timestamp
         peak = max(result_list) if result_list else 0
+        # average count of clients at every timestamp
         avg = reduce(lambda x, y: x + y, result_list) / \
         len(result_list) if result_list else 0
         result_dict['label'] = 'Wireless Clients'
@@ -399,7 +418,7 @@ class HomeStats():
         for mac in mac_list:
             
             doc_list = []
-            
+            # filter over given mac and timestamp (in query string)
             cursor = db.devices.find({"snum": mac, "timestamp" \
                 : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
             res = cursor.count()
@@ -414,19 +433,21 @@ class HomeStats():
                 
                 wifiexp_ap_sum = 0
                 aps_count = 0
-                
+                # get the aps
                 if typeof in doc['msgBody'].get('controller'):
                     aps = doc.get('msgBody').get('controller').get(typeof)
                     for ap in aps:
-                        wifiexp_ap_sum += ap['wifiExp']
-                        aps_count += 1
+                        wifiexp_ap_sum += ap['wifiExp'] # sum of wifi of aps
+                        aps_count += 1 # number of aps
                     
-                    avg_doc_wifiexp =  wifiexp_ap_sum / aps_count
-                    avg_controller += avg_doc_wifiexp
-            final_avg_controller = avg_controller/len(doc_list)
+                    avg_doc_wifiexp =  wifiexp_ap_sum / aps_count   # average of wifi aps in a doc
+                    avg_controller += avg_doc_wifiexp # sum of avergae of wifi of aps in all the docs
+            # average of avergae of wifi of aps in all the docs
+            final_avg_controller = avg_controller/len(doc_list) 
             last_doc = doc_list[0].get('msgBody').get('controller').get(typeof)
             flag = 0
             for ap in last_doc:
+                # mark the mac where ap wifiexp - final average of all wifi is < 0
                 if ap['wifiExp']-final_avg_controller < 0:
                     flag = 1
             if flag:
@@ -449,6 +470,7 @@ class HomeApi(View):
     def get(self, request):
         ''' API calls initaited for home page'''
         response_list = []
+        response = {}
         home_stats = HomeStats()
         
         for key in request.GET:
@@ -456,39 +478,39 @@ class HomeApi(View):
             ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
 
         if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
-            return HttpResponse(json.dumps({"status": "false", \
+            response =  HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
             if not len(doc_list):
-                return HttpResponse(json.dumps({"status": "false", \
+                response =  HttpResponse(json.dumps({"status": "false", \
                     "message": "No matching MAC data"}))
         
-                
-        # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
-        response_list.append(home_stats.wireless_stats(home_stats.post_data))
-        #------------------------
-        # SITES WITH CHANGE IN SECURITY#
-        response_list.append(home_stats.change_security(doc_list))
-        #------------------------
-        # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
-        response_list.append(home_stats.access_pt_util(doc_list, \
-            home_stats.post_data))
-        #-------------------------
-        # SITES WITH DEVICES DOWN#
-        response_list.append(home_stats.sites_down(doc_list))
-        #--------------------------
-        # SITES WITH CRITICAL HEALTH
-        response_list.append(home_stats.sites_critical_health(doc_list))
-        #--------------------------
-        # SITES WITH CRITICAL ALARMS#
-        response_list.append(home_stats.critical_alarms(doc_list))
-        #----------------------------
-
-        response = HttpResponse(json.dumps({"status": "true", \
-         "values": response_list,\
-         "message": "Home page API for pannel 1 stats"}))
+        if not response:     
+            # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
+            response_list.append(home_stats.wireless_stats(home_stats.post_data))
+            #------------------------
+            # SITES WITH CHANGE IN SECURITY#
+            response_list.append(home_stats.change_security(doc_list))
+            #------------------------
+            # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
+            response_list.append(home_stats.access_pt_util(doc_list, \
+                home_stats.post_data))
+            #-------------------------
+            # SITES WITH DEVICES DOWN#
+            response_list.append(home_stats.sites_down(doc_list))
+            #--------------------------
+            # SITES WITH CRITICAL HEALTH
+            response_list.append(home_stats.sites_critical_health(doc_list))
+            #--------------------------
+            # SITES WITH CRITICAL ALARMS#
+            response_list.append(home_stats.critical_alarms(doc_list))
+            #----------------------------
+            
+            response = HttpResponse(json.dumps({"status": "true", \
+             "values": response_list,\
+             "message": "Home page API for pannel 1 stats"}))
         response["Access-Control-Allow-Origin"] = "*"
         response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
@@ -496,10 +518,6 @@ class HomeApi(View):
         response["Access-Control-Allow-Headers"] = "*"
         return response
 
-        
-        
-
-        
 
 class HomeApi2(View):
     ''' Home page API'''
@@ -507,32 +525,34 @@ class HomeApi2(View):
         ''' API calls initaited for home page'''
         home_stats = HomeStats()
         response_list = []
+        doc_list = []
+        response = {}
         for key in request.GET:
             home_stats.post_data[key] = \
             ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
-
+        
         if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
-            return HttpResponse(json.dumps({"status": "false", \
+            response =  HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
             if not len(doc_list):
-                return HttpResponse(json.dumps({"status": "false", \
+                response =  HttpResponse(json.dumps({"status": "false", \
                     "message": "No matching MAC data"}))
-
-        # WIRELESS CLIENTS
-        response_list.append( home_stats.wireless_clients(home_stats.post_data))
-        # ACCESS POINTS
-        response_list.append(home_stats.access_points(doc_list))
-        # ALARMS
-        response_list.append(home_stats.alarms(doc_list))
-        # CONTROLLER UTILIZATION
-        response_list.append(home_stats.controller_util(doc_list))
-
-        response = HttpResponse(json.dumps({"status": "true", \
-         "values": response_list , \
-         "message": "Home page API for pannel 2 stats"}))
+        if not response:
+            # WIRELESS CLIENTS
+            response_list.append( home_stats.wireless_clients(home_stats.post_data))
+            # ACCESS POINTS
+            response_list.append(home_stats.access_points(doc_list))
+            # ALARMS
+            response_list.append(home_stats.alarms(doc_list))
+            # CONTROLLER UTILIZATION
+            response_list.append(home_stats.controller_util(doc_list))
+        
+            response = HttpResponse(json.dumps({"status": "true", \
+             "values": response_list , \
+             "message": "Home page API for pannel 2 stats"}))
         response["Access-Control-Allow-Origin"] = "*"
         response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
@@ -547,6 +567,7 @@ class DashboardApi(View):
         response_list= []
         doc_list = []
         all_doc_list = []
+        response = {}
         dash_stats = DashboardStats()
         
         for key in request.GET:
@@ -554,20 +575,21 @@ class DashboardApi(View):
             ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
             #print dash_stats.post_data['mac']
         if 'mac' not in dash_stats.post_data or not dash_stats.post_data['mac']:
-            return HttpResponse(json.dumps({"status": "false", \
+            response =  HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         else:
             #fetch the docs
             doc_list = dash_stats.common.let_the_docs_out(dash_stats.post_data)
             
-        mac_list = dash_stats.post_data['mac']
+        mac_list = dash_stats.post_data['mac'] if not response else []
+        # get all the documents with the matching mac irrespective of timestamp
         for mac in mac_list:
             cursor = db.devices.find({"snum":mac })
             for doc in cursor:
                 all_doc_list.append(doc)
 
-        if not len(doc_list) and not len(all_doc_list):
-                return HttpResponse(json.dumps({"status": "false", \
+        if not len(doc_list) and not len(all_doc_list) and not response:
+                response =  HttpResponse(json.dumps({"status": "false", \
                     "message": "No matching MAC data"}))
 
         # NUMBER OF CONTROLLERS #
@@ -587,10 +609,11 @@ class DashboardApi(View):
 
         # Status Since Last Login #
         response_list.append(dash_stats.status_last_login(doc_list))
-
-        response = HttpResponse(json.dumps({"status": "true", \
-         "values": response_list , \
-         "message": "Dashboard page API for stats"}))
+        if not response:
+        
+            response = HttpResponse(json.dumps({"status": "true", \
+             "values": response_list , \
+             "message": "Dashboard page API for stats"}))
         response["Access-Control-Allow-Origin"] = "*"
         response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
@@ -603,6 +626,7 @@ class AlarmsApi(View):
     def get(self, request):
         ''' API calls initaited for Alarms list'''
         response_list= []
+        response = {}
         doc_list = []
         all_doc_list = []
         post_data = {}
@@ -612,17 +636,17 @@ class AlarmsApi(View):
              if request.GET.get(key) else 0
             
         if 'mac' not in post_data or not post_data['mac']:
-            return HttpResponse(json.dumps({"status": "false", \
+            response = HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
         
-        mac_list = post_data['mac']
+        mac_list = post_data['mac'] if not response else []
         for mac in mac_list:
             cursor = db.devices.find({"snum":mac })
             for doc in cursor:
                 all_doc_list.append(doc)
 
-        if not len(doc_list) and not len(all_doc_list):
-                return HttpResponse(json.dumps({"status": "false", \
+        if not len(doc_list) and not len(all_doc_list) and not response:
+                response = HttpResponse(json.dumps({"status": "false", \
                     "message": "No matching MAC data"}))
 
         # LIST OF ALARMS #
@@ -632,12 +656,12 @@ class AlarmsApi(View):
             if 'alarms' in doc['msgBody'].get('controller'):
                 alarms = doc.get('msgBody').get('controller').get('alarms')
                 for alarm in alarms:
-                    
+                    alarm['mac'] = doc['snum']
                     response_list.append(alarm)
-        
-        response = HttpResponse(json.dumps({"status": "true", \
-         "values": response_list , \
-         "message": "Alarms page API for alarms list"}))
+        if not response:
+            response = HttpResponse(json.dumps({"status": "true", \
+             "values": response_list , \
+             "message": "Alarms page API for alarms list"}))
         response["Access-Control-Allow-Origin"] = "*"
         response['Content-Type'] = 'application/json'
         response["Access-Control-Allow-Methods"] = "GET, OPTIONS"

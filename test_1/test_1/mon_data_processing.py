@@ -8,8 +8,21 @@ import time
 '''
 
 db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
-cursor = db.cursor()
+#cursor = db.cursor()
 t_stmp = int(time.time())
+
+def find_controller(controller_mac=None):
+    cursor = db.cursor()
+    if controller_mac:
+        query = "SELECT `controller_id`, `controller_mac` " \
+		 "FROM `meru_controller` " \
+		 "WHERE `controller_mac` = %s LIMIT 1"
+        
+        cursor.execute(query, (controller_mac))
+        result = cursor.fetchone()
+        cursor.close()
+        return result
+        
 
 def main():
     db = MongoClient()['nms']
@@ -42,6 +55,9 @@ def main():
         else:
             continue
 
+    insert_ap_list = []
+    update_ap_list = []
+
     for doc in mon_data:
         alarms = []
         aps = []
@@ -49,62 +65,104 @@ def main():
         alarms = doc.get('msgBody').get('controller').get('alarms')
         aps = doc.get('msgBody').get('controller').get('aps')
         clients = doc.get('msgBody').get('controller').get('clients')
+        #search for the controller id
+        controller_id = find_controller(doc['snum'])[0]
+
         for alarm in alarms:
             alarm['c_mac'] = doc['snum']
+            alarm['c_id'] = controller_id
+
         for ap in aps:
             ap['c_mac'] = doc['snum']
+            ap['c_id'] = controller_id
             ap_info[ap['id']] = ap['mac']
+            if find_ap(ap['mac']):
+                update_ap_list.append(ap)
+            else:
+                insert_ap_list.append(ap)
+
         for client in clients:
             client['ap_mac'] = ap_info[client['apId']]
-        ap_list.append(aps)
+
+        #ap_list.append(aps)
         alarm_list.append(alarms)
         client_list.append(clients)
+
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
-    ap_mon_data = traverse(ap_list, ap_mon_data)
-    client_mon_data = traverse(client_list, client_mon_data)
-    print ap_mon_data
-#    insert_alarm_data(alarm_mon_data)
-    insert_ap_data(ap_mon_data)
-#   insert_client_data(client_mon_data)
-'''
-def insert_alarm_data(alarm_list):
-    alarm_data = []
-    t = ()
-    for alarm in alarm_list:
-        t = (str(alarm['c_mac']), str(alarm['alarmType']), str(alarm['severity']), \
-                str(alarm['timeStamp']), str(alarm['content']), \
-                4501, t_stmp, 0, 1)
-        alarm_data.append(t)
-        t = ()
-    cursor.executemany(
-        """INSERT INTO alarm (controller_mac_address, alarm_type, severity,\
-                timestamp, content, cid, updated_on, is_read, sent_status) \
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", alarm_data
-        )
-    db.commit()
+    #insert_alarm_data(alarm_mon_data)
+    if len(update_ap_list):
+        u_ap_mon_data = traverse(update_ap_list, ap_mon_data)
+        update_ap_data(u_ap_mon_data)
 
-    return "Success msg from alarm_data\n"
-'''
-def insert_ap_data(ap_list):
+    if len(insert_ap_list):
+        i_ap_mon_data = traverse(insert_ap_list, ap_mon_data)
+        insert_ap_data(i_ap_mon_data)
+
+def find_ap(ap_mac):
+    cursor = db.cursor()
+    if ap_mac:
+        query = "SELECT COUNT(*) " \
+                 "FROM `meru_ap` " \
+                 "WHERE `ap_mac` = %s LIMIT 1"
+
+        cursor.execute(query, (ap_mac))
+        result = cursor.fetchone()
+        cursor.close()
+        if result[0]:
+            return True
+        return False
+    
+def make_ready_ap(ap_list, update=True):
     ap_data = []
-    t = ()
-    for ap in ap_list:
-        t = (str(ap['mac']), str(ap['c_mac']), str(ap['ip']), str(ap['status']), \
-                str(ap['uptime']), str(ap['name']), 'Default', str(ap['model']), str(ap['id']), \
-                str(ap.get('swVersion')), str(ap['rxBytes']), str(ap['txBytes']), \
-                str(ap['wifiExp']), str(ap['wifiExpDescr']), 4600, t_stmp)
-        ap_data.append(t)
-        t = ()
+    if update:
+        for ap in ap_list:
+             status = 1 if ap['status'].lower() == "up" else 0
+             t = (ap["name"], ap["mac"], ap["ip"], ap["model"], ap["rxBytes"], ap["txBytes"],
+                ap['wifiExp'], ap["wifiExpDescr"], status, ap["c_mac"], ap["c_id"], ap["mac"])
+
+             ap_data.append(t)
+             t = ()
+    else:
+        for ap in ap_list:
+             status = 1 if ap['status'].lower() == "up" else 0
+             t = (ap["name"], ap["mac"], ap["ip"], ap["model"], ap["rxBytes"], ap["txBytes"],
+                ap['wifiExp'], ap["wifiExpDescr"], status, ap["c_mac"], ap["c_id"])
+
+             ap_data.append(t)
+             t = ()
+    return ap_data
+
+def update_ap_data(ap_list):
+    cursor = db.cursor()
+    ap_data = make_ready_ap(ap_list, update=True)
     cursor.executemany(
-        """INSERT INTO meru_ap (ap_mac_address, controller_mac_address,\
-             ip_address, status, uptime, name, location, model, ap_id, ap_sw, \
-             rxBytes, txBytes, wifiExp, wifiExpDescr, cid, updated_on)\
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            ap_data
+	"""
+	UPDATE `meru_ap`
+	SET `ap_name`=%s, `ap_mac`=%s, `ap_ip`=%s, `ap_model`=%s,
+	    `ap_rx`=%s, `ap_tx`=%s, `ap_wifiexp`=%s, `ap_wifiexp_desc`=%s,
+	    `ap_status`=%s, `controller_mac`=%s, `ap_cid_fk`=%s
+	WHERE `ap_mac`=%s
+	""", ap_data
+    )
+    db.commit()
+    cursor.close()
+    print "Succ from update ap_data"
+
+def insert_ap_data(ap_list):
+    cursor = db.cursor()
+    ap_data = make_ready_ap(ap_list, update=False)
+    cursor.executemany(
+	"""
+	INSERT INTO `meru_ap`
+	(`ap_name`, `ap_mac`, `ap_ip`, 
+	`ap_model`, `ap_rx`, `ap_tx`, `ap_wifiexp`, 
+	`ap_wifiexp_desc`, `ap_status`, `controller_mac`, `ap_cid_fk`)
+	VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+	""",ap_data
         )
     db.commit()
-
-    return "Succ from ap_data"
+    cursor.close()
+    print "Succ from insert ap_data"
 '''
 def insert_client_data(client_list):
     client_data = []

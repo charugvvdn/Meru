@@ -54,7 +54,6 @@ def main():
             mon_data.append(doc)
         else:
             continue
-    print "mon_data\n", mon_data
     insert_ap_list = []
     update_ap_list = []
 
@@ -67,7 +66,6 @@ def main():
         alarms = doc.get('msgBody').get('controller').get('alarms')
         #search for the controller id
         controller_id = find_controller(doc['snum'])
-        print "controller_id\n", controller_id
 
         for ap in aps:
             ap['c_mac'] = doc['snum']
@@ -85,9 +83,6 @@ def main():
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
     insert_alarm_data(alarm_mon_data)
 
-    print "update_ap_list\n", update_ap_list
-    print "insert_ap_list\n", insert_ap_list
-
     if len(update_ap_list):
         u_ap_mon_data = traverse(update_ap_list, ap_mon_data)
         update_ap_data(u_ap_mon_data)
@@ -99,7 +94,6 @@ def main():
 def insert_alarm_data(alarm_list):
     cursor = db.cursor()
     alarm_data = make_ready_alarm(alarm_list)
-    print "alarm_data\n", alarm_data
     cursor.executemany(
     """
     INSERT INTO `meru_alarm`
@@ -174,7 +168,6 @@ def update_ap_data(ap_list):
 def insert_ap_data(ap_list):
     cursor = db.cursor()
     ap_data = make_ready_ap(ap_list, update=False)
-    print "ap_data\n", ap_data
     cursor.executemany(
 	"""
 	INSERT INTO `meru_ap`

@@ -238,7 +238,10 @@ class Raw_Model():
                 config_data["mac"] = str(mac)
         else:
             return []'''
-        response = ast.literal_eval(result[0][0])
+        if result:
+            response = ast.literal_eval(result[0][0])
+        else:
+            response = []
         return response
 
 class DeviceApplication(View):
@@ -309,7 +312,7 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(no_mac))'''
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['meru_cnm'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:

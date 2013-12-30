@@ -7,7 +7,7 @@ import time
     Standalone script to process mongodb data for mysql.
 '''
 
-db = mydb.connect(host='localhost', user='root', db='nms_test_1_clone', passwd='root')
+db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
 #cursor = db.cursor()
 t_stmp = int(time.time())
 
@@ -83,7 +83,8 @@ def main():
         alarm_list.append(alarms)
 
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
-    insert_alarm_data(alarm_mon_data)
+    if len(alarm_mon_data):
+        insert_alarm_data(alarm_mon_data)
 
     if len(update_ap_list):
         u_ap_mon_data = traverse(update_ap_list, ap_mon_data)

@@ -357,7 +357,7 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(no_mac))
 
         try:
-            q = """ UPDATE meru_command SET command_status = 1 WHERE \
+            q = """ UPDATE meru_command SET command_status = 2 WHERE \
                     command_mac = '%s'""" % mac
             cursor = connections['meru_cnms'].cursor()
             cursor.execute(q)

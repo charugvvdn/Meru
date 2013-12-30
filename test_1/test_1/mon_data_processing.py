@@ -22,7 +22,9 @@ def find_controller(controller_mac=None):
         result = cursor.fetchone()
         cursor.close()
         return result
-        
+
+def make_ready_controller():
+    pass        
 
 def main():
     db = MongoClient()['nms']

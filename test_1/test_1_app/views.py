@@ -13,12 +13,12 @@ import ast
 import json
 
 from test_1_app.models import controller, command, alarm, dashboard_info, \
- ssid, security_profile, ssid_in_command
+    ssid, security_profile, ssid_in_command
 
 from django.views.generic.base import View
 
 
-#Connection with mongodb client
+# Connection with mongodb client
 client = MongoClient()
 db = client['nms']
 
@@ -30,36 +30,41 @@ def welcome(request):
     """
     context = RequestContext(request)
     if 'station' in request.GET:
-        return render_to_response('test_1_app/stationthru.html', \
-            {"d": "Station"}, context)
+        return render_to_response('test_1_app/stationthru.html',
+                                  {"d": "Station"}, context)
     if 'ap' in request.GET:
-        return render_to_response('test_1_app/apthru.html', \
-            {"d": "AP"}, context)
+        return render_to_response('test_1_app/apthru.html',
+                                  {"d": "AP"}, context)
     if 'wifi' in request.GET:
-        return render_to_response('test_1_app/wifiexp.html', \
-            {"d": "Wifi Experience"}, context)
+        return render_to_response('test_1_app/wifiexp.html',
+                                  {"d": "Wifi Experience"}, context)
     if 'overall' in request.GET:
-        return render_to_response('test_1_app/overallthru.html', \
-         {"d": "Overall Throughput"}, context)
+        return render_to_response('test_1_app/overallthru.html',
+                                  {"d": "Overall Throughput"}, context)
     if 'dist' in request.GET:
-        return render_to_response('test_1_app/devicedist.html', \
-            {"d" : "Device Dist Throughput"}, context)
+        return render_to_response('test_1_app/devicedist.html',
+                                  {"d": "Device Dist Throughput"}, context)
     if 'ap_client' in request.GET:
-        return render_to_response('test_1_app/Ap-clients.html', \
-            {"d" : "AP with number of Clients Connected"}, context)
+        return render_to_response('test_1_app/Ap-clients.html',
+                                  {"d": "AP with number of Clients Connected"}, context)
 
     return HttpResponseServerError()
 
+
 class Reports():
+
     """
     Reports common functionality and features
     """
     pass
 
+
 class Common():
+
     """
     Common functinality for all the modules
     """
+
     def traverse(self, obj, l):
         if hasattr(obj, '__iter__'):
             for o in obj:
@@ -78,15 +83,14 @@ class Common():
                 for t in temp_var:
                     get_data[t] = temp_var[t]
             post_data = get_data
-                
-        
+
         elif request.method == "POST":
             post_data = json.loads(request.body)
-        
+
         else:
             post_data = None
 
-	return post_data
+        return post_data
 
     def let_the_docs_out(self, post_data):
         """
@@ -94,7 +98,7 @@ class Common():
         """
         doc_list = []
         mac_list = post_data['mac']
-        
+
         if 'time' in post_data:
             time_frame = post_data['time']
             start_time = time_frame[0]
@@ -106,12 +110,12 @@ class Common():
             offset = utc_now - datetime.timedelta(minutes=30)
             start_time = int((offset - utc_1970).total_seconds())
             end_time = int((utc_now - utc_1970).total_seconds())
-            
+
         for mac in mac_list:
             if not db.devices.find({"snum": mac}).count():
                 continue
-            cursor = db.devices.find({"snum": mac, "timestamp" \
-                : {"$gt": start_time, "$lt": end_time}})
+            cursor = db.devices.find(
+                {"snum": mac, "timestamp": {"$gt": start_time, "$lt": end_time}})
 
             for doc in cursor:
                 doc_list.append(doc)
@@ -133,7 +137,7 @@ class Common():
                         return_dict[unix_timestamp] = []
                     return_dict[unix_timestamp].append(c)
 
-        return return_dict;
+        return return_dict
 
     def throughput_calc(self, clients):
         rx_list = []
@@ -149,11 +153,13 @@ class Common():
 
             rx_list.append([c, rx])
             tx_list.append([c, tx])
-            throughput.append([c, rx+tx])
+            throughput.append([c, rx + tx])
 
         return (rx_list, tx_list, throughput)
 
+
 class Raw_Model():
+
     """
     Raw SQL queries methods
     """
@@ -165,10 +171,10 @@ class Raw_Model():
         :param mac:
         """
         config_data = {}
-        sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "", \
-         "sec-profile-name": "", "sec-l2-mode": ""}
-        ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "", \
-         "ess-state": "", "ess-ssid-broadcast": "",
+        sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "",
+                            "sec-profile-name": "", "sec-l2-mode": ""}
+        ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "",
+                            "ess-state": "", "ess-ssid-broadcast": "",
                             "ess-security-profile": ""}
 
         cursor = connections['meru_cnms'].cursor()
@@ -241,7 +247,9 @@ class Raw_Model():
             response = []
         return response
 
+
 class DeviceApplication(View):
+
     """
     Restful implementation for Controller
     """
@@ -250,7 +258,7 @@ class DeviceApplication(View):
 
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
-        #dont worry about the CSRF here
+        # dont worry about the CSRF here
         return super(DeviceApplication, self).dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
@@ -288,7 +296,7 @@ class DeviceApplication(View):
 
         Request:  Monitoring data from controller and insert that data into
         a mongodb data source.
-        Response: Respond with commands for the controller that has been 
+        Response: Respond with commands for the controller that has been
         registered by a user for that particular controller
 
         :param request:
@@ -322,7 +330,7 @@ class DeviceApplication(View):
         post_data['timestamp'] = timestamp
         db.devices.insert(post_data)
 
-        raw_model = Raw_Model()#Raw model class to access the sql
+        raw_model = Raw_Model()  # Raw model class to access the sql
         config_data = raw_model.isConfigData(mac)
 
         return HttpResponse(json.dumps(config_data))
@@ -364,6 +372,7 @@ class DeviceApplication(View):
             print str(e)
             return HttpResponse(json.dumps(self.false_response))
 
+
 def client_throughput(request):
     '''Module to plot the Station throughput line chart containing rxByte,
     txByte and throughput plotting of Clients'''
@@ -378,40 +387,40 @@ def client_throughput(request):
     post_data = common.eval_request(request)
 
     if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false", \
+        return HttpResponse(json.dumps({"status": "false",
                                         "message": "No POST data"}))
 
     if 'mac' in post_data:
-        #fetch the docs
+        # fetch the docs
         doc_list = common.let_the_docs_out(post_data)
-        
-        #start the report evaluation
-        #get the clients
+
+        # start the report evaluation
+        # get the clients
         get_type = "clients"
         clients = common.calc_type(doc_list, get_type)
-        
+
         rx_list, tx_list, throughput = common.throughput_calc(clients)
 
         response_list = [
-                            {"label": "rxBytes", "data": rx_list}, \
-                            {"label": "txBytes", "data": tx_list}, \
-                            {"label": "throughput", "data": throughput}
-                        ]
-        
-        response = HttpResponse(json.dumps({"status": "true", \
-            "values": response_list,\
-            "message": "values for client throughput bar graph"}))
+            {"label": "rxBytes", "data": rx_list},
+            {"label": "txBytes", "data": tx_list},
+            {"label": "throughput", "data": throughput}
+        ]
+
+        response = HttpResponse(json.dumps({"status": "true",
+                                            "values": response_list,
+                                            "message": "values for client throughput bar graph"}))
 
         return response
 
     else:
-        return HttpResponse(json.dumps({"status": "false", \
+        return HttpResponse(json.dumps({"status": "false",
                                         "message": "No mac provided"}))
 
 
 def devicetype(request):
     '''Module to plot the device type distribution pie chart'''
-    
+
     device_types = {}
     response = []
     context = RequestContext(request)
@@ -420,16 +429,16 @@ def devicetype(request):
     post_data = common.eval_request(request)
 
     if 'mac' in post_data:
-        #fetch the docs
+        # fetch the docs
         doc_list = common.let_the_docs_out(post_data)
         for doc in doc_list:
-        #start the report evaluation
-        
-        #get the clients
+        # start the report evaluation
+
+        # get the clients
             get_type = "clients"
             client_list = common.calc_type(doc_list, get_type)
             clients = doc.get('msgBody').get('controller').get('clients')
-            
+
             for c in clients:
                 if c['clientType'] in device_types:
                     device_types[c['clientType']] += 1
@@ -440,9 +449,9 @@ def devicetype(request):
             d1["label"] = d
             d1["data"] = n
             response.append(d1)
-            
-        response =  HttpResponse(json.dumps({"status": "true", \
-            "values": response}))
+
+        response = HttpResponse(json.dumps({"status": "true",
+                                            "values": response}))
         return response
 
     else:
@@ -466,40 +475,40 @@ def ap_throughput(request):
     post_data = common.eval_request(request)
 
     if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false", \
+        return HttpResponse(json.dumps({"status": "false",
                                         "message": "No POST data"}))
 
     if 'mac' in post_data:
-        #fetch the docs
+        # fetch the docs
         doc_list = common.let_the_docs_out(post_data)
 
-        #start the report evaluation
-        #get the clients
+        # start the report evaluation
+        # get the clients
         get_type = "aps"
         clients = common.calc_type(doc_list, get_type)
-        
+
         rx_list, tx_list, throughput = common.throughput_calc(clients)
 
         response_list = [
-                            {"label": "rxBytes", "data": rx_list}, \
-                            {"label": "txBytes", "data": tx_list}, \
-                            {"label": "throughput", "data": throughput}
-                        ]
+            {"label": "rxBytes", "data": rx_list},
+            {"label": "txBytes", "data": tx_list},
+            {"label": "throughput", "data": throughput}
+        ]
         response = HttpResponse(json.dumps(
-                            {
-                                "status": "true", \
-                                "values": response_list,\
+            {
+                                "status": "true",
+                                "values": response_list,
                                 "message": "values for AP throughput bar graph"
-                            }))
+                                }))
         return response
     else:
-        return HttpResponse(json.dumps({"status": "false", \
+        return HttpResponse(json.dumps({"status": "false",
                                         "message": "No mac provided"}))
 
 
 def overall_throughput(request):
-    ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes 
-        for Client, txbyte for Ap+ txByte for Client, and throughput 
+    ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes
+        for Client, txbyte for Ap+ txByte for Client, and throughput
         (rxbyte+txbyte)'''
 
     rx_bytes = 0
@@ -514,11 +523,11 @@ def overall_throughput(request):
     post_data = common.eval_request(request)
 
     if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false", \
+        return HttpResponse(json.dumps({"status": "false",
                                         "message": "No POST data"}))
 
     if 'mac' in post_data:
-        #fetch thdevicedistdevicedistdevicedistdevicedistdevicediste docs
+        # fetch thdevicedistdevicedistdevicedistdevicedistdevicediste docs
         doc_list = common.let_the_docs_out(post_data)
 
         get_type = "aps"
@@ -526,28 +535,27 @@ def overall_throughput(request):
 
         get_type = "clients"
         clients = common.calc_type(doc_list, get_type)
-        
+
         out_dict = aps
 
-        #join both the dicts
+        # join both the dicts
         for times in out_dict:
             for client in clients[times]:
                 out_dict[times].append(client)
-        
-        #get overall result
+
+        # get overall result
         rx_list, tx_list, throughput = common.throughput_calc(out_dict)
 
-        response_list = [{"label": "rxBytes", "data": rx_list}, \
-        {"label": "txBytes", "data": \
-            tx_list}, {"label": "throughput", "data": throughput}]
-        response = HttpResponse(json.dumps({"status": "true", \
-            "values": response_list,\
-             "message": "values for Overall throughput bar graph"}))
+        response_list = [{"label": "rxBytes", "data": rx_list},
+                         {"label": "txBytes", "data":
+                          tx_list}, {"label": "throughput", "data": throughput}]
+        response = HttpResponse(json.dumps({"status": "true",
+                                            "values": response_list,
+                                            "message": "values for Overall throughput bar graph"}))
 
         return response
 
-
-    return HttpResponse(json.dumps({"status": "false", \
+    return HttpResponse(json.dumps({"status": "false",
                                     "message": "No mac provided"}))
 
 
@@ -570,16 +578,16 @@ def wifi_experience(request):
     wifiexp_cl_sum = 0
     response_list = 0
     unix_timestamp = 0
-    
+
     common = Common()
     post_data = common.eval_request(request)
 
     if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false", \
+        return HttpResponse(json.dumps({"status": "false",
                                         "message": "No POST data"}))
 
     if 'mac' in post_data:
-        #fetch the docs
+        # fetch the docs
         doc_list = common.let_the_docs_out(post_data)
 
         for doc in doc_list:
@@ -597,8 +605,8 @@ def wifi_experience(request):
                     clients.append(ap)
                     wifiexp_ap_sum += ap['wifiExp']
                     aps_count += 1
-                avg_ap_wifiexp.append([unix_timestamp, \
-                    wifiexp_ap_sum / aps_count])
+                avg_ap_wifiexp.append([unix_timestamp,
+                                       wifiexp_ap_sum / aps_count])
                 min_aplist.append([unix_timestamp, min_ap])
                 max_aplist.append([unix_timestamp, max_ap])
             if 'clients' in doc['msgBody'].get('controller'):
@@ -614,11 +622,10 @@ def wifi_experience(request):
                     clients.append(c)
                     wifiexp_cl_sum += c['wifiExp']
                     client_count += 1
-                avg_cl_wifiexp.append([unix_timestamp, \
-                    wifiexp_cl_sum / client_count])
+                avg_cl_wifiexp.append([unix_timestamp,
+                                       wifiexp_cl_sum / client_count])
                 min_clist.append([unix_timestamp, min_cl])
                 max_clist.append([unix_timestamp, max_cl])
-
 
         response_list = [
             {"label": "Maximum-Client-wifiExp", "data": max_clist},
@@ -628,30 +635,30 @@ def wifi_experience(request):
             {"label": "Average-AP-wifiExp", "data": avg_ap_wifiexp},
             {"label": "Average-client-wifiExp", "data": avg_cl_wifiexp}
         ]
-        response = HttpResponse(json.dumps({"status": "true", \
-         "values": response_list,\
-         "message": "values for Wifi Experience bar graph"}))
+        response = HttpResponse(json.dumps({"status": "true",
+                                            "values": response_list,
+                                            "message": "values for Wifi Experience bar graph"}))
 
         return response
 
-
-    return HttpResponse(json.dumps({"status": "false", \
+    return HttpResponse(json.dumps({"status": "false",
                                     "message": "No mac provided"}))
+
 
 def ap_clients(request):
     """ Plotting Graph for "Ap having clients connected to them "bar chart"""
     db = MongoClient()['nms']
     doc_list = []
     ap_dict = {}
-    result=Counter()
+    result = Counter()
     clients = []
     no_of_client = {}
-    response_list= []
+    response_list = []
     list_new = []
     post_data = json.loads(request.body)
 
     if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false", \
+        return HttpResponse(json.dumps({"status": "false",
                                         "message": "No POST data"}))
 
     if 'mac' in post_data:
@@ -668,13 +675,12 @@ def ap_clients(request):
             start_time = int((offset - utc_1970).total_seconds())
             end_time = int((utc_now - utc_1970).total_seconds())
 
-        cursor = db.devices.find({"snum": mac_list[0], "timestamp" \
-            : {"$gt": start_time, "$lt": end_time}})
+        cursor = db.devices.find(
+            {"snum": mac_list[0], "timestamp": {"$gt": start_time, "$lt": end_time}})
 
         for doc in cursor:
             doc_list.append(doc)
 
-        
         for doc in doc_list:
             unix_timestamp = int(doc['timestamp']) * 1000
             min_cl = min_ap = 100
@@ -682,39 +688,38 @@ def ap_clients(request):
             if 'aps' in doc['msgBody'].get('controller'):
                 aps = doc.get('msgBody').get('controller').get('aps')
                 for ap in aps:
-                    
+
                     if ap['id'] not in ap_dict:
                         ap_dict[ap['id']] = ap['mac']
-                        ap_dict[str(ap['id'])+"time"] =  unix_timestamp
-                
+                        ap_dict[str(ap['id']) + "time"] = unix_timestamp
+
             if 'clients' in doc['msgBody'].get('controller'):
                 client = doc.get('msgBody').get('controller').get('clients')
                 for c in client:
                     client_dict = {}
                     client_dict['apId'] = c['apId']
                     clients.append(client_dict)
-         
+
         for client in clients:
-        
+
             response = {}
             if client['apId'] in ap_dict:
                 result[str(client['apId'])] += 1
-        
-        for apid,count in result.iteritems()  :
-            
+
+        for apid, count in result.iteritems():
+
             response = {}
             list_new = []
-            list_new.append( [ap_dict[str(apid)+"time"],result[str(apid)]])
-            response['data']  = list_new
+            list_new.append([ap_dict[str(apid) + "time"], result[str(apid)]])
+            response['data'] = list_new
             response['label'] = ap_dict[int(apid)]
             response_list.append(response)
-        
-        response =  HttpResponse(json.dumps({"status": "true", \
-         "values": response_list,\
-         "message": "values for Number of clients for AP"}))
+
+        response = HttpResponse(json.dumps({"status": "true",
+                                            "values": response_list,
+                                            "message": "values for Number of clients for AP"}))
 
         return response
 
-
-    return HttpResponse(json.dumps({"status": "false", \
+    return HttpResponse(json.dumps({"status": "false",
                                     "message": "No mac provided"}))

@@ -84,8 +84,14 @@ class DashboardStats():
                 if typeof in doc['msgBody'].get('controller'):
                     # get the aps
                     aps = doc.get('msgBody').get('controller').get(typeof)
+                    unique_aps = {}
                     for ap in aps:
-                        count += 1
+                        if ap["mac"] in unique_aps:
+                            unique_aps[ap["mac"]] += 1
+                        else:
+                            unique_aps[ap["mac"]] = 0
+                            count += 1
+                        
         result_dict['label'] = 'Number of aps'
         result_dict['data'] = [count]
         return result_dict
@@ -316,17 +322,22 @@ class HomeStats():
         offline_count = 0
         down_aps = 0
         result_dict = {}
+        unique_ap = {}
 
         for doc in doc_list:
-
             if typeof in doc['msgBody'].get('controller'):
                 aps = doc.get('msgBody').get('controller').get(typeof)
+                
                 for ap in aps:
-                    if ap['status'].lower() == 'down':
-                        down_aps += 1
-                        offline_count += 1
+                    if ap["mac"] in unique_ap:
+                        pass
                     else:
-                        online_count += 1
+                        unique_ap[ap["mac"]] = 0
+                        if ap['status'].lower() == 'down':
+                            down_aps += 1
+                            offline_count += 1
+                        else:
+                            online_count += 1
 
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]

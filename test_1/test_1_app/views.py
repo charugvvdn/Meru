@@ -411,10 +411,10 @@ def client_throughput(request):
             "values": response_list,\
             "message": "values for client throughput bar graph"}))
 
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
     else:
@@ -459,10 +459,10 @@ def devicetype(request):
             
         response =  HttpResponse(json.dumps({"status": "true", \
             "values": response}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
     else:
@@ -515,10 +515,10 @@ def ap_throughput(request):
                                 "values": response_list,\
                                 "message": "values for AP throughput bar graph"
                             }))
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
     else:
         return HttpResponse(json.dumps({"status": "false", \
@@ -575,10 +575,10 @@ def overall_throughput(request):
         response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
              "message": "values for Overall throughput bar graph"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 
@@ -669,10 +669,10 @@ def wifi_experience(request):
         response = HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Wifi Experience bar graph"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 
@@ -757,10 +757,10 @@ def ap_clients(request):
         response =  HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Number of clients for AP"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 

@@ -437,7 +437,7 @@ class HomeStats():
                 if typeof in doc['msgBody'].get('controller'):
                     aps = doc.get('msgBody').get('controller').get(typeof)
                     for ap in aps:
-                        wifiexp_ap_sum += ap['wifiExp'] # sum of wifi of aps
+                        wifiexp_ap_sum += int(ap['wifiExp']) # sum of wifi of aps
                         aps_count += 1 # number of aps
                     
                     avg_doc_wifiexp =  wifiexp_ap_sum / aps_count   # average of wifi aps in a doc
@@ -448,7 +448,7 @@ class HomeStats():
             flag = 0
             for ap in last_doc:
                 # mark the mac where ap wifiexp - final average of all wifi is < 0
-                if ap['wifiExp']-final_avg_controller < 0:
+                if int(ap['wifiExp'])-final_avg_controller < 0:
                     flag = 1
             if flag:
                 controller_list.append(doc_list[0]['snum'])
@@ -471,6 +471,12 @@ class HomeApi(View):
         ''' API calls initaited for home page'''
         response_list = []
         response = {}
+#        response['Content-Type'] = 'application/json'
+#	response["Access-Control-Allow-Origin"] = "*"
+#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
+
         home_stats = HomeStats()
         
         for key in request.GET:
@@ -511,11 +517,6 @@ class HomeApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list,\
              "message": "Home page API for pannel 1 stats"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 
@@ -553,11 +554,11 @@ class HomeApi2(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Home page API for pannel 2 stats"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response['Content-Type'] = 'application/json'
+#        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 class DashboardApi(View):
@@ -614,11 +615,11 @@ class DashboardApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Dashboard page API for stats"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response['Content-Type'] = 'application/json'
+#        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 class AlarmsApi(View):
@@ -652,25 +653,21 @@ class AlarmsApi(View):
         # LIST OF ALARMS #
 
         for doc in all_doc_list:
-            
-            if 'alarms' in doc['msgBody'].get('controller'):
-                alarms = doc.get('msgBody').get('controller').get('alarms')
-                for alarm in alarms:
-                    alarm['mac'] = doc['snum']
-                    response_list.append(alarm)
+            if 'msgBody' in doc:
+                if 'controller' in doc['msgBody']:
+                    if 'alarms' in doc['msgBody'].get('controller'):
+                        alarms = doc.get('msgBody').get('controller').get('alarms')
+                        if alarms:
+                            for alarm in alarms:
+                                alarm['mac'] = doc['snum']
+                                response_list.append(alarm)
         if not response:
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Alarms page API for alarms list"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
-        return response
-
-
-
-
-        
-        
+#        response["Access-Control-Allow-Origin"] = "*"
+#        response['Content-Type'] = 'application/json'
+#        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+#        response["Access-Control-Max-Age"] = "1000"
+#        response["Access-Control-Allow-Headers"] = "*"
+        return response       

@@ -26,15 +26,15 @@ class DashboardStats():
         critical_count = 0
         result_dict = {}
         for doc in doc_list:
-            
-            if typeof in doc['msgBody'].get('controller'):
-                #get clients
-                clients = doc.get('msgBody').get('controller').get(typeof)
-                for client in clients:
-                    if client['state'].lower() == 'associated':
-                        online_count += 1
-                    else:
-                        critical_count += 1
+            if 'msgBody' in doc and typeof in doc['msgBody']: 
+                if typeof in doc['msgBody'].get('controller'):
+                    #get clients
+                    clients = doc.get('msgBody').get('controller').get(typeof)
+                    for client in clients:
+                        if client['state'].lower() == 'associated':
+                            online_count += 1
+                        else:
+                            critical_count += 1
         result_dict['label'] = 'Number of stations'
         result_dict['data'] = [online_count, critical_count]
         return result_dict
@@ -45,11 +45,11 @@ class DashboardStats():
         result_dict = {}
             
         for doc in doc_list:
-            
-            if doc['msgBody'].get(typeof):
+            if 'msgBody' in doc:
+                if doc['msgBody'].get(typeof):
                 # get controller
-                controller = doc.get('msgBody').get(typeof)
-                count += 1
+                    controller = doc.get('msgBody').get(typeof)
+                    count += 1
         result_dict['label'] = 'Number of controllers'
         result_dict['data'] = [count]
         return result_dict
@@ -62,12 +62,12 @@ class DashboardStats():
         result_dict = {}
             
         for doc in doc_list:
-            
-            if typeof in doc['msgBody'].get('controller'):
-                clients = doc.get('msgBody').get('controller').get(typeof)
-                for client in clients:
-                    wifi_client += client['wifiExp']
-                    count += 1
+            if 'msgBody' in doc and typeof in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    clients = doc.get('msgBody').get('controller').get(typeof)
+                    for client in clients:
+                        wifi_client += client['wifiExp']
+                        count += 1
         result_dict['label'] = 'Wifi experience'
         result_dict['data'] = [wifi_client/count] if count > 0 else [0]
         return result_dict
@@ -78,12 +78,12 @@ class DashboardStats():
         result_dict = {}
             
         for doc in doc_list:
-            
-            if typeof in doc['msgBody'].get('controller'):
-                #get the aps
-                aps = doc.get('msgBody').get('controller').get(typeof)
-                for ap in aps:
-                    count += 1
+            if 'msgBody' in doc and typeof in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    #get the aps
+                    aps = doc.get('msgBody').get('controller').get(typeof)
+                    for ap in aps:
+                        count += 1
         result_dict['label'] = 'Number of aps'
         result_dict['data'] = [count]
         return result_dict
@@ -95,20 +95,20 @@ class DashboardStats():
         result_dict = {}
             
         for doc in doc_list:
-            
-            if typeof in doc['msgBody'].get('controller'):
-                #get the aps
-                aps = doc.get('msgBody').get('controller').get(typeof)
-                for ap in aps:
-                    if ap['status'].lower() == 'up':
-                        online_count += 1
-                    else:
-                        offline_count  += 1
+            if 'msgBody' in doc and typeof in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    #get the aps
+                    aps = doc.get('msgBody').get('controller').get(typeof)
+                    for ap in aps:
+                        if ap['status'].lower() == 'up':
+                            online_count += 1
+                        else:
+                            offline_count  += 1
         result_dict['label'] = 'Number of online offline aps'
         result_dict['data'] = [online_count, offline_count]
         return result_dict
 
-    def status_last_login(self, doc_list):
+    def status_last_login(self, doc_list, typeof='controller'):
         '''API calculating STATUS SINCE LAST LOGIN '''
         sites_count = 0
         controller_count = 0
@@ -116,21 +116,21 @@ class DashboardStats():
         result_dict = {}
             
         for doc in doc_list:
-            
-            if 'clients' in doc['msgBody'].get('controller'):
-                #get clients to count sites
-                clients = doc.get('msgBody').get('controller').get('clients')
-                for client in clients:
-                    sites_count += 1
-            if doc['msgBody'].get('controller'):
-                #get controller count
-                controller_count += 1
-            if 'alarms' in doc['msgBody'].get('controller'):
-                #get alarms to count critical alarms
-                alarms = doc.get('msgBody').get('controller').get('alarms')
-                for alarm in alarms:
-                    if alarm['severity'].lower() == 'high':
-                        critical_alarm_count += 1
+            if 'msgBody' in doc and typeof in doc['msgBody']:
+                if 'clients' in doc['msgBody'].get('controller'):
+                    #get clients to count sites
+                    clients = doc.get('msgBody').get('controller').get('clients')
+                    for client in clients:
+                        sites_count += 1
+                if doc['msgBody'].get('controller'):
+                    #get controller count
+                    controller_count += 1
+                if 'alarms' in doc['msgBody'].get('controller'):
+                    #get alarms to count critical alarms
+                    alarms = doc.get('msgBody').get('controller').get('alarms')
+                    for alarm in alarms:
+                        if alarm['severity'].lower() == 'high':
+                            critical_alarm_count += 1
         result_dict['label'] = 'Status since last login'
         result_dict['data'] = [sites_count, controller_count, \
         critical_alarm_count]

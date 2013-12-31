@@ -312,7 +312,7 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(no_mac))'''
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnm'].cursor()
+        cursor = connections['meru_cnms'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:

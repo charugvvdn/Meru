@@ -5,7 +5,6 @@ import json
 from django.views.generic.base import View
 from views import Common
 import ast
-import pprint
 #Connection with mongodb client
 client = MongoClient()
 db = client['nms']
@@ -427,7 +426,6 @@ class HomeStats():
             avg_controller  = 0
             for doc in cursor:
                 doc_list.append(doc)
-                pprint.pprint(doc)
 
             for doc in doc_list:
                 
@@ -471,12 +469,6 @@ class HomeApi(View):
         ''' API calls initaited for home page'''
         response_list = []
         response = {}
-#        response['Content-Type'] = 'application/json'
-#	response["Access-Control-Allow-Origin"] = "*"
-#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
-
         home_stats = HomeStats()
         
         for key in request.GET:
@@ -554,11 +546,6 @@ class HomeApi2(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Home page API for pannel 2 stats"}))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response['Content-Type'] = 'application/json'
-#        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 class DashboardApi(View):
@@ -574,7 +561,6 @@ class DashboardApi(View):
         for key in request.GET:
             dash_stats.post_data[key] = \
             ast.literal_eval(request.GET.get(key).strip()) if request.GET.get(key) else 0
-            #print dash_stats.post_data['mac']
         if 'mac' not in dash_stats.post_data or not dash_stats.post_data['mac']:
             response =  HttpResponse(json.dumps({"status": "false", \
                 "message": "No MAC data"}))
@@ -615,11 +601,6 @@ class DashboardApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Dashboard page API for stats"}))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response['Content-Type'] = 'application/json'
-#        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
 class AlarmsApi(View):
@@ -665,9 +646,4 @@ class AlarmsApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Alarms page API for alarms list"}))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response['Content-Type'] = 'application/json'
-#        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
         return response       

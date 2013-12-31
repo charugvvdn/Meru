@@ -72,7 +72,6 @@ class Common():
     def eval_request(self, request):
         if request.method == "GET":
             post_data = request.GET.dict()
-            print post_data
             get_data = {}
             for pd in post_data:
                 temp_var = ast.literal_eval(pd)
@@ -108,8 +107,6 @@ class Common():
             start_time = int((offset - utc_1970).total_seconds())
             end_time = int((utc_now - utc_1970).total_seconds())
             
-        print mac_list
-        print start_time, end_time
         for mac in mac_list:
             if not db.devices.find({"snum": mac}).count():
                 continue
@@ -367,8 +364,6 @@ class DeviceApplication(View):
             print str(e)
             return HttpResponse(json.dumps(self.false_response))
 
-            # return uHello(request)
-
 def client_throughput(request):
     '''Module to plot the Station throughput line chart containing rxByte,
     txByte and throughput plotting of Clients'''
@@ -386,8 +381,6 @@ def client_throughput(request):
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No POST data"}))
 
-    #post_data = ast.literal_eval(request.POST.lists()[0][0])
-
     if 'mac' in post_data:
         #fetch the docs
         doc_list = common.let_the_docs_out(post_data)
@@ -399,22 +392,16 @@ def client_throughput(request):
         
         rx_list, tx_list, throughput = common.throughput_calc(clients)
 
-        #print throughput
         response_list = [
                             {"label": "rxBytes", "data": rx_list}, \
                             {"label": "txBytes", "data": tx_list}, \
                             {"label": "throughput", "data": throughput}
                         ]
-        #       print response_list
         
         response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
             "message": "values for client throughput bar graph"}))
 
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
     else:
@@ -425,7 +412,6 @@ def client_throughput(request):
 def devicetype(request):
     '''Module to plot the device type distribution pie chart'''
     
-    #clients = []
     device_types = {}
     response = []
     context = RequestContext(request)
@@ -443,14 +429,12 @@ def devicetype(request):
             get_type = "clients"
             client_list = common.calc_type(doc_list, get_type)
             clients = doc.get('msgBody').get('controller').get('clients')
-            #clients = common.traverse(client_list, clients)
             
             for c in clients:
                 if c['clientType'] in device_types:
                     device_types[c['clientType']] += 1
                 else:
                     device_types[c['clientType']] = 1
-            print device_types
         for d, n in device_types.iteritems():
             d1 = {"label": 0, "data": 0}
             d1["label"] = d
@@ -459,10 +443,6 @@ def devicetype(request):
             
         response =  HttpResponse(json.dumps({"status": "true", \
             "values": response}))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
         return response
 
     else:
@@ -489,12 +469,9 @@ def ap_throughput(request):
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No POST data"}))
 
-    #post_data = ast.literal_eval(request.POST.lists()[0][0])
-
     if 'mac' in post_data:
         #fetch the docs
         doc_list = common.let_the_docs_out(post_data)
-        print len(doc_list)
 
         #start the report evaluation
         #get the clients
@@ -508,17 +485,12 @@ def ap_throughput(request):
                             {"label": "txBytes", "data": tx_list}, \
                             {"label": "throughput", "data": throughput}
                         ]
-        #       print response_list
         response = HttpResponse(json.dumps(
                             {
                                 "status": "true", \
                                 "values": response_list,\
                                 "message": "values for AP throughput bar graph"
                             }))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
         return response
     else:
         return HttpResponse(json.dumps({"status": "false", \
@@ -545,8 +517,6 @@ def overall_throughput(request):
         return HttpResponse(json.dumps({"status": "false", \
                                         "message": "No POST data"}))
 
-    #post_data = ast.literal_eval(request.POST.lists()[0][0])
-
     if 'mac' in post_data:
         #fetch thdevicedistdevicedistdevicedistdevicedistdevicediste docs
         doc_list = common.let_the_docs_out(post_data)
@@ -567,18 +537,13 @@ def overall_throughput(request):
         #get overall result
         rx_list, tx_list, throughput = common.throughput_calc(out_dict)
 
-        #print throughput
         response_list = [{"label": "rxBytes", "data": rx_list}, \
         {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
-        #       print response_list
         response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
              "message": "values for Overall throughput bar graph"}))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
+
         return response
 
 
@@ -617,7 +582,6 @@ def wifi_experience(request):
         #fetch the docs
         doc_list = common.let_the_docs_out(post_data)
 
-        #       print doc_list
         for doc in doc_list:
             min_cl = min_ap = 100
             max_cl = max_ap = 0
@@ -656,7 +620,6 @@ def wifi_experience(request):
                 max_clist.append([unix_timestamp, max_cl])
 
 
-        #print throughput
         response_list = [
             {"label": "Maximum-Client-wifiExp", "data": max_clist},
             {"label": "Minimum-Client-wifiExp", "data": min_clist},
@@ -665,14 +628,10 @@ def wifi_experience(request):
             {"label": "Average-AP-wifiExp", "data": avg_ap_wifiexp},
             {"label": "Average-client-wifiExp", "data": avg_cl_wifiexp}
         ]
-        print response_list
         response = HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Wifi Experience bar graph"}))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
+
         return response
 
 
@@ -732,7 +691,6 @@ def ap_clients(request):
                 client = doc.get('msgBody').get('controller').get('clients')
                 for c in client:
                     client_dict = {}
-                    #client_dict['timestamp'] = unix_timestamp
                     client_dict['apId'] = c['apId']
                     clients.append(client_dict)
          
@@ -751,16 +709,10 @@ def ap_clients(request):
             response['label'] = ap_dict[int(apid)]
             response_list.append(response)
         
-        #result = {"label": mac, "data": [timestamp,no_mac]}
-        #response_list.append(result)
-
         response =  HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Number of clients for AP"}))
-#        response["Access-Control-Allow-Origin"] = "*"
-#        response["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-#        response["Access-Control-Max-Age"] = "1000"
-#        response["Access-Control-Allow-Headers"] = "*"
+
         return response
 
 

@@ -655,7 +655,9 @@ def ap_clients(request):
     no_of_client = {}
     response_list = []
     list_new = []
-    post_data = json.loads(request.body)
+
+    common = Common()
+    post_data = common.eval_request(request)
 
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false",

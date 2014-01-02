@@ -53,7 +53,8 @@ def make_ready_controller(controller_list, update=True):
     controller_data = []
     if update:
         for controller in controller_list:
-             status = 1 if controller['operState'].lower() == "enabled" else 0
+             status = 1 if controller['operState'].lower() == "enabled" or \
+                            controller['operState'].lower() == "up" else 0
              t = (
                 controller["ip"],
                 controller["hostname"],

@@ -177,7 +177,7 @@ class Raw_Model():
                             "ess-state": "", "ess-ssid-broadcast": "",
                             "ess-security-profile": ""}
 
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['nms_clone'].cursor()
 
         '''q = "SELECT ssid.ssid,\
         security_profile.security_profile_id ,\
@@ -280,7 +280,7 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(self.true_response))'''
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['nms_clone'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -317,7 +317,7 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(no_mac))'''
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['nms_clone'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -328,12 +328,15 @@ class DeviceApplication(View):
         timestamp = int((utcnow - utc_1970).total_seconds())
 
         post_data['timestamp'] = timestamp
+        self.type_casting(post_data)
+        print post_data
         db.devices.insert(post_data)
 
         raw_model = Raw_Model()  # Raw model class to access the sql
         config_data = raw_model.isConfigData(mac)
 
         return HttpResponse(json.dumps(config_data))
+
 
     def put(self, request, *args, **kwargs):
         """
@@ -353,24 +356,49 @@ class DeviceApplication(View):
 
         self.true_response["mac"] = mac
         self.false_response["mac"] = mac
+        self.false_response["status"] = "false"
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['nms_clone'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:
-            return HttpResponse(json.dumps(no_mac))
+            return HttpResponse(json.dumps(self.false_response))
 
         try:
             q = """ UPDATE meru_command SET command_status = 2 WHERE \
                     command_mac = '%s'""" % mac
-            cursor = connections['meru_cnms'].cursor()
+            cursor = connections['nms_clone'].cursor()
             cursor.execute(q)
             return HttpResponse(json.dumps(self.true_response))
 
         except Exception as e:
             print str(e)
             return HttpResponse(json.dumps(self.false_response))
+
+    def type_casting(self, doc):
+        alarms = []
+        aps = []
+        clients = []
+        alarms = doc.get('msgBody').get('controller').get('alarms')
+        aps = doc.get('msgBody').get('controller').get('aps')
+        clients = doc.get('msgBody').get('controller').get('clients')
+
+        if 'alarms' in doc.get('msgBody').get('controller'):
+            for alarm in doc.get('msgBody').get('controller').get('alarms'):
+                alarm['timeStamp'] = int(alarm['timeStamp'])
+
+        if 'aps' in doc.get('msgBody').get('controller'):
+            for ap in doc.get('msgBody').get('controller').get('aps'):
+                ap['id'], ap['rxBytes'] = int(ap['id']), int(ap['rxBytes'])
+                ap['txBytes'], ap['wifiExp'] = int(ap['txBytes']), int(ap['wifiExp'])
+
+        if 'clients' in doc.get('msgBody').get('controller'):
+            for client in doc.get('msgBody').get('controller').get('clients'):
+                client['apId'], client['rxBytes'] = int(client['apId']), int(client['rxBytes'])
+                client['txBytes'], client['txBytes'] = int(client['txBytes']), int(client['txBytes'])
+
+        return doc
 
 
 def client_throughput(request):

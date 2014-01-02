@@ -39,7 +39,7 @@ def main():
     client_mon_data = []
     ap_info = {}
 
-    offset  = d.datetime.utcnow() - d.timedelta(minutes=2)
+    offset  = d.datetime.utcnow() - d.timedelta(minutes=1)
     start_time = int((offset - d.datetime(1970, 1, 1)).total_seconds())
     end_time  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
 
@@ -127,6 +127,7 @@ def insert_alarm_data(alarm_list):
         )
     db.commit()
     cursor.close()
+    print "insert_alarm_data\n", alarm_data
     print "Succ from insert alarm_data"
 
 def make_ready_alarm(alarm_list):
@@ -198,6 +199,7 @@ def update_ap_data(ap_list):
     )
     db.commit()
     cursor.close()
+    print "update_ap_data\n", ap_data
     print "Succ from update ap_data"
 
 def insert_ap_data(ap_list):
@@ -214,6 +216,7 @@ def insert_ap_data(ap_list):
         )
     db.commit()
     cursor.close()
+    print "insert_ap_data\n", ap_data
     print "Succ from insert ap_data"
 
 def update_client_data(client_list):
@@ -230,6 +233,7 @@ def update_client_data(client_list):
     )
     db.commit()
     cursor.close()
+    print "update_client_data\n", client_data
     print "Succ from update client_data"
 
 def insert_client_data(client_list):
@@ -246,6 +250,7 @@ def insert_client_data(client_list):
         )
     db.commit()
     cursor.close()
+    print "insert_client_data\n", client_data
     print "Succ from insert client_data"
 
 def make_ready_client(client_list, update):
@@ -264,7 +269,6 @@ def make_ready_client(client_list, update):
                 client['wifiExp'], client['wifiExpDescr'])
             client_data.append(t)
             t = ()
-    print "client_data\n", client_data
     return client_data
 
 '''

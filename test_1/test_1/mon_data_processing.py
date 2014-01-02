@@ -267,10 +267,6 @@ def traverse(obj, l):
                 traverse(o, l)
     return l
 
-
-if __name__ == "__main__":
-        main()
-
 def main():
     db = MongoClient()['nms']
     doc_list = []
@@ -324,21 +320,18 @@ def main():
         #search for the controller id
         controller_id = find_controller(doc['snum'])
 
-        for cont in controllers:
-            controller = {}
-
-            controller["ip"] = cont["ip"]
-            controller["hostname"] = cont["hostname"]
-            controller["uptime"] = cont["uptime"]
-            controller["location"] = cont["location"]
-            controller["contact"] = cont["contact"]
-            controller["operState"] = cont["operState"]
-            controller["model"] = cont["model"]
-            controller["swVersion"] = cont["swVersion"]
-            controller["countrySettings"] = cont["countrySettings"]
-            controller["mac"] = cont["mac"]
-
-            controller_list.append(controller)
+        controller = {}
+        controller["ip"] = controllers["ip"]
+        controller["hostname"] = controllers["hostname"]
+        controller["uptime"] = controllers["uptime"]
+        controller["location"] = controllers["location"]
+        controller["contact"] = controllers["contact"]
+        controller["operState"] = controllers["operState"]
+        controller["model"] = controllers["model"]
+        controller["swVersion"] = controllers["swVersion"]
+        controller["countrySettings"] = controllers["countrySettings"]
+        controller["mac"] = controllers["mac"]
+        controller_list.append(controller)
 
         for ap in aps:
             ap['c_mac'] = doc['snum']
@@ -362,6 +355,9 @@ def main():
 
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
 
+    if len(controller_list):
+        update_controller(controller_list)
+
     if len(alarm_mon_data):
         insert_alarm_data(alarm_mon_data)
 
@@ -380,3 +376,7 @@ def main():
     if len(insert_ap_list):
         i_ap_mon_data = traverse(insert_ap_list, ap_mon_data)
         insert_ap_data(i_ap_mon_data)
+
+if __name__ == "__main__":
+        main()
+

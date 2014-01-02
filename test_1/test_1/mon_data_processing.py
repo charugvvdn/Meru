@@ -334,6 +334,7 @@ def main():
         controller_list.append(controller)
 
         for ap in aps:
+            print ap
             ap['c_mac'] = doc['snum']
             ap['c_id'] = controller_id[0]
             ap_info[ap['id']] = ap['mac']
@@ -370,12 +371,12 @@ def main():
         insert_client_data(insert_client_list)
 
     if len(update_ap_list):
-        u_ap_mon_data = traverse(update_ap_list, ap_mon_data)
-        update_ap_data(u_ap_mon_data)
+        #u_ap_mon_data = traverse(update_ap_list, ap_mon_data)
+        update_ap_data(update_ap_list)
 
     if len(insert_ap_list):
-        i_ap_mon_data = traverse(insert_ap_list, ap_mon_data)
-        insert_ap_data(i_ap_mon_data)
+        #i_ap_mon_data = traverse(insert_ap_list, ap_mon_data)
+        insert_ap_data(insert_ap_list)
 
 if __name__ == "__main__":
         main()

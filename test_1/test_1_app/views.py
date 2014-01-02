@@ -177,7 +177,7 @@ class Raw_Model():
                             "ess-state": "", "ess-ssid-broadcast": "",
                             "ess-security-profile": ""}
 
-        cursor = connections['nms_clone'].cursor()
+        cursor = connections['meru_cnms'].cursor()
 
         '''q = "SELECT ssid.ssid,\
         security_profile.security_profile_id ,\
@@ -280,7 +280,7 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(self.true_response))'''
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['nms_clone'].cursor()
+        cursor = connections['meru_cnms'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -317,7 +317,7 @@ class DeviceApplication(View):
             return HttpResponse(json.dumps(no_mac))'''
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['nms_clone'].cursor()
+        cursor = connections['meru_cnms'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -359,7 +359,7 @@ class DeviceApplication(View):
         self.false_response["status"] = "false"
 
         q = "SELECT COUNT(1) FROM meru_controller WHERE `controller_mac` = '%s'" % mac
-        cursor = connections['nms_clone'].cursor()
+        cursor = connections['meru_cnms'].cursor()
         cursor.execute(q)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -368,7 +368,7 @@ class DeviceApplication(View):
         try:
             q = """ UPDATE meru_command SET command_status = 2 WHERE \
                     command_mac = '%s'""" % mac
-            cursor = connections['nms_clone'].cursor()
+            cursor = connections['meru_cnms'].cursor()
             cursor.execute(q)
             return HttpResponse(json.dumps(self.true_response))
 

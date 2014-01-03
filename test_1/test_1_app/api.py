@@ -10,6 +10,15 @@ import pprint
 client = MongoClient()
 db = client['nms']
 
+def add_header(result) :
+    result["Access-Control-Allow-Origin"] = "*"
+    result['Content-Type'] = 'application/json'
+    result["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    result["Access-Control-Max-Age"] = "1000"
+    result["Access-Control-Allow-Headers"] = "*"
+    return result
+
+
 
 class DashboardStats():
     '''Common variable used under the class methods'''
@@ -370,7 +379,7 @@ class HomeStats():
             count = 0
             for mac in mac_list:
                 # under each timestamp in the list , filter the mac 
-                cursor = db.devices.find({"snum": mac, "timestamp" :time})
+                cursor = db.devices.find({"lower_snum": mac.lower(), "timestamp" :time})
                 for doc in cursor:
                     # count the clients in each document at a single timestamp and matching mac
                     if typeof in doc['msgBody'].get('controller'):
@@ -419,7 +428,7 @@ class HomeStats():
             
             doc_list = []
             # filter over given mac and timestamp (in query string)
-            cursor = db.devices.find({"snum": mac, "timestamp" \
+            cursor = db.devices.find({"lower_snum": mac.lower(), "timestamp" \
                 : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
             res = cursor.count()
             if res == 0:
@@ -511,11 +520,7 @@ class HomeApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list,\
              "message": "Home page API for pannel 1 stats"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+        response = add_header(response)
         return response
 
 
@@ -553,11 +558,7 @@ class HomeApi2(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Home page API for pannel 2 stats"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+        response = add_header(response)
         return response
 
 class DashboardApi(View):
@@ -584,7 +585,7 @@ class DashboardApi(View):
         mac_list = dash_stats.post_data['mac'] if not response else []
         # get all the documents with the matching mac irrespective of timestamp
         for mac in mac_list:
-            cursor = db.devices.find({"snum":mac })
+            cursor = db.devices.find({"lower_snum":mac.lower() })
             for doc in cursor:
                 all_doc_list.append(doc)
 
@@ -614,11 +615,7 @@ class DashboardApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Dashboard page API for stats"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+        response = add_header(response)
         return response
 
 class AlarmsApi(View):
@@ -641,7 +638,7 @@ class AlarmsApi(View):
         
         mac_list = post_data['mac'] if not response else []
         for mac in mac_list:
-            cursor = db.devices.find({"snum":mac })
+            cursor = db.devices.find({"lower_snum":mac.lower() })
             for doc in cursor:
                 all_doc_list.append(doc)
 
@@ -662,11 +659,7 @@ class AlarmsApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Alarms page API for alarms list"}))
-        response["Access-Control-Allow-Origin"] = "*"
-        response['Content-Type'] = 'application/json'
-        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "*"
+        response = add_header(response)
         return response
 
 

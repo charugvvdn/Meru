@@ -713,7 +713,7 @@ def wifi_experience(request):
                     clients.append(ap)
                     wifiexp_ap_sum += int(ap['wifiExp'])
                     aps_count += 1
-                   ap_flag = 1
+                    ap_flag = 1
 
                 for c in client:
                     if min_cl > int(c["wifiExp"]):

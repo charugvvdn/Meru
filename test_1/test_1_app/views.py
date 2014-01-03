@@ -681,12 +681,12 @@ def wifi_experience(request):
             if int(doc['timestamp']) not in range(currenttime , torange ):
                 
                 avg_ap_wifiexp.append([unix_timestamp , \
-                    wifiexp_ap_sum / aps_count])
+                    wifiexp_ap_sum / aps_count if aps_count > 0 else 0])
                 min_aplist.append([unix_timestamp , min_ap])
                 max_aplist.append([unix_timestamp , max_ap])
 
                 avg_cl_wifiexp.append([unix_timestamp , \
-                    wifiexp_cl_sum / client_count])
+                    wifiexp_cl_sum / client_count if client_count > 0 else 0])
                 min_clist.append([unix_timestamp , min_cl])
                 max_clist.append([unix_timestamp , max_cl])
                 currenttime = doc['timestamp']
@@ -727,12 +727,12 @@ def wifi_experience(request):
 
         if ap_flag == 1:
             avg_ap_wifiexp.append([unix_timestamp , \
-             wifiexp_ap_sum / aps_count])
+             wifiexp_ap_sum / aps_count if aps_count > 0 else 0])
             min_aplist.append([unix_timestamp , min_ap])
             max_aplist.append([unix_timestamp , max_ap])
         if cl_flag == 1:
             avg_cl_wifiexp.append([unix_timestamp , \
-             wifiexp_cl_sum / client_count])
+             wifiexp_cl_sum / client_count if client_count > 0 else 0])
             min_clist.append([unix_timestamp , min_cl])
             max_clist.append([unix_timestamp , max_cl])
 

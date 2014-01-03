@@ -459,11 +459,11 @@ class HomeStats():
                         aps_count += 1  # number of aps
 
                     # average of wifi aps in a doc
-                    avg_doc_wifiexp = wifiexp_ap_sum / aps_count
+                    avg_doc_wifiexp = wifiexp_ap_sum / aps_count if aps_count > 0 else 0
                     # sum of avergae of wifi of aps in all the docs
                     avg_controller += avg_doc_wifiexp
             # average of avergae of wifi of aps in all the docs
-            final_avg_controller = avg_controller / len(doc_list)
+            final_avg_controller = avg_controller / len(doc_list) if len(doc_list) > 0 else 0
             last_doc = doc_list[0].get('msgBody').get('controller').get(typeof)
             flag = 0
             for ap in last_doc:

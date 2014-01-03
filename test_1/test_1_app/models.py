@@ -75,5 +75,3 @@ class ssid_in_command(models.Model):
     id = models.AutoField(primary_key=True)
     command_id = models.IntegerField()
     ssid = models.IntegerField()
-
-

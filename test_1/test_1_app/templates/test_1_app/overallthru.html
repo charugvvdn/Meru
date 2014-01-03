@@ -43,7 +43,7 @@
                 /* minTickSize: [1, "hour"],
                  min: (new Date("2013/12/09")).getTime(),
                  max: (new Date("2013/12/10")).getTime(),*/
-                timeformat: "%H:%M:%S"
+                timeformat: "%H:%M"
             }
         };
 
@@ -80,7 +80,7 @@
                             var h = date.getUTCHours()
                             var m = date.getUTCMinutes()
                             var s = date.getUTCSeconds()
-                            var formatted_date = h + ":" + m + ":" + s;
+                            var formatted_date = h + ":" + m ;
 
                             $("#tooltip").html(item.series.label + " of " + formatted_date + " = " + y)
                                     .css({top: item.pageY + 5, left: item.pageX + 5})

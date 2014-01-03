@@ -395,8 +395,10 @@ class DeviceApplication(View):
 
         if 'clients' in doc.get('msgBody').get('controller'):
             for client in doc.get('msgBody').get('controller').get('clients'):
-                client['apId'], client['rxBytes'] = int(client['apId']), int(client['rxBytes'])
-                client['txBytes'], client['txBytes'] = int(client['txBytes']), int(client['txBytes'])
+                client['apId'] = int(client['apId']) if str(client['apId']).isdigit() else 0
+                client['rxBytes'] = int(client['rxBytes']) if str(client['rxBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) if str(client['txBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) if str(client['txBytes']).isdigit() else 0
 
         return doc
 

@@ -570,8 +570,9 @@ def overall_throughput(request):
 
         # join both the dicts
         for times in out_dict:
-            for client in clients[times]:
-                out_dict[times].append(client)
+            if len(clients):
+                for client in clients[times]:
+                    out_dict[times].append(client)
 
         # get overall result
         rx_list, tx_list, throughput = common.throughput_calc(out_dict)
@@ -635,7 +636,10 @@ def wifi_experience(request):
                     clients.append(ap)
                     wifiexp_ap_sum += ap['wifiExp']
                     aps_count += 1
-                avg_ap_wifiexp.append([unix_timestamp,
+                if aps_count == 0:
+                    avg_ap_wifiexp.append([unix_timestamp, 0])
+                else:
+                    avg_ap_wifiexp.append([unix_timestamp,
                                        wifiexp_ap_sum / aps_count])
                 min_aplist.append([unix_timestamp, min_ap])
                 max_aplist.append([unix_timestamp, max_ap])
@@ -652,7 +656,10 @@ def wifi_experience(request):
                     clients.append(c)
                     wifiexp_cl_sum += c['wifiExp']
                     client_count += 1
-                avg_cl_wifiexp.append([unix_timestamp,
+                if client_count == 0:
+                    avg_cl_wifiexp.append([unix_timestamp,0])
+                else:
+                    avg_cl_wifiexp.append([unix_timestamp,
                                        wifiexp_cl_sum / client_count])
                 min_clist.append([unix_timestamp, min_cl])
                 max_clist.append([unix_timestamp, max_cl])

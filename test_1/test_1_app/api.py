@@ -533,7 +533,6 @@ class HomeApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list,\
              "message": "Home page API for pannel 1 stats"}))
-        response = add_header(response)
         return response
 
 
@@ -574,7 +573,6 @@ class HomeApi2(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Home page API for pannel 2 stats"}))
-        response = add_header(response)
         return response
 
 
@@ -634,7 +632,6 @@ class DashboardApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Dashboard page API for stats"}))
-        response = add_header(response)
         return response
 
 
@@ -684,5 +681,4 @@ class AlarmsApi(View):
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Alarms page API for alarms list"}))
-        response = add_header(response)
         return response

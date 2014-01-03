@@ -43,14 +43,14 @@
                 /* minTickSize: [1, "hour"],
                  min: (new Date("2013/12/09")).getTime(),
                  max: (new Date("2013/12/10")).getTime(),*/
-                timeformat: "%H:%M:%S"
+                timeformat: "%H:%M"
             }
         };
 
         $.ajax({
             type: "POST",
             url: " http://54.200.222.233:8000/meru-nms/reports/stationThroughput/",
-            data: '{"mac" : ["AA:BB:CC:DD:00:DD"], "time" : [1386962155, 1397012155]}',
+            data: '{"mac" : ["AA:BB:CC:DD:00:DD"]}',
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             success: function (result) {
@@ -79,7 +79,7 @@
                             var h = date.getUTCHours()
                             var m = date.getUTCMinutes()
                             var s = date.getUTCSeconds()
-                            var formatted_date = h + ":" + m + ":" + s
+                            var formatted_date = h + ":" + m 
 
                             $("#tooltip").html(item.series.label + " of " + formatted_date + " = " + y)
                                     .css({top: item.pageY + 5, left: item.pageX + 5})

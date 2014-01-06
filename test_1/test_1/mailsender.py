@@ -53,7 +53,7 @@ try:
 
     cur = con.cursor()
     query = """
-	SELECT alarm_cmac, alarm_type, alarm_severity, alarm_ts, alarm_content, 
+    SELECT alarm_cmac, alarm_type, alarm_severity, alarm_ts, alarm_content, 
     user_name, user_email, 
     controller_hostname, controller_name, controller_ip
     FROM meru_alarm 
@@ -63,13 +63,13 @@ try:
         AND
         (meru_controller.controller_id = meru_controller_controllergroup.ccg_cid_fk)
         AND
-        (meru_controller_controllergroup.ccg_createdby_fk = meru_user.user_id)
+        (meru_controller.controller_createdby_fk = meru_user.user_id)
         )
     WHERE (
         (meru_alarm.alarm_status = 0)
-        OR
+        AND
         (meru_alarm.is_read = 0)
-        )
+        ) ORDER BY `meru_user`.`user_email` ASC
     """
     cur.execute(query)
 
@@ -79,17 +79,16 @@ try:
 
 
     for v in ver:
-        if v[7] in alarms_mails:
-            alarms_mails[v[7]].append([v[0], v[1], v[2], v[4], v[5], v[7], v[8], v[9]])
+        if v[6] in alarms_mails:
+            alarms_mails[v[6]].append([v[0], v[1], v[2], v[4], v[3], v[7], v[8], v[9], v[5]])
         else:
-            alarms_mails[v[7]] = []
-            alarms_mails[v[7]].append([v[0], v[1], v[2], v[4], v[5], v[7], v[8], v[9]])
+            alarms_mails[v[6]] = []
+            alarms_mails[v[6]].append([v[0], v[1], v[2], v[4], v[3], v[7], v[8], v[9], v[5]])
 
-    pprint(alarms_mails)
+#    pprint(alarms_mails)
 
     for to_user in alarms_mails:
         TO = to_user
-
         email_content = """
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -130,7 +129,6 @@ try:
         alarms_are = alarms_mails[TO]
         update_this = ""
         for alarm in alarms_are :
-	    print alarm
             email_content += "<tr>"
             email_content += "<td>"
             email_content += alarm[1]
@@ -152,27 +150,27 @@ try:
             email_content += "</tr>"
             update_this = alarm[4]
 
-    try:
-        email_content += """
-            </table>
-        </body>
-        """
-        sql = ""
-        sql = """
-	    UPDATE meru_alarm SET alarm_status = 1 WHERE alarm_ts = %s
-        """ % update_this
-        print sql
-        cur = con.cursor()
-        cur.execute(sql)
-        con.commit()
-        #TO = 'receiver@email.com'
-        FROM ='admin@mcloud.com'
+        try:
+            email_content += """
+                </table>
+            </body>
+            """
+            sql = ""
+            sql = """
+	        UPDATE meru_alarm SET alarm_status = 1 WHERE alarm_ts = %s
+            """ % update_this
+            #print sql
+            cur = con.cursor()
+            cur.execute(sql)
+            con.commit()
+            TO = 'receiver@email.com'
+            FROM ='admin@mcloud.com'
  
-        py_mail("Alarm Notificaiton Meru Cloud", email_content, TO, FROM)
+            py_mail("Alarm Notificaiton Meru Cloud", email_content, TO, FROM)
 
-    except Exception as e:
-        print str(e)
-        pass
+        except Exception as e:
+            print str(e)
+            pass
 
     
 except mdb.Error, e:

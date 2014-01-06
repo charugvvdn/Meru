@@ -469,7 +469,7 @@ class HomeStats():
                         avg_controller += avg_doc_wifiexp
             # average of avergae of wifi of aps in all the docs
             final_avg_controller = avg_controller / len(doc_list) if len(doc_list) > 0 else 0
-            last_doc = doc_list[0].get('msgBody').get('controller').get(typeof)
+            last_doc = doc_list[0].get('msgBody').get('controller').get(typeof) or []
             flag = 0
             for ap in last_doc:
                 # mark the mac where ap wifiexp - final average of all wifi is

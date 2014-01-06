@@ -53,8 +53,9 @@ def make_ready_controller(controller_list, update=True):
     controller_data = []
     if update:
         for controller in controller_list:
-             status = 1 if controller['operState'].lower() == "enabled" or \
-                            controller['operState'].lower() == "up" else 0
+             #status = 1 if controller['operState'].lower() == "enabled" or \
+             #               controller['operState'].lower() == "up" else 0
+             status = 1 #hardcoding this for now
              t = (
                 controller["ip"],
                 controller["hostname"],
@@ -326,33 +327,40 @@ def main():
         controller["uptime"] = controllers["uptime"]
         controller["location"] = controllers["location"]
         controller["contact"] = controllers["contact"]
-        controller["operState"] = controllers["operState"]
+        controller["operState"] = 1 #controllers["operState"]
         controller["model"] = controllers["model"]
         controller["swVersion"] = controllers["swVersion"]
         controller["countrySettings"] = controllers["countrySettings"]
         controller["mac"] = controllers["mac"]
         controller_list.append(controller)
 
+        unique_aps = {}
+
         for ap in aps:
-            print ap
-            ap['c_mac'] = doc['snum']
-            ap['c_id'] = controller_id[0]
-            ap_info[ap['id']] = ap['mac']
-            if find_ap(ap['mac']):
-                update_ap_list.append(ap)
-            else:
-                insert_ap_list.append(ap)
+            if ap['mac'] not in unique_aps:
+#            print ap
+                unique_aps[ap['mac']] = True
+                ap['c_mac'] = doc['snum']
+                ap['c_id'] = controller_id[0]
+                ap_info[ap['id']] = ap['mac']
+                if find_ap(ap['mac']):
+                    update_ap_list.append(ap)
+                else:
+                    insert_ap_list.append(ap)
 
         for alarm in alarms:
             alarm['c_mac'] = controller_id[1]
             alarm_list.append(alarms)
 
+        unique_clients = {}
+
         for client in clients:
-            client['ap_mac'] = ap_info[client['apId']]
-            if find_client(client['mac']):
-                update_client_list.append(client)
-            else:
-                insert_client_list.append(client)
+            if client['mac'] not in unique_clients:
+                client['ap_mac'] = ap_info[client['apId']]
+                if find_client(client['mac']):
+                    update_client_list.append(client)
+                else:
+                    insert_client_list.append(client)
 
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
 

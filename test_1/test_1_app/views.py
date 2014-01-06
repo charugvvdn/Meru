@@ -440,8 +440,10 @@ class DeviceApplication(View):
 
         if 'clients' in doc.get('msgBody').get('controller'):
             for client in doc.get('msgBody').get('controller').get('clients'):
-                client['apId'], client['rxBytes'] = int(client['apId']), int(client['rxBytes'])
-                client['txBytes'], client['txBytes'] = int(client['txBytes']), int(client['txBytes'])
+                client['apId'] = int(client['apId']) if str(client['apId']).isdigit() else 0
+                client['rxBytes'] = int(client['rxBytes']) if str(client['rxBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) if str(client['txBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) if str(client['txBytes']).isdigit() else 0
 
         return doc
 
@@ -485,46 +487,6 @@ def client_throughput(request):
             "values": response_list,\
             "message": "values for client throughput bar graph"}))
 
-        response = add_header(response)
-
-        return response
-
-    else:
-        return HttpResponse(json.dumps({"status": "false",
-                                        "message": "No mac provided"}))
-
-
-def devicetype(request):
-    '''Module to plot the device type distribution pie chart'''
-
-    device_types = {}
-    response = []
-    common = Common()
-    post_data = common.eval_request(request)
-
-    if 'mac' in post_data:
-        # fetch the docs
-        doc_list = common.let_the_docs_out(post_data)
-        for doc in doc_list:
-        #start the report evaluation
-        
-            #get the clients
-            
-            clients = doc.get('msgBody').get('controller').get('clients')
-
-            for c in clients:
-                if c['clientType'] in device_types:
-                    device_types[c['clientType']] += 1
-                else:
-                    device_types[c['clientType']] = 1
-        for d, n in device_types.iteritems():
-            d1 = {"label": 0, "data": 0}
-            d1["label"] = d
-            d1["data"] = n
-            response.append(d1)
-        response =  HttpResponse(json.dumps({"status": "true", \
-            "values": response}))
-        response = add_header(response)
         return response
 
     else:
@@ -573,7 +535,6 @@ def ap_throughput(request):
                                 "values": response_list,
                                 "message": "values for AP throughput bar graph"
                             }))
-        response = add_header(response)
 
         return response
     else:
@@ -612,8 +573,9 @@ def overall_throughput(request):
 
         # join both the dicts
         for times in out_dict:
-            for client in clients[times]:
-                out_dict[times].append(client)
+            if len(clients):
+                for client in clients[times]:
+                    out_dict[times].append(client)
 
         # get overall result
         rx_list, tx_list, throughput = common.throughput_calc(out_dict)
@@ -626,7 +588,6 @@ def overall_throughput(request):
         response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
              "message": "values for Overall throughput bar graph"}))
-        response = add_header(response)
         return response
 
     return HttpResponse(json.dumps({"status": "false",
@@ -736,6 +697,7 @@ def wifi_experience(request):
             min_clist.append([unix_timestamp , min_cl])
             max_clist.append([unix_timestamp , max_cl])
 
+
         response_list = [
             {"label": "Maximum-Client-wifiExp", "data": max_clist},
             {"label": "Minimum-Client-wifiExp", "data": min_clist},
@@ -748,7 +710,6 @@ def wifi_experience(request):
         response = HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Wifi Experience bar graph"}))
-        response = add_header(response)
         return response
 
     return HttpResponse(json.dumps({"status": "false",
@@ -812,7 +773,6 @@ def ap_clients(request):
         response =  HttpResponse(json.dumps({"status": "true", \
          "values": response_list,\
          "message": "values for Number of clients for AP"}))
-        response = add_header(response)
         return response
 
         response = HttpResponse(json.dumps({"status": "true",
@@ -823,3 +783,43 @@ def ap_clients(request):
 
     return HttpResponse(json.dumps({"status": "false",
                                     "message": "No mac provided"}))
+
+def devicetype(request):
+    '''Module to plot the device type distribution pie chart'''
+
+    device_types = {}
+    response = []
+    context = RequestContext(request)
+
+    common = Common()
+    post_data = common.eval_request(request)
+
+    if 'mac' in post_data:
+        # fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
+        for doc in doc_list:
+        # start the report evaluation
+
+        # get the clients
+            get_type = "clients"
+            client_list = common.calc_type(doc_list, get_type)
+            clients = doc.get('msgBody').get('controller').get('clients')
+
+            for c in clients:
+                if c['clientType'] in device_types:
+                    device_types[c['clientType']] += 1
+                else:
+                    device_types[c['clientType']] = 1
+        for d, n in device_types.iteritems():
+            d1 = {"label": 0, "data": 0}
+            d1["label"] = d
+            d1["data"] = n
+            response.append(d1)
+
+        response = HttpResponse(json.dumps({"status": "true",
+                                            "values": response}))
+        return response
+
+    else:
+        pass
+    return HttpResponse(json.dumps({"status": "false"}))

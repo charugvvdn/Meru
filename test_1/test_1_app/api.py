@@ -17,8 +17,6 @@ def add_header(result) :
     result["Access-Control-Allow-Headers"] = "*"
     return result
 
-
-
 class DashboardStats():
 
     '''Common variable used under the class methods'''
@@ -37,10 +35,13 @@ class DashboardStats():
         critical_count = 0
         result_dict = {}
         for doc in doc_list:
-            if 'msgBody' in doc and typeof in doc['msgBody']:
+            
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     # get clients
+                    
                     clients = doc.get('msgBody').get('controller').get(typeof)
+                    print clients
                     for client in clients:
                         if client['state'].lower() == 'associated':
                             online_count += 1
@@ -73,7 +74,7 @@ class DashboardStats():
         result_dict = {}
 
         for doc in doc_list:
-            if 'msgBody' in doc and typeof in doc['msgBody']:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
@@ -89,7 +90,7 @@ class DashboardStats():
         result_dict = {}
 
         for doc in doc_list:
-            if 'msgBody' in doc and typeof in doc['msgBody']:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     # get the aps
                     aps = doc.get('msgBody').get('controller').get(typeof)
@@ -112,7 +113,7 @@ class DashboardStats():
         result_dict = {}
 
         for doc in doc_list:
-            if 'msgBody' in doc and typeof in doc['msgBody']:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     # get the aps
                     aps = doc.get('msgBody').get('controller').get(typeof)
@@ -133,7 +134,7 @@ class DashboardStats():
         result_dict = {}
 
         for doc in doc_list:
-            if 'msgBody' in doc and typeof in doc['msgBody']:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if 'clients' in doc['msgBody'].get('controller'):
                     # get clients to count sites
                     clients = doc.get('msgBody').get(
@@ -182,17 +183,18 @@ class HomeStats():
             mac = doc['snum']
             flag = 0
             rx_tx = 0
-            if typeof in doc['msgBody'].get('controller'):
-                # get the aps
-                aps = doc.get('msgBody').get('controller').get(typeof)
-                for ap in aps:
-                    # sum of rx + tx bytes
-                    rx_tx = ap['rxBytes'] + ap['txBytes']
-                    # mark the mac where sum of rx+tx bytes is > threshold
-                    if rx_tx > threshhold_max:
-                        flag = 1
-                if flag and mac not in mac_list:
-                    mac_list.append(mac)
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    # get the aps
+                    aps = doc.get('msgBody').get('controller').get(typeof)
+                    for ap in aps:
+                        # sum of rx + tx bytes
+                        rx_tx = ap['rxBytes'] + ap['txBytes']
+                        # mark the mac where sum of rx+tx bytes is > threshold
+                        if rx_tx > threshhold_max:
+                            flag = 1
+                    if flag and mac not in mac_list:
+                        mac_list.append(mac)
         self.result_dict["access_pt"] = {}
         self.result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"
@@ -222,16 +224,16 @@ class HomeStats():
         for doc in doc_list:
             mac = doc['snum']
             flag = 0
-
-            if typeof in doc['msgBody'].get('controller'):
-                # get the access points
-                aps = doc.get('msgBody').get('controller').get(typeof)
-                for ap in aps:
-                    # mark the mac where ap is down
-                    if ap['status'].lower() == 'down':
-                        flag = 1
-                if flag and mac not in mac_list:
-                    mac_list.append(mac)
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    # get the access points
+                    aps = doc.get('msgBody').get('controller').get(typeof)
+                    for ap in aps:
+                        # mark the mac where ap is down
+                        if ap['status'].lower() == 'down':
+                            flag = 1
+                    if flag and mac not in mac_list:
+                        mac_list.append(mac)
         self.result_dict["sites_critcal_health"] = {}
         self.result_dict["sites_critcal_health"]['message'] = \
             "SITES WITH CRITICAL HEALTH"
@@ -246,15 +248,15 @@ class HomeStats():
         for doc in doc_list:
             mac = doc['snum']
             flag = 0
-
-            if typeof in doc['msgBody'].get('controller'):
-                aps = doc.get('msgBody').get('controller').get(typeof)
-                for ap in aps:
-                    # mark the mac where ap is down
-                    if ap['status'].lower() == 'down':
-                        flag = 1
-                if flag and mac not in mac_list:
-                    mac_list.append(mac)
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    aps = doc.get('msgBody').get('controller').get(typeof)
+                    for ap in aps:
+                        # mark the mac where ap is down
+                        if ap['status'].lower() == 'down':
+                            flag = 1
+                    if flag and mac not in mac_list:
+                        mac_list.append(mac)
         self.result_dict["sites_down"] = {}
         self.result_dict["sites_down"]['message'] = "SITES WITH DEVICES DOWN"
         self.result_dict["sites_down"]['count'] = len(mac_list)
@@ -268,15 +270,15 @@ class HomeStats():
         for doc in doc_list:
             mac = doc['snum']
             flag = 0
-
-            if typeof in doc['msgBody'].get('controller'):
-                alarms = doc.get('msgBody').get('controller').get(typeof)
-                for alarm in alarms:
-                    # mark the mac where alarms severity is high
-                    if alarm['severity'].lower() == 'high':
-                        flag = 1
-                if flag and mac not in mac_list:
-                    mac_list.append(mac)
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    alarms = doc.get('msgBody').get('controller').get(typeof)
+                    for alarm in alarms:
+                        # mark the mac where alarms severity is high
+                        if alarm['severity'].lower() == 'high':
+                            flag = 1
+                    if flag and mac not in mac_list:
+                        mac_list.append(mac)
         self.result_dict["critical_alarm"] = {}
         self.result_dict["critical_alarm"]['message'] = \
             "SITES WITH CRITICAL ALARMS"
@@ -293,12 +295,12 @@ class HomeStats():
         result_dict = {}
 
         for doc in doc_list:
-
-            if typeof in doc['msgBody'].get('controller'):
-                controllers = doc.get('msgBody').get('controller').get(typeof)
-                '''for controller in controllers:
-                    pass
-                    # logic to be implemented'''
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    controllers = doc.get('msgBody').get('controller').get(typeof)
+                    '''for controller in controllers:
+                        pass
+                        # logic to be implemented'''
         result_dict['label'] = 'Controller Utilization'
         result_dict['data'] = [gt_50_count, _50_75_count, lt_75_count]
         return result_dict
@@ -311,16 +313,16 @@ class HomeStats():
         result_dict = {}
 
         for doc in doc_list:
-
-            if typeof in doc['msgBody'].get('controller'):
-                alarms = doc.get('msgBody').get('controller').get(typeof)
-                for alarm in alarms:
-                    if alarm['severity'].lower() == 'high':
-                        high_count += 1
-                    elif alarm['severity'].lower() == 'critical':
-                        critical_count += 1
-                    elif alarm['severity'].lower() == 'minor':
-                        minor_count += 1
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    alarms = doc.get('msgBody').get('controller').get(typeof)
+                    for alarm in alarms:
+                        if alarm['severity'].lower() == 'high':
+                            high_count += 1
+                        elif alarm['severity'].lower() == 'critical':
+                            critical_count += 1
+                        elif alarm['severity'].lower() == 'minor':
+                            minor_count += 1
         result_dict['label'] = 'Alarms'
         result_dict['data'] = [critical_count, high_count, minor_count]
         return result_dict
@@ -334,19 +336,20 @@ class HomeStats():
         unique_ap = {}
 
         for doc in doc_list:
-            if typeof in doc['msgBody'].get('controller'):
-                aps = doc.get('msgBody').get('controller').get(typeof)
-                
-                for ap in aps:
-                    if ap["mac"] in unique_ap:
-                        pass
-                    else:
-                        unique_ap[ap["mac"]] = 0
-                        if ap['status'].lower() == 'down':
-                            down_aps += 1
-                            offline_count += 1
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    aps = doc.get('msgBody').get('controller').get(typeof)
+                    
+                    for ap in aps:
+                        if ap["mac"] in unique_ap:
+                            pass
                         else:
-                            online_count += 1
+                            unique_ap[ap["mac"]] = 0
+                            if ap['status'].lower() == 'down':
+                                down_aps += 1
+                                offline_count += 1
+                            else:
+                                online_count += 1
 
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]
@@ -392,11 +395,12 @@ class HomeStats():
                 for doc in cursor:
                     # count the clients in each document at a single timestamp
                     # and matching mac
-                    if typeof in doc['msgBody'].get('controller'):
-                        clients = doc.get('msgBody').get('controller').\
-                            get(typeof)
-                        for client in clients:
-                            count += 1
+                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            clients = doc.get('msgBody').get('controller').\
+                                get(typeof)
+                            for client in clients:
+                                count += 1
             result_list.append(count)
         # count of clients currently (near or at last timestamp)
         current = result_list[0] if result_list else 0
@@ -451,17 +455,18 @@ class HomeStats():
                 wifiexp_ap_sum = 0
                 aps_count = 0
                 # get the aps
-                if typeof in doc['msgBody'].get('controller'):
-                    aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap in aps:
-                        # sum of wifi of aps
-                        wifiexp_ap_sum += int(ap['wifiExp'])
-                        aps_count += 1  # number of aps
+                if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                    if typeof in doc['msgBody'].get('controller'):
+                        aps = doc.get('msgBody').get('controller').get(typeof)
+                        for ap in aps:
+                            # sum of wifi of aps
+                            wifiexp_ap_sum += int(ap['wifiExp'])
+                            aps_count += 1  # number of aps
 
-                    # average of wifi aps in a doc
-                    avg_doc_wifiexp = wifiexp_ap_sum / aps_count if aps_count > 0 else 0
-                    # sum of avergae of wifi of aps in all the docs
-                    avg_controller += avg_doc_wifiexp
+                        # average of wifi aps in a doc
+                        avg_doc_wifiexp = wifiexp_ap_sum / aps_count if aps_count > 0 else 0
+                        # sum of avergae of wifi of aps in all the docs
+                        avg_controller += avg_doc_wifiexp
             # average of avergae of wifi of aps in all the docs
             final_avg_controller = avg_controller / len(doc_list) if len(doc_list) > 0 else 0
             last_doc = doc_list[0].get('msgBody').get('controller').get(typeof)
@@ -611,7 +616,9 @@ class DashboardApi(View):
         if not len(doc_list) and not len(all_doc_list) and not response:
                 response = HttpResponse(json.dumps({"status": "false",
                                                     "message": "No matching MAC data"}))
+        
 
+                
         # NUMBER OF CONTROLLERS #
         response_list.append(dash_stats.number_controllers(all_doc_list))
 
@@ -671,15 +678,14 @@ class AlarmsApi(View):
         # LIST OF ALARMS #
 
         for doc in all_doc_list:
-            if 'msgBody' in doc:
-                if 'controller' in doc['msgBody']:
-                    if 'alarms' in doc['msgBody'].get('controller'):
-                        alarms = doc.get('msgBody').get(
-                            'controller').get('alarms')
-                        if alarms:
-                            for alarm in alarms:
-                                alarm['mac'] = doc['snum']
-                                response_list.append(alarm)
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if 'alarms' in doc['msgBody'].get('controller'):
+                    alarms = doc.get('msgBody').get(
+                        'controller').get('alarms')
+                    if alarms:
+                        for alarm in alarms:
+                            alarm['mac'] = doc['snum']
+                            response_list.append(alarm)
         if not response:
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \

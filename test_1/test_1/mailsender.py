@@ -80,10 +80,10 @@ try:
 
     for v in ver:
         if v[7] in alarms_mails:
-            alarms_mails[v[7]].append([v[1], v[2], v[3], v[5], v[4], v[8], v[9], v[10]])
+            alarms_mails[v[7]].append([v[0], v[1], v[2], v[4], v[5], v[7], v[8], v[9]])
         else:
             alarms_mails[v[7]] = []
-            alarms_mails[v[7]].append([v[1], v[2], v[3], v[5], v[4], v[8], v[9], v[10]])
+            alarms_mails[v[7]].append([v[0], v[1], v[2], v[4], v[5], v[7], v[8], v[9]])
 
     pprint(alarms_mails)
 

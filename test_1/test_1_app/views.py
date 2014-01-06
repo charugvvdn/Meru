@@ -137,14 +137,14 @@ class Common():
         return_dict = {}
         
         for doc in doc_list:
-            
-            if get_type in doc['msgBody'].get('controller'):
-                result = doc.get('msgBody').get('controller').get(get_type)
-                for c in result:
-                    unix_timestamp = int(doc['timestamp']) * 1000
-                    if unix_timestamp not in return_dict:
-                        return_dict[unix_timestamp] = []
-                    return_dict[unix_timestamp].append(c)
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if get_type in doc['msgBody'].get('controller'):
+                    result = doc.get('msgBody').get('controller').get(get_type)
+                    for c in result:
+                        unix_timestamp = int(doc['timestamp']) * 1000
+                        if unix_timestamp not in return_dict:
+                            return_dict[unix_timestamp] = []
+                        return_dict[unix_timestamp].append(c)
 
         return return_dict
 
@@ -604,6 +604,13 @@ def wifi_experience(request):
     min_clist = []
     max_clist = []
     aps_count = 0
+    aps = client = []
+    ap_flag = 0
+    cl_flag = 0
+    aps_count = 0
+    wifiexp_ap_sum = 0
+    min_cl = min_ap = 100
+    max_cl = max_ap = 0
     client_count = 0
     wifiexp_ap_sum = 0
     wifiexp_cl_sum = 0
@@ -621,66 +628,71 @@ def wifi_experience(request):
         doc_list = common.let_the_docs_out(post_data)
         # sorting the doc_list dictionary in asc
         doc_list =  sorted(doc_list, key=lambda x: x['timestamp'])
+        if not len(doc_list):
+            return HttpResponse(json.dumps({"status": "false",
+                                            "message": "No filtered data received"}))
         # currentime  = first timestamp of the dict
-        currenttime = doc_list[0]['timestamp']
+        
+        currenttime = doc_list[0]['timestamp'] 
         # grouping the timeframe
         torange = currenttime+timerange
         min_cl = min_ap = 100
         max_cl = max_ap = 0
         for doc in doc_list:
-            
-            
-            aps = doc.get('msgBody').get('controller').get('aps')
-            if 'clients' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').\
-                get('clients')
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                aps = doc.get('msgBody').get('controller').get('aps') or []
+                if 'clients' in doc['msgBody'].get('controller'):
+                    client = doc.get('msgBody').get('controller').\
+                    get('clients')
 
-            if int(doc['timestamp']) not in range(currenttime , torange ):
-                
-                avg_ap_wifiexp.append([unix_timestamp , \
-                    wifiexp_ap_sum / aps_count if aps_count > 0 else 0])
-                min_aplist.append([unix_timestamp , min_ap])
-                max_aplist.append([unix_timestamp , max_ap])
+                if int(doc['timestamp']) not in range(currenttime , torange ):
+                    
+                    avg_ap_wifiexp.append([unix_timestamp , \
+                        wifiexp_ap_sum / aps_count if aps_count > 0 else 0])
+                    min_aplist.append([unix_timestamp , min_ap])
+                    max_aplist.append([unix_timestamp , max_ap])
 
-                avg_cl_wifiexp.append([unix_timestamp , \
-                    wifiexp_cl_sum / client_count if client_count > 0 else 0])
-                min_clist.append([unix_timestamp , min_cl])
-                max_clist.append([unix_timestamp , max_cl])
-                currenttime = doc['timestamp']
-                torange = currenttime+timerange
-                ap_flag = 0
-                cl_flag = 0
-                aps_count = 0
-                wifiexp_ap_sum = 0
-                min_cl = min_ap = 100
-                max_cl = max_ap = 0
+                    avg_cl_wifiexp.append([unix_timestamp , \
+                        wifiexp_cl_sum / client_count if client_count > 0 else 0])
+                    min_clist.append([unix_timestamp , min_cl])
+                    max_clist.append([unix_timestamp , max_cl])
+                    currenttime = doc['timestamp']
+                    torange = currenttime+timerange
+                    ap_flag = 0
+                    cl_flag = 0
+                    aps_count = 0
+                    wifiexp_ap_sum = 0
+                    min_cl = min_ap = 100
+                    max_cl = max_ap = 0
 
             if int(doc['timestamp']) in range(currenttime , torange ):
+
                 for ap in aps:
-                
-                    if min_ap > int(ap["wifiExp"]):
-                        min_ap = int(ap["wifiExp"])
-                    if max_ap < int(ap["wifiExp"]):
-                        max_ap = int(ap["wifiExp"])
-                    unix_timestamp = int(doc['timestamp']) * 1000
-                    ap['timestamp'] = unix_timestamp
-                    clients.append(ap)
-                    wifiexp_ap_sum += int(ap['wifiExp'])
-                    aps_count += 1
-                    ap_flag = 1
+                    if 'wifiExp' in ap:
+                        if min_ap > int(ap["wifiExp"]):
+                            min_ap = int(ap["wifiExp"])
+                        if max_ap < int(ap["wifiExp"]):
+                            max_ap = int(ap["wifiExp"])
+                        unix_timestamp = int(doc['timestamp']) * 1000
+                        ap['timestamp'] = unix_timestamp
+                        clients.append(ap)
+                        wifiexp_ap_sum += int(ap['wifiExp'])
+                        aps_count += 1
+                        ap_flag = 1
 
                 for c in client:
-                    if min_cl > int(c["wifiExp"]):
-                        min_cl = int(c["wifiExp"])
-                    if max_cl < int(c["wifiExp"]):
-                        max_cl = int(c["wifiExp"])
+                    if 'wifiExp' in c:
+                        if min_cl > int(c["wifiExp"]):
+                            min_cl = int(c["wifiExp"])
+                        if max_cl < int(c["wifiExp"]):
+                            max_cl = int(c["wifiExp"])
 
-                    unix_timestamp = int(doc['timestamp']) * 1000
-                    c['timestamp'] = unix_timestamp
-                    clients.append(c)
-                    wifiexp_cl_sum += int(c['wifiExp'])
-                    client_count += 1
-                    cl_flag = 1
+                        unix_timestamp = int(doc['timestamp']) * 1000
+                        c['timestamp'] = unix_timestamp
+                        clients.append(c)
+                        wifiexp_cl_sum += int(c['wifiExp'])
+                        client_count += 1
+                        cl_flag = 1
 
         if ap_flag == 1:
             avg_ap_wifiexp.append([unix_timestamp , \
@@ -722,6 +734,7 @@ def ap_clients(request):
     response_list = []
     list_new = []
     post_data = json.loads(request.body)
+
     common = Common()
     if not len(post_data):
         return HttpResponse(json.dumps({"status": "false",
@@ -731,22 +744,22 @@ def ap_clients(request):
         doc_list = common.let_the_docs_out(post_data)
         for doc in doc_list:
             unix_timestamp = int(doc['timestamp']) * 1000
-            
-            if 'aps' in doc['msgBody'].get('controller'):
-                aps = doc.get('msgBody').get('controller').get('aps')
-                for ap in aps:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if 'aps' in doc['msgBody'].get('controller'):
+                    aps = doc.get('msgBody').get('controller').get('aps')
+                    for ap in aps:
 
-                    if ap['id'] not in ap_dict:
-                        ap_dict[ap['id']] = ap['mac']
-                        ap_dict[str(ap['id']) + "time"] = unix_timestamp
+                        if ap['id'] not in ap_dict:
+                            ap_dict[ap['id']] = ap['mac']
+                            ap_dict[str(ap['id']) + "time"] = unix_timestamp
 
-            if 'clients' in doc['msgBody'].get('controller'):
-                client = doc.get('msgBody').get('controller').get('clients')
-                for c in client:
-                    client_dict = {}
-                    #client_dict['timestamp'] = unix_timestamp
-                    client_dict['apId'] = int(c['apId'])
-                    clients.append(client_dict)
+                if 'clients' in doc['msgBody'].get('controller'):
+                    client = doc.get('msgBody').get('controller').get('clients')
+                    for c in client:
+                        client_dict = {}
+                        #client_dict['timestamp'] = unix_timestamp
+                        client_dict['apId'] = int(c['apId'])
+                        clients.append(client_dict)
 
         for client in clients:
 
@@ -785,6 +798,7 @@ def devicetype(request):
 
     device_types = {}
     response = []
+    clients = []
     context = RequestContext(request)
 
     common = Common()
@@ -799,8 +813,9 @@ def devicetype(request):
         # get the clients
             get_type = "clients"
             client_list = common.calc_type(doc_list, get_type)
-            clients = doc.get('msgBody').get('controller').get('clients')
-
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                clients = doc.get('msgBody').get('controller').get('clients') or []
+            
             for c in clients:
                 if c['clientType'] in device_types:
                     device_types[c['clientType']] += 1

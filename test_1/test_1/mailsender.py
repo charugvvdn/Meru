@@ -163,7 +163,7 @@ try:
             cur = con.cursor()
             cur.execute(sql)
             con.commit()
-            TO = 'receiver@email.com'
+            #TO = 'receiver@email.com'
             FROM ='admin@mcloud.com'
  
             py_mail("Alarm Notificaiton Meru Cloud", email_content, TO, FROM)

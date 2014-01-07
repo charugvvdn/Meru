@@ -41,12 +41,15 @@ class DashboardStats():
                     # get clients
                     
                     clients = doc.get('msgBody').get('controller').get(typeof)
-                    print clients
+                    unique_clients = {}
+                    
                     for client in clients:
-                        if client['state'].lower() == 'associated':
-                            online_count += 1
-                        else:
-                            critical_count += 1
+                        if client["mac"] not in unique_clients:
+                            unique_clients[client["mac"]] = 0
+                            if client['state'].lower() == 'associated':
+                                online_count += 1
+                            else:
+                                critical_count += 1
         result_dict['label'] = 'Number of stations'
         result_dict['data'] = [online_count, critical_count]
         return result_dict
@@ -79,6 +82,11 @@ class DashboardStats():
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
                         wifi_client += client['wifiExp']
+                        count += 1
+
+                    aps = doc.get('msgBody').get('controller').get('aps')
+                    for ap in aps:
+                        wifi_client += ap['wifiExp']
                         count += 1
         result_dict['label'] = 'Wifi experience'
         result_dict['data'] = [wifi_client / count] if count > 0 else [0]
@@ -117,11 +125,14 @@ class DashboardStats():
                 if typeof in doc['msgBody'].get('controller'):
                     # get the aps
                     aps = doc.get('msgBody').get('controller').get(typeof)
+                    unique_aps = {}
                     for ap in aps:
-                        if ap['status'].lower() == 'up':
-                            online_count += 1
-                        else:
-                            offline_count += 1
+                        if ap["mac"] not in unique_aps:
+                            unique_aps[ap["mac"]] = 0
+                            if ap['status'].lower() == 'up':
+                                online_count += 1
+                            else:
+                                offline_count += 1
         result_dict['label'] = 'Number of online offline aps'
         result_dict['data'] = [online_count, offline_count]
         return result_dict
@@ -589,7 +600,6 @@ class DashboardApi(View):
         ''' API calls initaited for Dashboard Stats'''
         response_list = []
         doc_list = []
-        all_doc_list = []
         response = {}
         dash_stats = DashboardStats()
 
@@ -600,16 +610,13 @@ class DashboardApi(View):
         if 'mac' not in dash_stats.post_data or not dash_stats.post_data['mac']:
             response = HttpResponse(json.dumps({"status": "false",
                                                 "message": "No MAC data"}))
-        else:
-            # fetch the docs
-            doc_list = dash_stats.common.let_the_docs_out(dash_stats.post_data)
-
-        '''mac_list = dash_stats.post_data['mac'] if not response else []
+        
+        mac_list = dash_stats.post_data['mac'] if not response else []
         # get all the documents with the matching mac irrespective of timestamp
         for mac in mac_list:
-            cursor = db.devices.find({"lower_snum":mac.lower() })
+            cursor = db.devices.find({"lower_snum":mac.lower() }).sort('timestamp', -1).limit(1)
             for doc in cursor:
-                all_doc_list.append(doc)'''
+                doc_list.append(doc)
 
         if not len(doc_list) and not response:
                 response = HttpResponse(json.dumps({"status": "false",

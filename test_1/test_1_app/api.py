@@ -604,33 +604,33 @@ class DashboardApi(View):
             # fetch the docs
             doc_list = dash_stats.common.let_the_docs_out(dash_stats.post_data)
 
-        mac_list = dash_stats.post_data['mac'] if not response else []
+        '''mac_list = dash_stats.post_data['mac'] if not response else []
         # get all the documents with the matching mac irrespective of timestamp
         for mac in mac_list:
             cursor = db.devices.find({"lower_snum":mac.lower() })
             for doc in cursor:
-                all_doc_list.append(doc)
+                all_doc_list.append(doc)'''
 
-        if not len(doc_list) and not len(all_doc_list) and not response:
+        if not len(doc_list) and not response:
                 response = HttpResponse(json.dumps({"status": "false",
                                                     "message": "No matching MAC data"}))
         
 
                 
         # NUMBER OF CONTROLLERS #
-        response_list.append(dash_stats.number_controllers(all_doc_list))
+        response_list.append(dash_stats.number_controllers(doc_list))
 
         # NUMBER OF STATIONS #
-        response_list.append(dash_stats.number_stations(all_doc_list))
+        response_list.append(dash_stats.number_stations(doc_list))
 
         # WI-FI EXPERIENCE #
-        response_list.append(dash_stats.wifi_exp(all_doc_list))
+        response_list.append(dash_stats.wifi_exp(doc_list))
 
         # NUMBER OF APS #
-        response_list.append(dash_stats.number_aps(all_doc_list))
+        response_list.append(dash_stats.number_aps(doc_list))
 
         # NUMBER OF ONLINE OFFLINE APS #
-        response_list.append(dash_stats.online_offline_aps(all_doc_list))
+        response_list.append(dash_stats.online_offline_aps(doc_list))
 
         # Status Since Last Login #
         response_list.append(dash_stats.status_last_login(doc_list))
@@ -651,9 +651,9 @@ class AlarmsApi(View):
         response_list = []
         response = {}
         doc_list = []
-        all_doc_list = []
+        common = Common()
         post_data = {}
-
+        
         for key in request.GET:
             post_data[key] = ast.literal_eval(request.GET.get(key).strip()) \
                 if request.GET.get(key) else 0
@@ -661,20 +661,17 @@ class AlarmsApi(View):
         if 'mac' not in post_data or not post_data['mac']:
             response = HttpResponse(json.dumps({"status": "false",
                                                 "message": "No MAC data"}))
+        else:
+            doc_list = common.let_the_docs_out(post_data)
+        
 
-        mac_list = post_data['mac'] if not response else []
-        for mac in mac_list:
-            cursor = db.devices.find({"lower_snum":mac.lower() })
-            for doc in cursor:
-                all_doc_list.append(doc)
-
-        if not len(doc_list) and not len(all_doc_list) and not response:
+        if not len(doc_list) and not response:
                 response = HttpResponse(json.dumps({"status": "false",
                                                     "message": "No matching MAC data"}))
 
         # LIST OF ALARMS #
 
-        for doc in all_doc_list:
+        for doc in doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if 'alarms' in doc['msgBody'].get('controller'):
                     alarms = doc.get('msgBody').get(

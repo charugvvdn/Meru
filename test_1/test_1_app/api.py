@@ -338,81 +338,77 @@ class HomeStats():
         result_dict['data'] = [critical_count, high_count, minor_count]
         return result_dict
 
-    def access_points(self, doc_list, typeof='aps'):
+    def access_points(self, mac_list, start_time, end_time, typeof='aps'):
         ''' API Calculating online, offline, down aps # '''
         online_count = 0
         offline_count = 0
         down_aps = 0
         result_dict = {}
         unique_ap = {}
+        for mac in mac_list:
 
-        for doc in doc_list:
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    aps = doc.get('msgBody').get('controller').get(typeof)
-                    
-                    for ap in aps:
-                        if ap["mac"] in unique_ap:
-                            pass
-                        else:
-                            unique_ap[ap["mac"]] = 0
-                            if ap['status'].lower() == 'down':
-                                down_aps += 1
-                                offline_count += 1
+            cursor = db.devices.find({"lower_snum": mac.lower(),"timestamp": {
+                                     "$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
+
+        
+            for doc in cursor:
+        
+                if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                    if typeof in doc['msgBody'].get('controller'):
+                        aps = doc.get('msgBody').get('controller').get(typeof)
+                        
+                        for ap in aps:
+                            if ap["mac"] in unique_ap:
+                                pass
                             else:
-                                online_count += 1
+                                unique_ap[ap["mac"]] = 0
+                                if ap['status'].lower() == 'down':
+                                    offline_count += 1
+                                else:
+                                    online_count += 1
 
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]
         return result_dict
 
-    def wireless_clients(self, p_data, typeof='clients'):
+    def wireless_clients(self, mac_list,start_time, end_time, typeof='clients'):
         ''' API Calculating wireless clients count according to timestamp '''
-        mac_list = p_data['mac']
+        
         time_list = []
-
-        if 'time' in p_data:
-            ''' timestamp as mentioned in query string'''
-            time_frame = p_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            ''' if timestamp not mentioned in query string,
-             it takes last 30 minutes data'''
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
+        result_list = []
+        result_dict = {}
+        unique_clients = {}
+        
 
         # query over mongo db to get the data between the given timestamp in
         # desc
+
         cursor = db.devices.find({"timestamp": {
                                  "$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
-
+        mac_list = [x.lower() for x in mac_list]
         result_list = []
         result_dict = {}
+        unique_clients = {}
         for doc in cursor:
-            # creating a list of timestamps found in 'cursor'
-            if doc['timestamp'] not in time_list:
-                time_list.append(doc['timestamp'])
-
-        for time in time_list:
-            count = 0
-            for mac in mac_list:
-                # under each timestamp in the list , filter the mac 
-                cursor = db.devices.find({"lower_snum": mac.lower(), "timestamp" :time})
-                for doc in cursor:
-                    # count the clients in each document at a single timestamp
-                    # and matching mac
-                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                        if typeof in doc['msgBody'].get('controller'):
-                            clients = doc.get('msgBody').get('controller').\
-                                get(typeof)
-                            for client in clients:
+            
+            if  doc['lower_snum'] in  mac_list:
+            
+                # count the clients in each document at a single timestamp
+                # and matching mac
+                if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                    if typeof in doc['msgBody'].get('controller'):
+                        clients = doc.get('msgBody').get('controller').\
+                            get(typeof)
+                        count = 0
+                        for client in clients:
+                            if client['mac'] not in unique_clients:
+                                unique_clients[client['mac']] = 0
                                 count += 1
-            result_list.append(count)
+                        result_list.append(count)
+            else:
+                continue
+
+        print "result",result_list
         # count of clients currently (near or at last timestamp)
         current = result_list[0] if result_list else 0
         # max count of clients among count of clients at every timestamp
@@ -562,6 +558,8 @@ class HomeApi2(View):
         response_list = []
         doc_list = []
         response = {}
+        start_time = 0
+        end_time = 0
         for key in request.GET:
             home_stats.post_data[key] = \
                 ast.literal_eval(request.GET.get(key).strip()
@@ -576,12 +574,26 @@ class HomeApi2(View):
             if not len(doc_list):
                 response = HttpResponse(json.dumps({"status": "false",
                                                     "message": "No matching MAC data"}))
+        if 'time' in home_stats.post_data:
+            ''' timestamp as mentioned in query string'''
+            time_frame = home_stats.post_data['time']
+            start_time = time_frame[0]
+            end_time = time_frame[1]
+
+        else:
+            ''' if timestamp not mentioned in query string,
+             it takes last 30 minutes data'''
+            utc_1970 = datetime.datetime(1970, 1, 1)
+            utc_now = datetime.datetime.utcnow()
+            offset = utc_now - datetime.timedelta(minutes=30)
+            start_time = int((offset - utc_1970).total_seconds())
+            end_time = int((utc_now - utc_1970).total_seconds())
         if not response:
             # WIRELESS CLIENTS
             response_list.append(
-                home_stats.wireless_clients(home_stats.post_data))
+                home_stats.wireless_clients(home_stats.post_data['mac'],start_time, end_time))
             # ACCESS POINTS
-            response_list.append(home_stats.access_points(doc_list))
+            response_list.append(home_stats.access_points(home_stats.post_data['mac'],start_time, end_time))
             # ALARMS
             response_list.append(home_stats.alarms(doc_list))
             # CONTROLLER UTILIZATION

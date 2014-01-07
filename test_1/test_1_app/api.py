@@ -379,34 +379,45 @@ class HomeStats():
         result_dict = {}
         unique_clients = {}
         
+        time_list = []
 
         # query over mongo db to get the data between the given timestamp in
         # desc
 
         cursor = db.devices.find({"timestamp": {
                                  "$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
+        
         mac_list = [x.lower() for x in mac_list]
         result_list = []
         result_dict = {}
         unique_clients = {}
-        for doc in cursor:
+        
+        for c in cursor:
+            if c['timestamp'] not in time_list:
+                time_list.append(c['timestamp']) 
+        for time in time_list:
+            cursor = db.devices.find({"timestamp": time})
             
-            if  doc['lower_snum'] in  mac_list:
-            
-                # count the clients in each document at a single timestamp
-                # and matching mac
-                if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        clients = doc.get('msgBody').get('controller').\
-                            get(typeof)
-                        count = 0
-                        for client in clients:
-                            if client['mac'] not in unique_clients:
-                                unique_clients[client['mac']] = 0
-                                count += 1
-                        result_list.append(count)
-            else:
-                continue
+            count = 0
+
+            for doc in cursor:
+                
+                if  doc['lower_snum'] in mac_list:
+                    
+                    # count the clients in each document at a single timestamp
+                    # and matching mac
+                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            clients = doc.get('msgBody').get('controller').\
+                                get(typeof)
+                            
+                            for client in clients:
+                                if client['mac'] not in unique_clients:
+                                    unique_clients[client['mac']] = 0
+                                    count += 1
+                            
+            result_list.append(count)
+                
 
         print "result",result_list
         # count of clients currently (near or at last timestamp)
@@ -415,7 +426,7 @@ class HomeStats():
         peak = max(result_list) if result_list else 0
         # average count of clients at every timestamp
         avg = reduce(lambda x, y: x + y, result_list) / \
-            len(result_list) if result_list else 0
+            len(result_list) if len(result_list) > 0 else 0
         result_dict['label'] = 'Wireless Clients'
         result_dict['data'] = [current, peak, avg]
         return result_dict

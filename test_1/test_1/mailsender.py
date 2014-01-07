@@ -140,6 +140,7 @@ try:
             email_content += alarm[3]
             email_content += "</td>"
             email_content += "<td>"
+            email_content += alarm[0]
             email_content += "</td>"
             email_content += "<td>"
             email_content += alarm[5]

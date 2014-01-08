@@ -390,7 +390,7 @@ class HomeStats():
         mac_list = [x.lower() for x in mac_list]
         result_list = []
         result_dict = {}
-        unique_clients = {}
+        
         
         for c in cursor:
             if c['timestamp'] not in time_list:
@@ -399,7 +399,7 @@ class HomeStats():
             cursor = db.devices.find({"timestamp": time})
             
             count = 0
-
+            unique_clients = {}
             for doc in cursor:
                 
                 if  doc['lower_snum'] in mac_list:

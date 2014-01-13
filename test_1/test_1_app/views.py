@@ -16,18 +16,12 @@ from test_1_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
 
 from django.views.generic.base import View
-timerange = 60
+TIME_INDEX = 60
 
-# Connection with mongodb client
-client = MongoClient()
-db = client['nms']
+# Connection with mongoDB client
+CLIENT = MongoClient()
+DB = CLIENT['nms']
 
-def add_header(result) :
-    result["Access-Control-Allow-Origin"] = "*"
-    result["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-    result["Access-Control-Max-Age"] = "1000"
-    result["Access-Control-Allow-Headers"] = "*"
-    return result
 
 def welcome(request):
     """
@@ -52,7 +46,8 @@ def welcome(request):
                                   {"d": "Device Dist Throughput"}, context)
     if 'ap_client' in request.GET:
         return render_to_response('test_1_app/Ap-clients.html',
-                                  {"d": "AP with number of Clients Connected"}, context)
+                                  {"d": "AP with number of Clients Connected"},\
+                                   context)
 
     return HttpResponseServerError()
 
@@ -68,24 +63,25 @@ class Reports():
 class Common():
     """Common functinality for all the modules"""
     
-    def traverse(self, obj, l):
+    def traverse(self, obj, item):
         ''' common functinality'''
         if hasattr(obj, '__iter__'):
-            for o in obj:
-                if isinstance(o, dict):
-                    l.append(o)
+            for elem in obj:
+                if isinstance(elem, dict):
+                    item.append(elem)
                 else:
-                    self.traverse(o, l)
-        return l
+                    self.traverse(elem, item)
+        return item
 
     def eval_request(self, request):
+        ''' Evaluate the requested query parameter and returns the post data'''
         if request.method == "GET":
             post_data = request.GET.dict()
             get_data = {}
-            for pd in post_data:
-                temp_var = ast.literal_eval(pd)
-                for t in temp_var:
-                    get_data[t] = temp_var[t]
+            for data in post_data:
+                temp_var = ast.literal_eval(data)
+                for val in temp_var:
+                    get_data[val] = temp_var[val]
             post_data = get_data
 
         elif request.method == "POST":
@@ -114,13 +110,11 @@ class Common():
             offset = utc_now - datetime.timedelta(minutes=30)
             start_time = int((offset - utc_1970).total_seconds())
             end_time = int((utc_now - utc_1970).total_seconds())
-        print mac_list
-        print start_time, end_time
-
+        
         for mac in mac_list:
-            if not db.devices.find({"lower_snum": mac.lower()}).count():
+            if not DB.devices.find({"lower_snum": mac.lower()}).count():
                 continue
-            cursor = db.devices.find({"lower_snum": mac.lower(), "timestamp" \
+            cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
                 : {"$gt": start_time, "$lt": end_time}})
             
 
@@ -140,11 +134,11 @@ class Common():
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if get_type in doc['msgBody'].get('controller'):
                     result = doc.get('msgBody').get('controller').get(get_type)
-                    for c in result:
+                    for val in result:
                         unix_timestamp = int(doc['timestamp']) * 1000
                         if unix_timestamp not in return_dict:
                             return_dict[unix_timestamp] = []
-                        return_dict[unix_timestamp].append(c)
+                        return_dict[unix_timestamp].append(val)
 
         return return_dict
 
@@ -155,45 +149,45 @@ class Common():
         tx_list = []
         throughput = []
         unix_time = 0
-        rx = 0
+        rcv_bytes = 0
         currenttime = 0
-        tx = 0
+        trnsfr_bytes = 0
         flag = 0
         #sorting the clients dict in ascending
         clients = OrderedDict(sorted(clients.items(), key=lambda t: t[0])) 
-        for c in clients:
+        for client in clients:
             # read the first timestamp of the clients dict
-            currenttime = int(c/1000)
+            currenttime = int(client/1000)
             break
         
-        torange = currenttime + timerange # a time range group
+        torange = currenttime + TIME_INDEX # a time range group
         
-        for c in clients:
-            if int(c / 1000) not in range(currenttime , torange ):
+        for client in clients:
+            if int(client / 1000) not in range(currenttime , torange ):
                 ''' if the result exceed the time frame , append 
                 the previous group of results and start to make a new group'''
-                rx_list.append([unix_time, rx])
-                tx_list.append([unix_time, tx])
-                throughput.append([unix_time, rx+tx])
-                currenttime = int(c/1000)
-                torange = currenttime + timerange
-                rx = 0
-                tx = 0
+                rx_list.append([unix_time, rcv_bytes])
+                tx_list.append([unix_time, trnsfr_bytes])
+                throughput.append([unix_time, rcv_bytes + trnsfr_bytes])
+                currenttime = int(client/1000)
+                torange = currenttime + TIME_INDEX
+                rcv_bytes = 0
+                trnsfr_bytes = 0
                 flag = 0
                 
-            if int(c/1000) in range(currenttime , torange ):
+            if int(client/1000) in range(currenttime , torange ):
                 # grouping the result for above timeframe
-                for ts in clients[c]:
-                    rx += int(ts['rxBytes'])
-                    tx += int(ts['txBytes'])
-                unix_time = c
+                for elem in clients[client]:
+                    rcv_bytes += int(elem['rxBytes'])
+                    trnsfr_bytes += int(elem['txBytes'])
+                unix_time = client
                 flag = 1
 
         if flag == 1:
             # appending the last group of result
-            rx_list.append([unix_time, rx])
-            tx_list.append([unix_time, tx])
-            throughput.append([unix_time, rx+tx])
+            rx_list.append([unix_time, rcv_bytes])
+            tx_list.append([unix_time, trnsfr_bytes])
+            throughput.append([unix_time, rcv_bytes + trnsfr_bytes])
 
         return (rx_list, tx_list, throughput)
 
@@ -210,12 +204,12 @@ class Raw_Model():
         given controller mac address passed as `mac`
         :param mac:
         """
-        config_data = {}
+        '''config_data = {}
         sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "",
                             "sec-profile-name": "", "sec-l2-mode": ""}
         ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "",
                             "ess-state": "", "ess-ssid-broadcast": "",
-                            "ess-security-profile": ""}
+                            "ess-security-profile": ""}'''
 
         cursor = connections['meru_cnms'].cursor()
 
@@ -246,10 +240,10 @@ class Raw_Model():
              ORDER BY  `command`.`timestamp` \
               ASC limit 0 , 1" % str(mac)'''
 
-        q = """SELECT command_json FROM meru_command WHERE \
+        query = """SELECT command_json FROM meru_command WHERE \
         `command_mac` = '%s' ORDER BY command_createdon DESC LIMIT 1""" % mac
 
-        cursor.execute(q)
+        cursor.execute(query)
         result = cursor.fetchall()
 
         '''if len(result) != 0:
@@ -301,7 +295,7 @@ class DeviceApplication(View):
         # dont worry about the CSRF here
         return super(DeviceApplication, self).dispatch(*args, **kwargs)
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request):
         """
         To check whether specified mac has registered with the mac or not,
         performing is_registered
@@ -319,10 +313,10 @@ class DeviceApplication(View):
             self.true_response["mac"] = mac
             return HttpResponse(json.dumps(self.true_response))'''
 
-        q = "SELECT COUNT(1) FROM meru_controller WHERE \
+        query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
         cursor = connections['meru_cnms'].cursor()
-        cursor.execute(q)
+        cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
             self.false_response["status"] = "false"
@@ -332,11 +326,11 @@ class DeviceApplication(View):
         self.true_response["mac"] = mac
         return HttpResponse(json.dumps(self.true_response))
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         """
 
         Request:  Monitoring data from controller and insert that data into
-        a mongodb data source.
+        a mongoDB data source.
         Response: Respond with commands for the controller that has been
         registered by a user for that particular controller
 
@@ -357,10 +351,10 @@ class DeviceApplication(View):
         '''if not controller.objects.filter(mac_address=mac).exists():
             return HttpResponse(json.dumps(no_mac))'''
 
-        q = "SELECT COUNT(1) FROM meru_controller WHERE \
+        query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
         cursor = connections['meru_cnms'].cursor()
-        cursor.execute(q)
+        cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
             return HttpResponse(json.dumps(no_mac))
@@ -372,9 +366,9 @@ class DeviceApplication(View):
         post_data['timestamp'] = timestamp
         post_data['lower_snum'] = mac.lower()
         self.type_casting(post_data)
-        print post_data
+        
 
-        db.devices.insert(post_data)
+        DB.devices.insert(post_data)
 
         raw_model = Raw_Model()  # Raw model class to access the sql
         config_data = raw_model.isConfigData(mac)
@@ -395,55 +389,55 @@ class DeviceApplication(View):
             mac = kwargs["mac"]
         else:
             return HttpResponse(json.dumps(self.false_response))
-        null_mac = {"status": "Null mac"}
-        not_registered = {"status": "not registered"}
 
         self.true_response["mac"] = mac
         self.false_response["mac"] = mac
         self.false_response["status"] = "false"
 
-        q = "SELECT COUNT(1) FROM meru_controller WHERE \
+        query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
         cursor = connections['meru_cnms'].cursor()
-        cursor.execute(q)
+        cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
             return HttpResponse(json.dumps(self.false_response))
 
         try:
-            q = """ UPDATE meru_command SET command_status = 2 WHERE \
+            query = """ UPDATE meru_command SET command_status = 2 WHERE \
                     command_mac = '%s'""" % mac
             cursor = connections['meru_cnms'].cursor()
-            cursor.execute(q)
+            cursor.execute(query)
             return HttpResponse(json.dumps(self.true_response))
 
-        except Exception as e:
-            print str(e)
+        except Exception as error:
+            
             return HttpResponse(json.dumps(self.false_response))
 
     def type_casting(self, doc):
-        alarms = []
-        aps = []
-        clients = []
-        alarms = doc.get('msgBody').get('controller').get('alarms')
-        aps = doc.get('msgBody').get('controller').get('aps')
-        clients = doc.get('msgBody').get('controller').get('clients')
-
+        '''type casting the data received from controller , \
+        converting required values to int'''
+        
         if 'alarms' in doc.get('msgBody').get('controller'):
             for alarm in doc.get('msgBody').get('controller').get('alarms'):
                 alarm['timeStamp'] = int(alarm['timeStamp'])
 
         if 'aps' in doc.get('msgBody').get('controller'):
-            for ap in doc.get('msgBody').get('controller').get('aps'):
-                ap['id'], ap['rxBytes'] = int(ap['id']), int(ap['rxBytes'])
-                ap['txBytes'], ap['wifiExp'] = int(ap['txBytes']), int(ap['wifiExp'])
+            for ap_elem in doc.get('msgBody').get('controller').get('aps'):
+                ap_elem['id'], ap_elem['rxBytes'] = int(ap_elem['id']), \
+                 int(ap_elem['rxBytes'])
+                ap_elem['txBytes'], ap_elem['wifiExp'] = \
+                int(ap_elem['txBytes']),int(ap_elem['wifiExp'])
 
         if 'clients' in doc.get('msgBody').get('controller'):
             for client in doc.get('msgBody').get('controller').get('clients'):
-                client['apId'] = int(client['apId']) if str(client['apId']).isdigit() else 0
-                client['rxBytes'] = int(client['rxBytes']) if str(client['rxBytes']).isdigit() else 0
-                client['txBytes'] = int(client['txBytes']) if str(client['txBytes']).isdigit() else 0
-                client['txBytes'] = int(client['txBytes']) if str(client['txBytes']).isdigit() else 0
+                client['apId'] = int(client['apId']) if str(client['apId']).\
+                isdigit() else 0
+                client['rxBytes'] = int(client['rxBytes']) \
+                if str(client['rxBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) \
+                if str(client['txBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) \
+                if str(client['txBytes']).isdigit() else 0
 
         return doc
 
@@ -456,8 +450,6 @@ def client_throughput(request):
     rx_list = []
     tx_list = []
     response_list = 0
-    unix_timestamp = 0
-
     common = Common()
     post_data = common.eval_request(request)
 
@@ -481,7 +473,6 @@ def client_throughput(request):
                             {"label": "txBytes", "data": tx_list}, \
                             {"label": "throughput", "data": throughput}
                         ]
-        #       print response_list
         
         response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
@@ -580,11 +571,10 @@ def overall_throughput(request):
         # get overall result
         rx_list, tx_list, throughput = common.throughput_calc(out_dict)
 
-        #print throughput
         response_list = [{"label": "rxBytes", "data": rx_list}, \
         {"label": "txBytes", "data": \
             tx_list}, {"label": "throughput", "data": throughput}]
-        #       print response_list
+        
         response = HttpResponse(json.dumps({"status": "true", \
             "values": response_list,\
              "message": "values for Overall throughput bar graph"}))
@@ -633,13 +623,14 @@ def wifi_experience(request):
         # sorting the doc_list dictionary in asc
         doc_list =  sorted(doc_list, key=lambda x: x['timestamp'])
         if not len(doc_list):
-            return HttpResponse(json.dumps({"status": "false",
-                                            "message": "No filtered data received"}))
+            return HttpResponse(json.dumps(\
+                {"status": "false","message": "No filtered data received"}\
+                ))
         # currentime  = first timestamp of the dict
         
         currenttime = doc_list[0]['timestamp'] 
         # grouping the timeframe
-        torange = currenttime+timerange
+        torange = currenttime+TIME_INDEX
         min_cl = min_ap = 100
         max_cl = max_ap = 0
         for doc in doc_list:
@@ -657,11 +648,12 @@ def wifi_experience(request):
                     max_aplist.append([unix_timestamp , max_ap])
 
                     avg_cl_wifiexp.append([unix_timestamp , \
-                        wifiexp_cl_sum / client_count if client_count > 0 else 0])
+                        wifiexp_cl_sum / client_count if client_count > 0 \
+                        else 0])
                     min_clist.append([unix_timestamp , min_cl])
                     max_clist.append([unix_timestamp , max_cl])
                     currenttime = doc['timestamp']
-                    torange = currenttime+timerange
+                    torange = currenttime+TIME_INDEX
                     ap_flag = 0
                     cl_flag = 0
                     aps_count = 0
@@ -671,30 +663,30 @@ def wifi_experience(request):
 
             if int(doc['timestamp']) in range(currenttime , torange ):
 
-                for ap in aps:
-                    if 'wifiExp' in ap:
-                        if min_ap > int(ap["wifiExp"]):
-                            min_ap = int(ap["wifiExp"])
-                        if max_ap < int(ap["wifiExp"]):
-                            max_ap = int(ap["wifiExp"])
+                for ap_elem in aps:
+                    if 'wifiExp' in ap_elem:
+                        if min_ap > int(ap_elem["wifiExp"]):
+                            min_ap = int(ap_elem["wifiExp"])
+                        if max_ap < int(ap_elem["wifiExp"]):
+                            max_ap = int(ap_elem["wifiExp"])
                         unix_timestamp = int(doc['timestamp']) * 1000
-                        ap['timestamp'] = unix_timestamp
-                        clients.append(ap)
-                        wifiexp_ap_sum += int(ap['wifiExp'])
+                        ap_elem['timestamp'] = unix_timestamp
+                        clients.append(ap_elem)
+                        wifiexp_ap_sum += int(ap_elem['wifiExp'])
                         aps_count += 1
                         ap_flag = 1
 
-                for c in client:
-                    if 'wifiExp' in c:
-                        if min_cl > int(c["wifiExp"]):
-                            min_cl = int(c["wifiExp"])
-                        if max_cl < int(c["wifiExp"]):
-                            max_cl = int(c["wifiExp"])
+                for cl_elem in client:
+                    if 'wifiExp' in cl_elem:
+                        if min_cl > int(cl_elem["wifiExp"]):
+                            min_cl = int(cl_elem["wifiExp"])
+                        if max_cl < int(cl_elem["wifiExp"]):
+                            max_cl = int(cl_elem["wifiExp"])
 
                         unix_timestamp = int(doc['timestamp']) * 1000
-                        c['timestamp'] = unix_timestamp
-                        clients.append(c)
-                        wifiexp_cl_sum += int(c['wifiExp'])
+                        cl_elem['timestamp'] = unix_timestamp
+                        clients.append(cl_elem)
+                        wifiexp_cl_sum += int(cl_elem['wifiExp'])
                         client_count += 1
                         cl_flag = 1
 
@@ -751,18 +743,19 @@ def ap_clients(request):
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if 'aps' in doc['msgBody'].get('controller'):
                     aps = doc.get('msgBody').get('controller').get('aps')
-                    for ap in aps:
+                    for ap_elem in aps:
 
-                        if ap['id'] not in ap_dict:
-                            ap_dict[ap['id']] = ap['mac']
-                            ap_dict[str(ap['id']) + "time"] = unix_timestamp
+                        if ap_elem['id'] not in ap_dict:
+                            ap_dict[ap_elem['id']] = ap_elem['mac']
+                            ap_dict[str(ap_elem['id']) + "time"] = \
+                            unix_timestamp
 
                 if 'clients' in doc['msgBody'].get('controller'):
-                    client = doc.get('msgBody').get('controller').get('clients')
-                    for c in client:
+                    client = doc.get('msgBody').get('controller')\
+                    .get('clients')
+                    for cl_elem in client:
                         client_dict = {}
-                        #client_dict['timestamp'] = unix_timestamp
-                        client_dict['apId'] = int(c['apId'])
+                        client_dict['apId'] = int(cl_elem['apId'])
                         clients.append(client_dict)
 
         for client in clients:
@@ -788,12 +781,6 @@ def ap_clients(request):
          "message": "values for Number of clients for AP"}))
         return response
 
-        response = HttpResponse(json.dumps({"status": "true",
-                                            "values": response_list,
-                                            "message": "values for Number of clients for AP"}))
-
-        return response
-
     return HttpResponse(json.dumps({"status": "false",
                                     "message": "No mac provided"}))
 
@@ -803,8 +790,6 @@ def devicetype(request):
     device_types = {}
     response = []
     clients = []
-    context = RequestContext(request)
-
     common = Common()
     post_data = common.eval_request(request)
 
@@ -816,20 +801,21 @@ def devicetype(request):
 
         # get the clients
             get_type = "clients"
-            client_list = common.calc_type(doc_list, get_type)
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                clients = doc.get('msgBody').get('controller').get('clients') or []
             
-            for c in clients:
-                if c['clientType'] in device_types:
-                    device_types[c['clientType']] += 1
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                clients = doc.get('msgBody').get('controller').\
+                get('clients') or []
+            
+            for cl_elem in clients:
+                if cl_elem['clientType'] in device_types:
+                    device_types[cl_elem['clientType']] += 1
                 else:
-                    device_types[c['clientType']] = 1
-        for d, n in device_types.iteritems():
-            d1 = {"label": 0, "data": 0}
-            d1["label"] = d
-            d1["data"] = n
-            response.append(d1)
+                    device_types[cl_elem['clientType']] = 1
+        for key, value in device_types.iteritems():
+            device = {"label": 0, "data": 0}
+            device["label"] = key
+            device["data"] = value
+            response.append(device)
 
         response = HttpResponse(json.dumps({"status": "true",
                                             "values": response}))

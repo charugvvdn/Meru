@@ -1,22 +1,16 @@
-from django.http import HttpResponse, StreamingHttpResponse
+from django.http import HttpResponse
 from pymongo import MongoClient
 import datetime
 import json
 from django.views.generic.base import View
 from views import Common
 import ast
-# Connection with mongodb client
-client = MongoClient()
-db = client['nms']
-
-def add_header(result) :
-    result["Access-Control-Allow-Origin"] = "*"
-    result['Content-Type'] = 'application/json'
-    result["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-    result["Access-Control-Max-Age"] = "1000"
-    result["Access-Control-Allow-Headers"] = "*"
-    return result
-
+# Connection with mongoDB client
+CLIENT = MongoClient()
+DB = CLIENT['nms']
+UTC_1970 = datetime.datetime(1970, 1, 1)
+UTC_NOW = datetime.datetime.utcnow()
+OFFSET = UTC_NOW - datetime.timedelta(minutes=30)
 class DashboardStats():
 
     '''Common variable used under the class methods'''
@@ -62,8 +56,6 @@ class DashboardStats():
         for doc in doc_list:
             if 'msgBody' in doc:
                 if doc['msgBody'].get(typeof):
-                # get controller
-                    controller = doc.get('msgBody').get(typeof)
                     count += 1
         result_dict['label'] = 'Number of controllers'
         result_dict['data'] = [count]
@@ -103,11 +95,11 @@ class DashboardStats():
                     # get the aps
                     aps = doc.get('msgBody').get('controller').get(typeof)
                     unique_aps = {}
-                    for ap in aps:
-                        if ap["mac"] in unique_aps:
-                            unique_aps[ap["mac"]] += 1
+                    for ap_elem in aps:
+                        if ap_elem["mac"] in unique_aps:
+                            unique_aps[ap_elem["mac"]] += 1
                         else:
-                            unique_aps[ap["mac"]] = 0
+                            unique_aps[ap_elem["mac"]] = 0
                             count += 1
                         
         result_dict['label'] = 'Number of aps'
@@ -126,10 +118,10 @@ class DashboardStats():
                     # get the aps
                     aps = doc.get('msgBody').get('controller').get(typeof)
                     unique_aps = {}
-                    for ap in aps:
-                        if ap["mac"] not in unique_aps:
-                            unique_aps[ap["mac"]] = 0
-                            if ap['status'].lower() == 'up':
+                    for ap_elem in aps:
+                        if ap_elem["mac"] not in unique_aps:
+                            unique_aps[ap_elem["mac"]] = 0
+                            if ap_elem['status'].lower() == 'up':
                                 online_count += 1
                             else:
                                 offline_count += 1
@@ -137,7 +129,7 @@ class DashboardStats():
         result_dict['data'] = [online_count, offline_count]
         return result_dict
 
-    def status_last_login(self, doc_list, typeof='controller'):
+    def status_last_login(self, doc_list, typeof = 'controller'):
         '''API calculating STATUS SINCE LAST LOGIN '''
         sites_count = 0
         controller_count = 0
@@ -150,8 +142,8 @@ class DashboardStats():
                     # get clients to count sites
                     clients = doc.get('msgBody').get(
                         'controller').get('clients')
-                    for client in clients:
-                        sites_count += 1
+                    sites_count = len(clients)
+                    
                 if doc['msgBody'].get('controller'):
                     # get controller count
                     controller_count += 1
@@ -198,9 +190,9 @@ class HomeStats():
                 if typeof in doc['msgBody'].get('controller'):
                     # get the aps
                     aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap in aps:
+                    for ap_elem in aps:
                         # sum of rx + tx bytes
-                        rx_tx = ap['rxBytes'] + ap['txBytes']
+                        rx_tx = ap_elem['rxBytes'] + ap_elem['txBytes']
                         # mark the mac where sum of rx+tx bytes is > threshold
                         if rx_tx > threshhold_max:
                             flag = 1
@@ -216,7 +208,6 @@ class HomeStats():
 
     def change_security(self, doc_list, typeof='aps'):
         ''' API Calculating change in security # '''
-        count = 10
         mac_list = []
 
         ''' logic to be implemented'''
@@ -239,9 +230,9 @@ class HomeStats():
                 if typeof in doc['msgBody'].get('controller'):
                     # get the access points
                     aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap in aps:
+                    for ap_elem in aps:
                         # mark the mac where ap is down
-                        if ap['status'].lower() == 'down':
+                        if ap_elem['status'].lower() == 'down':
                             flag = 1
                     if flag and mac not in mac_list:
                         mac_list.append(mac)
@@ -262,9 +253,9 @@ class HomeStats():
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap in aps:
+                    for ap_elem in aps:
                         # mark the mac where ap is down
-                        if ap['status'].lower() == 'down':
+                        if ap_elem['status'].lower() == 'down':
                             flag = 1
                     if flag and mac not in mac_list:
                         mac_list.append(mac)
@@ -308,10 +299,9 @@ class HomeStats():
         for doc in doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
-                    controllers = doc.get('msgBody').get('controller').get(typeof)
-                    '''for controller in controllers:
-                        pass
-                        # logic to be implemented'''
+                    '''controllers = doc.get('msgBody').get('controller')\
+                    .get(typeof)
+                    # logic to be implemented'''
         result_dict['label'] = 'Controller Utilization'
         result_dict['data'] = [gt_50_count, _50_75_count, lt_75_count]
         return result_dict
@@ -347,8 +337,8 @@ class HomeStats():
         unique_ap = {}
         for mac in mac_list:
 
-            cursor = db.devices.find({"lower_snum": mac.lower(),"timestamp": {
-                                     "$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
+            cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
 
         
             for doc in cursor:
@@ -357,12 +347,12 @@ class HomeStats():
                     if typeof in doc['msgBody'].get('controller'):
                         aps = doc.get('msgBody').get('controller').get(typeof)
                         
-                        for ap in aps:
-                            if ap["mac"] in unique_ap:
+                        for ap_elem in aps:
+                            if ap_elem["mac"] in unique_ap:
                                 pass
                             else:
-                                unique_ap[ap["mac"]] = 0
-                                if ap['status'].lower() == 'down':
+                                unique_ap[ap_elem["mac"]] = 0
+                                if ap_elem['status'].lower() == 'down':
                                     offline_count += 1
                                 else:
                                     online_count += 1
@@ -371,7 +361,8 @@ class HomeStats():
         result_dict['data'] = [online_count, offline_count, down_aps]
         return result_dict
 
-    def wireless_clients(self, mac_list,start_time, end_time, typeof='clients'):
+    def wireless_clients(self, mac_list, start_time, end_time, \
+     typeof='clients'):
         ''' API Calculating wireless clients count according to timestamp '''
         
         time_list = []
@@ -381,22 +372,22 @@ class HomeStats():
         
         time_list = []
 
-        # query over mongo db to get the data between the given timestamp in
+        # query over mongo DB to get the data between the given timestamp in
         # desc
 
-        cursor = db.devices.find({"timestamp": {
-                                 "$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
+        cursor = DB.devices.find({"timestamp": {"$gt": start_time , \
+         "$lt": end_time}}).sort('timestamp', -1)
         
         mac_list = [x.lower() for x in mac_list]
         result_list = []
         result_dict = {}
         
         
-        for c in cursor:
-            if c['timestamp'] not in time_list:
-                time_list.append(c['timestamp']) 
+        for elem in cursor:
+            if elem['timestamp'] not in time_list:
+                time_list.append(elem['timestamp']) 
         for time in time_list:
-            cursor = db.devices.find({"timestamp": time})
+            cursor = DB.devices.find({"timestamp": time})
             
             count = 0
             unique_clients = {}
@@ -419,7 +410,6 @@ class HomeStats():
             result_list.append(count)
                 
 
-        print "result",result_list
         # count of clients currently (near or at last timestamp)
         current = result_list[0] if result_list else 0
         # max count of clients among count of clients at every timestamp
@@ -442,24 +432,16 @@ class HomeStats():
         flag = 0
         controller_list = []
         mac_list = p_data['mac']
-
-        if 'time' in p_data:
-            time_frame = p_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
+  
+        time_frame = p_data['time'] if 'time' in p_data else None
+        start_time = time_frame[0] if time_frame else int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else int((UTC_NOW - UTC_1970).total_seconds())
 
         for mac in mac_list:
 
             doc_list = []
             # filter over given mac and timestamp (in query string)
-            cursor = db.devices.find({"lower_snum": mac.lower(), "timestamp" \
+            cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
                 : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
             res = cursor.count()
             if res == 0:
@@ -476,23 +458,26 @@ class HomeStats():
                 if 'msgBody' in doc and 'controller' in doc['msgBody']:
                     if typeof in doc['msgBody'].get('controller'):
                         aps = doc.get('msgBody').get('controller').get(typeof)
-                        for ap in aps:
+                        for ap_elem in aps:
                             # sum of wifi of aps
-                            wifiexp_ap_sum += int(ap['wifiExp'])
+                            wifiexp_ap_sum += int(ap_elem['wifiExp'])
                             aps_count += 1  # number of aps
 
                         # average of wifi aps in a doc
-                        avg_doc_wifiexp = wifiexp_ap_sum / aps_count if aps_count > 0 else 0
+                        avg_doc_wifiexp = wifiexp_ap_sum / aps_count \
+                        if aps_count > 0 else 0
                         # sum of avergae of wifi of aps in all the docs
                         avg_controller += avg_doc_wifiexp
             # average of avergae of wifi of aps in all the docs
-            final_avg_controller = avg_controller / len(doc_list) if len(doc_list) > 0 else 0
-            last_doc = doc_list[0].get('msgBody').get('controller').get(typeof) or []
+            final_avg_controller = avg_controller / len(doc_list) if \
+            len(doc_list) > 0 else 0
+            last_doc = doc_list[0].get('msgBody').get('controller').\
+            get(typeof) or []
             flag = 0
-            for ap in last_doc:
+            for ap_elem in last_doc:
                 # mark the mac where ap wifiexp - final average of all wifi is
                 # < 0
-                if int(ap['wifiExp']) - final_avg_controller < 0:
+                if int(ap_elem['wifiExp']) - final_avg_controller < 0:
                     flag = 1
             if flag:
                 controller_list.append(doc_list[0]['snum'])
@@ -528,8 +513,9 @@ class HomeApi(View):
             # fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
             if not len(doc_list):
-                response = HttpResponse(json.dumps({"status": "false",
-                                                    "message": "No matching MAC data"}))
+                response = HttpResponse(json.dumps(\
+                    {"status": "false","message": "No matching MAC data"}\
+                    ))
 
         if not response:
             # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
@@ -540,8 +526,8 @@ class HomeApi(View):
             response_list.append(home_stats.change_security(doc_list))
             #------------------------
             # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
-            response_list.append(home_stats.access_pt_util(doc_list,
-                                                           home_stats.post_data))
+            response_list.append(home_stats.access_pt_util\
+                (doc_list,home_stats.post_data))
             #-------------------------
             # SITES WITH DEVICES DOWN#
             response_list.append(home_stats.sites_down(doc_list))
@@ -583,28 +569,23 @@ class HomeApi2(View):
             # fetch the docs
             doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
             if not len(doc_list):
-                response = HttpResponse(json.dumps({"status": "false",
-                                                    "message": "No matching MAC data"}))
-        if 'time' in home_stats.post_data:
-            ''' timestamp as mentioned in query string'''
-            time_frame = home_stats.post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            ''' if timestamp not mentioned in query string,
+                response = HttpResponse(json.dumps(\
+                    {"status": "false","message": "No matching MAC data"}\
+                    ))
+        ''' if timestamp not mentioned in query string,
              it takes last 30 minutes data'''
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
+        time_frame = home_stats.post_data['time'] if 'time' in home_stats.post_data else None
+        start_time = time_frame[0] if time_frame else int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else int((UTC_NOW - UTC_1970).total_seconds())
+            
         if not response:
             # WIRELESS CLIENTS
             response_list.append(
-                home_stats.wireless_clients(home_stats.post_data['mac'],start_time, end_time))
+                home_stats.wireless_clients(home_stats.post_data['mac']\
+                    ,start_time, end_time))
             # ACCESS POINTS
-            response_list.append(home_stats.access_points(home_stats.post_data['mac'],start_time, end_time))
+            response_list.append(home_stats.access_points(home_stats.\
+                post_data['mac'],start_time, end_time))
             # ALARMS
             response_list.append(home_stats.alarms(doc_list))
             # CONTROLLER UTILIZATION
@@ -637,16 +618,15 @@ class DashboardApi(View):
         mac_list = dash_stats.post_data['mac'] if not response else []
         # get all the documents with the matching mac irrespective of timestamp
         for mac in mac_list:
-            cursor = db.devices.find({"lower_snum":mac.lower() }).sort('timestamp', -1).limit(1)
+            cursor = DB.devices.find({"lower_snum":mac.lower() })\
+            .sort('timestamp', -1).limit(1)
             for doc in cursor:
                 doc_list.append(doc)
 
         if not len(doc_list) and not response:
-                response = HttpResponse(json.dumps({"status": "false",
-                                                    "message": "No matching MAC data"}))
-        
-
-                
+            response = HttpResponse(json.dumps(\
+                    {"status": "false","message": "No matching MAC data"}\
+                    ))
         # NUMBER OF CONTROLLERS #
         response_list.append(dash_stats.number_controllers(doc_list))
 
@@ -696,8 +676,9 @@ class AlarmsApi(View):
         
 
         if not len(doc_list) and not response:
-                response = HttpResponse(json.dumps({"status": "false",
-                                                    "message": "No matching MAC data"}))
+            response = HttpResponse(json.dumps(\
+                {"status": "false","message": "No matching MAC data"}\
+                ))
 
         # LIST OF ALARMS #
 

@@ -429,10 +429,6 @@ class DeviceApplication(View):
         aps = doc.get('msgBody').get('controller').get('aps')
         clients = doc.get('msgBody').get('controller').get('clients')
 
-        if 'alarms' in doc.get('msgBody').get('controller'):
-            for alarm in doc.get('msgBody').get('controller').get('alarms'):
-                alarm['timeStamp'] = int(alarm['timeStamp'])
-
         if 'aps' in doc.get('msgBody').get('controller'):
             for ap in doc.get('msgBody').get('controller').get('aps'):
                 ap['id'], ap['rxBytes'] = int(ap['id']), int(ap['rxBytes'])

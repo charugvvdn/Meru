@@ -1,5 +1,9 @@
 Django==1.6
 MySQL-python==1.2.4
 argparse==1.2.1
+autopep8==0.9.7
+distribute==0.7.3
+pep8==1.4.6
 pymongo==2.6.3
+uWSGI==1.4.10
 wsgiref==0.1.2

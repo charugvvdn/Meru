@@ -171,9 +171,16 @@ class HomeStats():
         self.response = []
         self.result_dict = {}
 
-    def access_pt_util(self, doc_list, p_data, typeof="aps"):
+    def access_pt_util(self, p_data, typeof="aps"):
         '''b. SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
-        mac_list = []
+        mac_list = p_data['mac']
+        res_list = []
+        time_frame = p_data['time'] if 'time' in p_data else None
+        start_time = time_frame[0] if time_frame else \
+        int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else int \
+        ((UTC_NOW - UTC_1970).total_seconds())
+
         threshhold_max = 0
         if 'threshhold' in p_data:
             threshhold = p_data['threshhold']
@@ -181,29 +188,32 @@ class HomeStats():
 
         else:
             threshhold_max = int(78799)
+        for mac in mac_list:
 
-        for doc in doc_list:
-            mac = doc['snum']
-            flag = 0
-            rx_tx = 0
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    # get the aps
-                    aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap_elem in aps:
-                        # sum of rx + tx bytes
-                        rx_tx = ap_elem['rxBytes'] + ap_elem['txBytes']
-                        # mark the mac where sum of rx+tx bytes is > threshold
-                        if rx_tx > threshhold_max:
-                            flag = 1
-                    if flag and mac not in mac_list:
-                        mac_list.append(mac)
+            cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+            for doc in cursor:
+                mac = doc['snum']
+                flag = 0
+                rx_tx = 0
+                if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                    if typeof in doc['msgBody'].get('controller'):
+                        # get the aps
+                        aps = doc.get('msgBody').get('controller').get(typeof)
+                        for ap_elem in aps:
+                            # sum of rx + tx bytes
+                            rx_tx = ap_elem['rxBytes'] + ap_elem['txBytes']
+                            # mark the mac where sum of rx+tx bytes is > threshold
+                            if rx_tx > threshhold_max:
+                                flag = 1
+                        if flag and mac not in res_list:
+                            res_list.append(mac)
         self.result_dict["access_pt"] = {}
         self.result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"
-        self.result_dict["access_pt"]['count'] = len(mac_list)
+        self.result_dict["access_pt"]['count'] = len(res_list)
         self.result_dict["access_pt"]['status'] = True
-        self.result_dict["access_pt"]['mac'] = mac_list
+        self.result_dict["access_pt"]['mac'] = res_list
         return self.result_dict['access_pt']
 
     def change_security(self, doc_list, typeof='aps'):
@@ -220,73 +230,106 @@ class HomeStats():
         self.result_dict["change_security"]['mac'] = mac_list
         return self.result_dict['change_security']
 
-    def sites_critical_health(self, doc_list, typeof="aps"):
+    def sites_critical_health(self, p_data, typeof="aps"):
         '''SITES WITH CRITICAL HEALTH'''
-        mac_list = []
-        for doc in doc_list:
-            mac = doc['snum']
-            flag = 0
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    # get the access points
-                    aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap_elem in aps:
-                        # mark the mac where ap is down
-                        if ap_elem['status'].lower() == 'down':
-                            flag = 1
-                    if flag and mac not in mac_list:
-                        mac_list.append(mac)
+        mac_list = p_data['mac']
+        res_list = []
+        time_frame = p_data['time'] if 'time' in p_data else None
+        start_time = time_frame[0] if time_frame else \
+        int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else int \
+        ((UTC_NOW - UTC_1970).total_seconds())
+        for mac in mac_list:
+
+            cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+            for doc in cursor:
+                mac = doc['snum']
+                flag = 0
+                if 'msgBody' in doc and 'controller' in     doc['msgBody']:
+                    if typeof in doc['msgBody'].get('controller'):
+                        # get the access points
+                        aps = doc.get('msgBody').get('controller').get(typeof)
+                        for ap_elem in aps:
+                            # mark the mac where ap is down
+                            if ap_elem['status'].lower() == 'down':
+                                flag = 1
+                        if flag and mac not in res_list:
+                           res_list.append(mac)
         self.result_dict["sites_critcal_health"] = {}
         self.result_dict["sites_critcal_health"]['message'] = \
             "SITES WITH CRITICAL HEALTH"
-        self.result_dict["sites_critcal_health"]['count'] = len(mac_list)
+        self.result_dict["sites_critcal_health"]['count'] = len(res_list)
         self.result_dict["sites_critcal_health"]['status'] = True
-        self.result_dict["sites_critcal_health"]['mac'] = mac_list
+        self.result_dict["sites_critcal_health"]['mac'] = res_list
         return self.result_dict["sites_critcal_health"]
 
-    def sites_down(self, doc_list, typeof="aps"):
+    def sites_down(self, p_data, typeof="aps"):
         '''b. SITES WITH DEVICES DOWN'''
-        mac_list = []
-        for doc in doc_list:
-            mac = doc['snum']
-            flag = 0
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap_elem in aps:
-                        # mark the mac where ap is down
-                        if ap_elem['status'].lower() == 'down':
-                            flag = 1
-                    if flag and mac not in mac_list:
-                        mac_list.append(mac)
+        mac_list = p_data['mac']
+        res_list = []
+        time_frame = p_data['time'] if 'time' in p_data else None
+        start_time = time_frame[0] if time_frame else \
+        int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else int \
+        ((UTC_NOW - UTC_1970).total_seconds())
+        for mac in mac_list:
+
+            cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+            for doc in cursor:
+                mac = doc['snum']
+                flag = 0
+                if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                    if typeof in doc['msgBody'].get('controller'):
+                        aps = doc.get('msgBody').get('controller').get(typeof)
+                        for ap_elem in aps:
+                            # mark the mac where ap is down
+                            if ap_elem['status'].lower() == 'down':
+                                flag = 1
+                        if flag and mac not in res_list:
+                            res_list.append(mac)
         self.result_dict["sites_down"] = {}
         self.result_dict["sites_down"]['message'] = "SITES WITH DEVICES DOWN"
-        self.result_dict["sites_down"]['count'] = len(mac_list)
+        self.result_dict["sites_down"]['count'] = len(res_list)
         self.result_dict["sites_down"]['status'] = True
-        self.result_dict["sites_down"]['mac'] = mac_list
+        self.result_dict["sites_down"]['mac'] = res_list
         return self.result_dict["sites_down"]
 
-    def critical_alarms(self, doc_list, typeof="alarms"):
+    def critical_alarms(self, p_data, typeof="alarms"):
         '''SITES WITH CRITICAL ALARMS'''
-        mac_list = []
-        for doc in doc_list:
-            mac = doc['snum']
-            flag = 0
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    alarms = doc.get('msgBody').get('controller').get(typeof)
-                    for alarm in alarms:
-                        # mark the mac where alarms severity is high
-                        if alarm['severity'].lower() == 'high':
-                            flag = 1
-                    if flag and mac not in mac_list:
-                        mac_list.append(mac)
+        mac_list = p_data['mac']
+        res_list = []
+        time_frame = p_data['time'] if 'time' in p_data else None
+        start_time = time_frame[0] if time_frame else \
+        int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else int \
+        ((UTC_NOW - UTC_1970).total_seconds())
+
+        for mac in mac_list:
+
+            cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+            for doc in cursor:
+                mac = doc['snum']
+                flag = 0
+                if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                    if typeof in doc['msgBody'].get('controller'):
+                        alarms = doc.get('msgBody').get('controller').get(typeof)
+                        for alarm in alarms:
+                            
+                            # mark the mac where alarms severity is high
+                            if alarm['severity'].lower() == 'high':
+                                flag = 1
+                        
+                        if flag and mac not in res_list:
+                            res_list.append(mac)
         self.result_dict["critical_alarm"] = {}
         self.result_dict["critical_alarm"]['message'] = \
             "SITES WITH CRITICAL ALARMS"
-        self.result_dict["critical_alarm"]['count'] = len(mac_list)
+        self.result_dict["critical_alarm"]['count'] = len(res_list)
         self.result_dict["critical_alarm"]['status'] = True
-        self.result_dict["critical_alarm"]['mac'] = mac_list
+        self.result_dict["critical_alarm"]['mac'] = res_list
         return self.result_dict["critical_alarm"]
 
     def controller_util(self, doc_list, typeof='controller'):
@@ -531,16 +574,16 @@ class HomeApi(View):
             #------------------------
             # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
             response_list.append(home_stats.access_pt_util\
-                (doc_list,home_stats.post_data))
+                (home_stats.post_data))
             #-------------------------
             # SITES WITH DEVICES DOWN#
-            response_list.append(home_stats.sites_down(doc_list))
+            response_list.append(home_stats.sites_down(home_stats.post_data))
             #--------------------------
             # SITES WITH CRITICAL HEALTH
-            response_list.append(home_stats.sites_critical_health(doc_list))
+            response_list.append(home_stats.sites_critical_health(home_stats.post_data))
             #--------------------------
             # SITES WITH CRITICAL ALARMS#
-            response_list.append(home_stats.critical_alarms(doc_list))
+            response_list.append(home_stats.critical_alarms(home_stats.post_data))
             #----------------------------
             
             response = HttpResponse(json.dumps({"status": "true", \

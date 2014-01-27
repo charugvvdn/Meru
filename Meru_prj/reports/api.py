@@ -188,26 +188,29 @@ class HomeStats():
 
         else:
             threshhold_max = int(78799)
+        used_mac = {}
         for mac in mac_list:
 
             cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
-             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
             for doc in cursor:
-                mac = doc['snum']
-                flag = 0
-                rx_tx = 0
-                if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        # get the aps
-                        aps = doc.get('msgBody').get('controller').get(typeof)
-                        for ap_elem in aps:
-                            # sum of rx + tx bytes
-                            rx_tx = ap_elem['rxBytes'] + ap_elem['txBytes']
-                            # mark the mac where sum of rx+tx bytes is > threshold
-                            if rx_tx > threshhold_max:
-                                flag = 1
-                        if flag and mac not in res_list:
-                            res_list.append(mac)
+                if doc['snum'] not in used_mac:
+                    used_mac[doc['snum']] = 0
+                    mac = doc['snum']
+                    flag = 0
+                    rx_tx = 0
+                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            # get the aps
+                            aps = doc.get('msgBody').get('controller').get(typeof)
+                            for ap_elem in aps:
+                                # sum of rx + tx bytes
+                                rx_tx = ap_elem['rxBytes'] + ap_elem['txBytes']
+                                # mark the mac where sum of rx+tx bytes is > threshold
+                                if rx_tx > threshhold_max:
+                                    flag = 1
+                            if flag and mac not in res_list:
+                                res_list.append(mac)
         self.result_dict["access_pt"] = {}
         self.result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"
@@ -239,23 +242,26 @@ class HomeStats():
         int((OFFSET - UTC_1970).total_seconds())
         end_time = time_frame[1] if time_frame else int \
         ((UTC_NOW - UTC_1970).total_seconds())
+        used_mac = {}
         for mac in mac_list:
 
             cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
-             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
             for doc in cursor:
-                mac = doc['snum']
-                flag = 0
-                if 'msgBody' in doc and 'controller' in     doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        # get the access points
-                        aps = doc.get('msgBody').get('controller').get(typeof)
-                        for ap_elem in aps:
-                            # mark the mac where ap is down
-                            if ap_elem['status'].lower() == 'down':
-                                flag = 1
-                        if flag and mac not in res_list:
-                           res_list.append(mac)
+                if doc['snum'] not in used_mac:
+                    used_mac[doc['snum']] = 0
+                    mac = doc['snum']
+                    flag = 0
+                    if 'msgBody' in doc and 'controller' in     doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            # get the access points
+                            aps = doc.get('msgBody').get('controller').get(typeof)
+                            for ap_elem in aps:
+                                # mark the mac where ap is down
+                                if ap_elem['status'].lower() == 'down':
+                                    flag = 1
+                            if flag and mac not in res_list:
+                               res_list.append(mac)
         self.result_dict["sites_critcal_health"] = {}
         self.result_dict["sites_critcal_health"]['message'] = \
             "SITES WITH CRITICAL HEALTH"
@@ -273,22 +279,25 @@ class HomeStats():
         int((OFFSET - UTC_1970).total_seconds())
         end_time = time_frame[1] if time_frame else int \
         ((UTC_NOW - UTC_1970).total_seconds())
+        used_mac = {}
         for mac in mac_list:
 
             cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
-             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
             for doc in cursor:
-                mac = doc['snum']
-                flag = 0
-                if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        aps = doc.get('msgBody').get('controller').get(typeof)
-                        for ap_elem in aps:
-                            # mark the mac where ap is down
-                            if ap_elem['status'].lower() == 'down':
-                                flag = 1
-                        if flag and mac not in res_list:
-                            res_list.append(mac)
+                if doc['snum'] not in used_mac:
+                    used_mac[doc['snum']] = 0
+                    mac = doc['snum']
+                    flag = 0
+                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            aps = doc.get('msgBody').get('controller').get(typeof)
+                            for ap_elem in aps:
+                                # mark the mac where ap is down
+                                if ap_elem['status'].lower() == 'down':
+                                    flag = 1
+                            if flag and mac not in res_list:
+                                res_list.append(mac)
         self.result_dict["sites_down"] = {}
         self.result_dict["sites_down"]['message'] = "SITES WITH DEVICES DOWN"
         self.result_dict["sites_down"]['count'] = len(res_list)
@@ -305,25 +314,27 @@ class HomeStats():
         int((OFFSET - UTC_1970).total_seconds())
         end_time = time_frame[1] if time_frame else int \
         ((UTC_NOW - UTC_1970).total_seconds())
-
+        used_mac = {}
         for mac in mac_list:
 
             cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
-             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1).limit(1)
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
             for doc in cursor:
-                mac = doc['snum']
-                flag = 0
-                if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        alarms = doc.get('msgBody').get('controller').get(typeof)
-                        for alarm in alarms:
+                if doc['snum'] not in used_mac:
+                    used_mac[doc['snum']] = 0
+                    mac = doc['snum']
+                    flag = 0
+                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            alarms = doc.get('msgBody').get('controller').get(typeof)
+                            for alarm in alarms:
+                                
+                                # mark the mac where alarms severity is high
+                                if alarm['severity'].lower() == 'high':
+                                    flag = 1
                             
-                            # mark the mac where alarms severity is high
-                            if alarm['severity'].lower() == 'high':
-                                flag = 1
-                        
-                        if flag and mac not in res_list:
-                            res_list.append(mac)
+                            if flag and mac not in res_list:
+                                res_list.append(mac)
         self.result_dict["critical_alarm"] = {}
         self.result_dict["critical_alarm"]['message'] = \
             "SITES WITH CRITICAL ALARMS"
@@ -365,7 +376,7 @@ class HomeStats():
                             high_count += 1
                         elif alarm['severity'].lower() == 'critical':
                             critical_count += 1
-                        elif alarm['severity'].lower() == 'minor':
+                        elif alarm['severity'].lower() == 'low':
                             minor_count += 1
         result_dict['label'] = 'Alarms'
         result_dict['data'] = [critical_count, high_count, minor_count]
@@ -378,6 +389,7 @@ class HomeStats():
         down_aps = 0
         result_dict = {}
         unique_ap = {}
+        used_mac = {}
         for mac in mac_list:
 
             cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
@@ -385,20 +397,21 @@ class HomeStats():
 
         
             for doc in cursor:
-        
-                if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        aps = doc.get('msgBody').get('controller').get(typeof)
-                        
-                        for ap_elem in aps:
-                            if ap_elem["mac"] in unique_ap:
-                                pass
-                            else:
-                                unique_ap[ap_elem["mac"]] = 0
-                                if ap_elem['status'].lower() == 'down':
-                                    offline_count += 1
+                if doc['snum'] not in used_mac:
+                    used_mac[doc['snum']] = 0
+                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            aps = doc.get('msgBody').get('controller').get(typeof)
+                            
+                            for ap_elem in aps:
+                                if ap_elem["mac"] in unique_ap:
+                                    pass
                                 else:
-                                    online_count += 1
+                                    unique_ap[ap_elem["mac"]] = 0
+                                    if ap_elem['status'].lower() == 'down':
+                                        offline_count += 1
+                                    else:
+                                        online_count += 1
 
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]
@@ -418,27 +431,27 @@ class HomeStats():
         # query over mongo DB to get the data between the given timestamp in
         # desc
 
-        cursor = DB.devices.find({"timestamp": {"$gt": start_time , \
-         "$lt": end_time}}).sort('timestamp', -1)
         
         mac_list = [x.lower() for x in mac_list]
         result_list = []
         result_dict = {}
+        used_mac = {}
         
-        
-        for elem in cursor:
-            if elem['timestamp'] not in time_list:
-                time_list.append(elem['timestamp']) 
-        for time in time_list:
+        for mac in mac_list:
+
+            cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
+             {"$gt": start_time, "$lt": end_time}}).sort('timestamp', -1)
             
-            cursor = DB.devices.find({"timestamp": time})
             flag = 0 
             count = 0
             unique_clients = {}
             for doc in cursor:
                 
-                if  doc['lower_snum'] in mac_list:
+                if  doc['snum'] not in used_mac:
                     flag = 1
+                    used_mac[doc['snum']] = 0
+                
+
                     # count the clients in each document at a single timestamp
                     # and matching mac
                     if 'msgBody' in doc and 'controller' in doc['msgBody']:
@@ -454,7 +467,7 @@ class HomeStats():
             if flag == 1:
                 result_list.append(count)
                 
-        
+        print result_list
         # count of clients currently (near or at last timestamp)
         current = result_list[0] if result_list else 0
         # max count of clients among count of clients at every timestamp
@@ -483,7 +496,7 @@ class HomeStats():
         int((OFFSET - UTC_1970).total_seconds())
         end_time = time_frame[1] if time_frame else int \
         ((UTC_NOW - UTC_1970).total_seconds())
-
+        
         for mac in mac_list:
 
             doc_list = []
@@ -496,7 +509,7 @@ class HomeStats():
             avg_controller = 0
             for doc in cursor:
                 doc_list.append(doc)
-
+            
             for doc in doc_list:
 
                 wifiexp_ap_sum = 0
@@ -521,6 +534,7 @@ class HomeStats():
             last_doc = doc_list[0].get('msgBody').get('controller').\
             get(typeof) or []
             flag = 0
+            
             for ap_elem in last_doc:
                 # mark the mac where ap wifiexp - final average of all wifi is
                 # < 0

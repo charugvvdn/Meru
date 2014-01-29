@@ -11,6 +11,13 @@ DB = CLIENT['nms']
 UTC_1970 = datetime.datetime(1970, 1, 1)
 UTC_NOW = datetime.datetime.utcnow()
 OFFSET = UTC_NOW - datetime.timedelta(minutes=30)
+def set_times(p_data):
+    time_frame = p_data['time'] if 'time' in p_data else None
+    start_time = time_frame[0] if time_frame else \
+    int((OFFSET - UTC_1970).total_seconds())
+    end_time = time_frame[1] if time_frame else int \
+    ((UTC_NOW - UTC_1970).total_seconds())
+    return (start_time,end_time)
 class DashboardStats():
 
     '''Common variable used under the class methods'''
@@ -175,11 +182,7 @@ class HomeStats():
         '''b. SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
         mac_list = p_data['mac']
         res_list = []
-        time_frame = p_data['time'] if 'time' in p_data else None
-        start_time = time_frame[0] if time_frame else \
-        int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else int \
-        ((UTC_NOW - UTC_1970).total_seconds())
+        start_time, end_time = set_times(p_data)
 
         threshhold_max = 0
         if 'threshhold' in p_data:
@@ -237,11 +240,7 @@ class HomeStats():
         '''SITES WITH CRITICAL HEALTH'''
         mac_list = p_data['mac']
         res_list = []
-        time_frame = p_data['time'] if 'time' in p_data else None
-        start_time = time_frame[0] if time_frame else \
-        int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else int \
-        ((UTC_NOW - UTC_1970).total_seconds())
+        start_time, end_time = set_times(p_data)
         used_mac = {}
         for mac in mac_list:
 
@@ -274,11 +273,7 @@ class HomeStats():
         '''b. SITES WITH DEVICES DOWN'''
         mac_list = p_data['mac']
         res_list = []
-        time_frame = p_data['time'] if 'time' in p_data else None
-        start_time = time_frame[0] if time_frame else \
-        int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else int \
-        ((UTC_NOW - UTC_1970).total_seconds())
+        start_time, end_time = set_times(p_data)
         used_mac = {}
         for mac in mac_list:
 
@@ -309,11 +304,7 @@ class HomeStats():
         '''SITES WITH CRITICAL ALARMS'''
         mac_list = p_data['mac']
         res_list = []
-        time_frame = p_data['time'] if 'time' in p_data else None
-        start_time = time_frame[0] if time_frame else \
-        int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else int \
-        ((UTC_NOW - UTC_1970).total_seconds())
+        start_time, end_time = set_times(p_data)
         used_mac = {}
         for mac in mac_list:
 
@@ -491,11 +482,7 @@ class HomeStats():
         controller_list = []
         mac_list = p_data['mac']
   
-        time_frame = p_data['time'] if 'time' in p_data else None
-        start_time = time_frame[0] if time_frame else \
-        int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else int \
-        ((UTC_NOW - UTC_1970).total_seconds())
+        start_time, end_time = set_times(p_data)
         
         for mac in mac_list:
 
@@ -633,14 +620,9 @@ class HomeApi2(View):
                 response = HttpResponse(json.dumps(\
                     {"status": "false","message": "No matching MAC data"}\
                     ))
-        ''' if timestamp not mentioned in query string,
+            ''' if timestamp not mentioned in query string,
              it takes last 30 minutes data'''
-        time_frame = home_stats.post_data['time'] if 'time' \
-        in home_stats.post_data else None
-        start_time = time_frame[0] if time_frame else \
-        int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else \
-        int((UTC_NOW - UTC_1970).total_seconds())
+            start_time, end_time = set_times(home_stats.post_data)
             
         if not response:
             # WIRELESS CLIENTS

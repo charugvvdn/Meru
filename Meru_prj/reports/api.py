@@ -74,7 +74,7 @@ class DashboardStats():
         wifi_client = 0
 
         result_dict = {}
-
+        
         for doc in doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
@@ -82,7 +82,7 @@ class DashboardStats():
                     for client in clients:
                         wifi_client += client['wifiExp']
                         count += 1
-
+                if 'aps' in doc['msgBody'].get('controller'):
                     aps = doc.get('msgBody').get('controller').get('aps')
                     for ap in aps:
                         wifi_client += ap['wifiExp']

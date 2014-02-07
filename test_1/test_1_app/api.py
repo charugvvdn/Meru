@@ -25,12 +25,12 @@ class DashboardStats():
 
     def number_stations(self, **kwargs ):
         '''API calculating NUMBER OF STATIONS '''
-        typeof='clients'
+        typeof = 'clients'
         online_count = 0
         critical_count = 0
         result_dict = {}
         online_clients = []
-        critical_clients =[]
+        critical_clients = []
         for doc in kwargs['doc_list']:
             
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
@@ -57,7 +57,7 @@ class DashboardStats():
 
     def number_controllers(self, **kwargs ):
         '''API calculating NUMBER OF SITES '''
-        typeof='controller'
+        typeof = 'controller'
         count = 0
         result_dict = {}
         maclist = []
@@ -75,7 +75,7 @@ class DashboardStats():
 
     def wifi_exp(self, **kwargs):
         '''API calculating WI-FI EXPERIENCE '''
-        typeof='clients'
+        typeof = 'clients'
         count = 0
         wifi_client = 0
 
@@ -99,7 +99,7 @@ class DashboardStats():
 
     def number_aps(self, **kwargs ):
         '''API calculating NUMBER OF APS '''
-        typeof='aps'
+        typeof = 'aps'
         count = 0
         result_dict = {}
         aplist = []
@@ -125,7 +125,7 @@ class DashboardStats():
 
     def online_offline_aps(self, **kwargs ):
         '''API calculating NUMBER OF APS '''
-        typeof='aps'
+        typeof = 'aps'
         online_count = 0
         offline_count = 0
         result_dict = {}
@@ -154,7 +154,7 @@ class DashboardStats():
 
     def status_last_login(self, **kwargs ):
         '''API calculating STATUS SINCE LAST LOGIN '''
-        typeof = 'controller'
+        
         sites_count = 0
         controller_count = 0
         critical_alarm_count = 0
@@ -188,7 +188,8 @@ class DashboardStats():
         result_dict['data'] = [sites_count, controller_count,
                                critical_alarm_count]
         if kwargs['getlist'] == 1:
-            result_dict['maclist'] = [{"clients":client_list, "controller":controller_list,\
+            result_dict['maclist'] = [{"clients":client_list, \
+            "controller":controller_list,\
              "alarms":critical_alarm_maclist}]
         return result_dict
 
@@ -208,7 +209,7 @@ class HomeStats():
     def access_pt_util(self, **kwargs):
         '''b. SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
         mac_list = []
-        typeof="aps"
+        typeof = "aps"
         threshhold_max = 0
         if 'threshhold' in kwargs['p_data']:
             threshhold = kwargs['p_data']['threshhold']
@@ -245,7 +246,7 @@ class HomeStats():
     def change_security(self, **kwargs):
         ''' API Calculating change in security # '''
         mac_list = []
-        typeof = 'aps'
+        
         ''' logic to be implemented'''
 
         self.result_dict["change_security"] = {}
@@ -260,7 +261,7 @@ class HomeStats():
     def sites_critical_health(self, **kwargs):
         '''SITES WITH CRITICAL HEALTH'''
         mac_list = []
-        typeof="aps"
+        typeof = "aps"
         for doc in kwargs['doc_list']:
             mac = doc['snum']
             flag = 0
@@ -286,7 +287,7 @@ class HomeStats():
     def sites_down(self, **kwargs):
         '''b. SITES WITH DEVICES DOWN'''
         mac_list = []
-        typeof="aps"
+        typeof = "aps"
         for doc in kwargs['doc_list']:
             mac = doc['snum']
             flag = 0
@@ -310,7 +311,7 @@ class HomeStats():
     def critical_alarms(self, **kwargs):
         '''SITES WITH CRITICAL ALARMS'''
         mac_list = []
-        typeof="alarms"
+        typeof = "alarms"
         for doc in kwargs['doc_list']:
             mac = doc['snum']
             flag = 0
@@ -334,7 +335,7 @@ class HomeStats():
 
     def controller_util(self, **kwargs ):
         '''API calculating controller utilization count'''
-        typeof='controller'
+        typeof = 'controller'
         gt_50_count = 10
         _50_75_count = 20
         lt_75_count = 33
@@ -352,7 +353,7 @@ class HomeStats():
 
     def alarms(self, **kwargs ):
         '''API calculating critical, high, minor alarms'''
-        typeof='alarms'
+        typeof = 'alarms'
         critical_count = 0
         high_count = 0
         minor_count = 0
@@ -377,12 +378,13 @@ class HomeStats():
         result_dict['label'] = 'Alarms'
         result_dict['data'] = [critical_count, high_count, minor_count]
         if kwargs['getlist'] == 1:
-            result_dict['maclist'] = [{"critical":critical_alarm, "high":high_alarm, "minor":minor_alarm}]
+            result_dict['maclist'] = [{"critical":critical_alarm, \
+             "high":high_alarm, "minor":minor_alarm}]
         return result_dict
 
     def access_points(self, **kwargs):
         ''' API Calculating online, offline, down aps # '''
-        typeof='aps'
+        typeof = 'aps'
         online_count = 0
         offline_count = 0
         down_aps = 0
@@ -393,7 +395,8 @@ class HomeStats():
         for mac in kwargs['mac_list']:
 
             cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
-             {"$gt": kwargs['start_time'], "$lt": kwargs['end_time']}}).sort('timestamp', -1)
+             {"$gt": kwargs['start_time'], "$lt": kwargs['end_time']}})\
+            .sort('timestamp', -1)
 
         
             for doc in cursor:
@@ -417,7 +420,8 @@ class HomeStats():
         result_dict['label'] = 'Access point'
         result_dict['data'] = [online_count, offline_count, down_aps]
         if kwargs['getlist'] == 1:
-            result_dict['maclist'] = [{"online":online_maclist, "offline":offline_maclist, "down":[]}]
+            result_dict['maclist'] = [{"online":online_maclist, \
+             "offline":offline_maclist, "down":[]}]
         return result_dict
 
     def wireless_clients(self, **kwargs):
@@ -487,13 +491,14 @@ class HomeStats():
             peak_mac_list = max(result_maclist, key=lambda x:x['count'])
             peak_maclist = peak_mac_list['list']
 
-            result_dict['maclist'] = [{'current':current_maclist, 'peak':peak_maclist}]
+            result_dict['maclist'] = [{'current':current_maclist, \
+            'peak':peak_maclist}]
         return result_dict
 
     def wireless_stats(self, **kwargs):
         '''SITES WITH DECREASE IN WIRELESS EXPERIENCES'''
         wifiexp_ap_sum = 0
-        typeof="aps"
+        typeof = "aps"
         aps_count = len_controller_list = 0
         avg_doc_wifiexp = 0
         avg_controller = 0
@@ -502,9 +507,12 @@ class HomeStats():
         flag = 0
         controller_list = []
         mac_list = kwargs['p_data']['mac']
-        time_frame = kwargs['p_data']['time'] if 'time' in kwargs['p_data'] else None
-        start_time = time_frame[0] if time_frame else int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else int((UTC_NOW - UTC_1970).total_seconds())
+        time_frame = kwargs['p_data']['time'] if 'time' in \
+        kwargs['p_data'] else None
+        start_time = time_frame[0] if time_frame else \
+        int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else \
+        int((UTC_NOW - UTC_1970).total_seconds())
         
         for mac in mac_list:
 
@@ -596,23 +604,29 @@ class HomeApi(View):
         if not response:
             # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
             response_list.append(
-                home_stats.wireless_stats(p_data = home_stats.post_data,getlist = getlist))
+                home_stats.wireless_stats(p_data = \
+                    home_stats.post_data,getlist = getlist))
             #------------------------
             # SITES WITH CHANGE IN SECURITY#
-            response_list.append(home_stats.change_security(doc_list = doc_list,getlist = getlist))
+            response_list.append(home_stats.change_security\
+                (doc_list = doc_list,getlist = getlist))
             #------------------------
             # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
             response_list.append(home_stats.access_pt_util\
-                (doc_list = doc_list,p_data = home_stats.post_data,getlist = getlist))
+                (doc_list = doc_list,p_data = \
+                    home_stats.post_data,getlist = getlist))
             #-------------------------
             # SITES WITH DEVICES DOWN#
-            response_list.append(home_stats.sites_down(doc_list = doc_list,getlist = getlist))
+            response_list.append(home_stats.sites_down\
+                (doc_list = doc_list,getlist = getlist))
             #--------------------------
             # SITES WITH CRITICAL HEALTH
-            response_list.append(home_stats.sites_critical_health(doc_list = doc_list,getlist = getlist))
+            response_list.append(home_stats.sites_critical_health\
+                (doc_list = doc_list,getlist = getlist))
             #--------------------------
             # SITES WITH CRITICAL ALARMS#
-            response_list.append(home_stats.critical_alarms(doc_list = doc_list,getlist = getlist))
+            response_list.append(home_stats.critical_alarms\
+                (doc_list = doc_list,getlist = getlist))
             #----------------------------
             
             response = HttpResponse(json.dumps({"status": "true", \
@@ -653,22 +667,31 @@ class HomeApi2(View):
                     ))
         ''' if timestamp not mentioned in query string,
              it takes last 30 minutes data'''
-        time_frame = home_stats.post_data['time'] if 'time' in home_stats.post_data else None
-        start_time = time_frame[0] if time_frame else int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else int((UTC_NOW - UTC_1970).total_seconds())
+        time_frame = home_stats.post_data['time'] if 'time' \
+        in home_stats.post_data else None
+        start_time = time_frame[0] if time_frame else \
+        int((OFFSET - UTC_1970).total_seconds())
+        end_time = time_frame[1] if time_frame else \
+        int((UTC_NOW - UTC_1970).total_seconds())
             
         if not response:
             # WIRELESS CLIENTS
             response_list.append(
-                home_stats.wireless_clients(mac_list = home_stats.post_data['mac']\
-                    ,start_time = start_time, end_time = end_time, getlist = getlist ))
+                home_stats.wireless_clients(mac_list = \
+                    home_stats.post_data['mac']\
+                    ,start_time = start_time, end_time = \
+                    end_time, getlist = getlist ))
             # ACCESS POINTS
-            response_list.append(home_stats.access_points(mac_list = home_stats.\
-                post_data['mac'],start_time = start_time, end_time = end_time,getlist = getlist))
+            response_list.append(home_stats.access_points\
+                (mac_list = home_stats.\
+                post_data['mac'],start_time = start_time, \
+                end_time = end_time,getlist = getlist))
             # ALARMS
-            response_list.append(home_stats.alarms(doc_list = doc_list,getlist = getlist))
+            response_list.append(home_stats.alarms\
+                (doc_list = doc_list,getlist = getlist))
             # CONTROLLER UTILIZATION
-            response_list.append(home_stats.controller_util(doc_list = doc_list))
+            response_list.append(home_stats.controller_util\
+                (doc_list = doc_list))
             response = HttpResponse(json.dumps({"stats": "true", \
              "values": response_list , \
              "message": "Home page API for pannel 2 stats"}))
@@ -709,22 +732,28 @@ class DashboardApi(View):
                     {"status": "false","message": "No matching MAC data"}\
                     ))
         # NUMBER OF CONTROLLERS #
-        response_list.append(dash_stats.number_controllers(doc_list = doc_list,getlist = getlist))
+        response_list.append(dash_stats.number_controllers\
+            (doc_list = doc_list,getlist = getlist))
 
         # NUMBER OF STATIONS #
-        response_list.append(dash_stats.number_stations(doc_list = doc_list,getlist = getlist))
+        response_list.append(dash_stats.number_stations\
+            (doc_list = doc_list,getlist = getlist))
 
         # WI-FI EXPERIENCE #
-        response_list.append(dash_stats.wifi_exp(doc_list = doc_list))
+        response_list.append(dash_stats.wifi_exp\
+            (doc_list = doc_list))
 
         # NUMBER OF APS #
-        response_list.append(dash_stats.number_aps(doc_list = doc_list,getlist = getlist))
+        response_list.append(dash_stats.number_aps\
+            (doc_list = doc_list,getlist = getlist))
 
         # NUMBER OF ONLINE OFFLINE APS #
-        response_list.append(dash_stats.online_offline_aps(doc_list = doc_list,getlist = getlist))
+        response_list.append(dash_stats.online_offline_aps\
+            (doc_list = doc_list,getlist = getlist))
 
         # Status Since Last Login #
-        response_list.append(dash_stats.status_last_login(doc_list = doc_list,getlist = getlist))
+        response_list.append(dash_stats.status_last_login\
+            (doc_list = doc_list,getlist = getlist))
         if not response:
         
             response = HttpResponse(json.dumps({"status": "true", \

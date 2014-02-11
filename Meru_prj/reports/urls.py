@@ -1,6 +1,6 @@
 from django.conf.urls import patterns, include, url
 from reports import views, api
-from reports.api import HomeApi, HomeApi2, DashboardApi, AlarmsApi
+from reports.api_calls import HomeApi, HomeApi2, DashboardApi, AlarmsApi
 
 
 urlpatterns = patterns('',

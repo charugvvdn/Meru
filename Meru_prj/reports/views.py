@@ -238,9 +238,8 @@ def client_throughput(request):
 
 
 def ap_throughput(request):
-    """
-    Total throughput of the access points
-    """
+    '''Module to plot the Station throughput line chart containing rxByte,
+    txByte and throughput plotting of APs'''
 
     clients = []
     throughput = []
@@ -537,7 +536,8 @@ def ap_clients(request):
                                     "message": "No mac provided"}))
 
 def devicetype(request):
-    '''Module to plot the device type distribution pie chart'''
+    '''Module to plot the device type distribution pie chart
+    counting the number of uniqu devices'''
 
     device_types = {}
     response = []

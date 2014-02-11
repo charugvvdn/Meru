@@ -516,6 +516,9 @@ def ap_throughput(request):
 
     if 'mac' in post_data:
         # fetch the docs
+        doc_list = common.let_the_docs_out(post_data)
+        # start the report evaluation
+        # get the clients
         get_type = "aps"
         clients = common.calc_type(doc_list, get_type)
 

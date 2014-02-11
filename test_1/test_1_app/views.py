@@ -339,7 +339,10 @@ class DeviceApplication(View):
         :param kwargs:
         :return:
         """
-        post_data = json.loads(request.body)
+        try:
+		post_data = json.loads(request.body)
+	except ValueError as error:
+		return HttpResponse(json.dumps({"status" : "false", "mac" : "No JSON object decoded"}))
 
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
@@ -375,8 +378,15 @@ class DeviceApplication(View):
 
         return HttpResponse(json.dumps(config_data))
 
-
     def put(self, request, *args, **kwargs):
+    	if "mac" in kwargs:
+		mac = kwargs["mac"]
+		print request.method
+		return HttpResponse(json.dumps({ "status" : "True"}))
+	else:
+		return HttpResponse(json.dumps({"status" : "False"}))
+
+    '''def dev_put(self, request, *args, **kwargs):
         """
         Update from the controller with info that all the commands has
         been successfully executed on that controller
@@ -385,33 +395,33 @@ class DeviceApplication(View):
         :param args:
         :param kwargs:
         """
-        if "mac" in kwargs:
-            mac = kwargs["mac"]
-        else:
-            return HttpResponse(json.dumps(self.false_response))
+	self.true_response["mac"] = None
+	self.false_response["mac"] = None
+	if request.method == 'PUT':	
+        	if "mac" in kwargs:
+            		mac = kwargs["mac"]
+			self.true_response["mac"] = mac
+			self.false_response["mac"] = mac
+			query = "SELECT COUNT(1) FROM meru_controller WHERE \
+		        `controller_mac` = '%s'" % mac
+		        cursor = connections['meru_cnms'].cursor()
+		        cursor.execute(query)
+		        result = cursor.fetchall()
+		        if not result[0][0]:
+				return HttpResponse(json.dumps(self.false_response))
+			try:
+				query = """ UPDATE meru_command SET command_status = 2 WHERE \
+					command_mac '%s'""" % mac
+				cursor = connections['meru_cnms'].cursor()
+				cursor.execute(query)
+				return HttpResponse(json.dumps(self.true_response))
+			except Exception as error:
+				return HttpResponse(json.dumps(self.false_response))
+        	else:
+            		return HttpResponse(json.dumps({"status" : "false"}))
+	else:
+		return HttpResponse("Method is Not Supported")'''
 
-        self.true_response["mac"] = mac
-        self.false_response["mac"] = mac
-        self.false_response["status"] = "false"
-
-        query = "SELECT COUNT(1) FROM meru_controller WHERE \
-        `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnms'].cursor()
-        cursor.execute(query)
-        result = cursor.fetchall()
-        if not result[0][0]:
-            return HttpResponse(json.dumps(self.false_response))
-
-        try:
-            query = """ UPDATE meru_command SET command_status = 2 WHERE \
-                    command_mac = '%s'""" % mac
-            cursor = connections['meru_cnms'].cursor()
-            cursor.execute(query)
-            return HttpResponse(json.dumps(self.true_response))
-
-        except Exception as error:
-            
-            return HttpResponse(json.dumps(self.false_response))
 
     def type_casting(self, doc):
         '''type casting the data received from controller , \
@@ -506,10 +516,6 @@ def ap_throughput(request):
 
     if 'mac' in post_data:
         # fetch the docs
-        doc_list = common.let_the_docs_out(post_data)
-
-        # start the report evaluation
-        # get the clients
         get_type = "aps"
         clients = common.calc_type(doc_list, get_type)
 
@@ -824,3 +830,7 @@ def devicetype(request):
     else:
         pass
     return HttpResponse(json.dumps({"status": "false"}))
+from django.http import HttpResponse, HttpResponseServerError
+from django.db import connections, transaction
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt

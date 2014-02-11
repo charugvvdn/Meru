@@ -3,6 +3,8 @@ from test_1_app import views, api
 from test_1_app.views import DeviceApplication as dav
 from test_1_app.api_calls import HomeApi, HomeApi2, DashboardApi, AlarmsApi
 
+deviceapp = dav()
+
 urlpatterns = patterns('',
                        url(r'^welcome/$', views.welcome, name='welcome'),
                        # url(r'^api/auth/hello/$', views.gHello, name='hello'),

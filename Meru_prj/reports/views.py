@@ -99,7 +99,7 @@ class Common():
         doc_list = []
         mac_list = post_data['mac']
 
-        if 'time' in post_data:
+        if 'time' in post_data and post_data['time']:
             time_frame = post_data['time']
             start_time = time_frame[0]
             end_time = time_frame[1]

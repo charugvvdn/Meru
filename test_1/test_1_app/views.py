@@ -3,6 +3,7 @@ from django.db import connections, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
+import MySQLdb as mydb
 from pymongo import MongoClient
 from django.shortcuts import render, render_to_response
 from django.template import RequestContext
@@ -340,9 +341,9 @@ class DeviceApplication(View):
         :return:
         """
         try:
-		post_data = json.loads(request.body)
-	except ValueError as error:
-		return HttpResponse(json.dumps({"status" : "false", "mac" : "No JSON object decoded"}))
+            post_data = json.loads(request.body)
+        except ValueError as error:
+            return HttpResponse(json.dumps({"status" : "false", "mac" : "No JSON object decoded"}))
 
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
@@ -378,15 +379,15 @@ class DeviceApplication(View):
 
         return HttpResponse(json.dumps(config_data))
 
-    def put(self, request, *args, **kwargs):
+    '''def put(self, request, *args, **kwargs):
     	if "mac" in kwargs:
 		mac = kwargs["mac"]
 		print request.method
 		return HttpResponse(json.dumps({ "status" : "True"}))
 	else:
-		return HttpResponse(json.dumps({"status" : "False"}))
+		return HttpResponse(json.dumps({"status" : "False"}))'''
 
-    '''def dev_put(self, request, *args, **kwargs):
+    def put(self, request, *args, **kwargs):
         """
         Update from the controller with info that all the commands has
         been successfully executed on that controller
@@ -395,32 +396,36 @@ class DeviceApplication(View):
         :param args:
         :param kwargs:
         """
-	self.true_response["mac"] = None
-	self.false_response["mac"] = None
-	if request.method == 'PUT':	
-        	if "mac" in kwargs:
-            		mac = kwargs["mac"]
-			self.true_response["mac"] = mac
-			self.false_response["mac"] = mac
-			query = "SELECT COUNT(1) FROM meru_controller WHERE \
-		        `controller_mac` = '%s'" % mac
-		        cursor = connections['meru_cnms'].cursor()
-		        cursor.execute(query)
-		        result = cursor.fetchall()
-		        if not result[0][0]:
-				return HttpResponse(json.dumps(self.false_response))
-			try:
-				query = """ UPDATE meru_command SET command_status = 2 WHERE \
-					command_mac '%s'""" % mac
-				cursor = connections['meru_cnms'].cursor()
-				cursor.execute(query)
-				return HttpResponse(json.dumps(self.true_response))
-			except Exception as error:
-				return HttpResponse(json.dumps(self.false_response))
-        	else:
-            		return HttpResponse(json.dumps({"status" : "false"}))
-	else:
-		return HttpResponse("Method is Not Supported")'''
+        self.true_response["mac"] = None
+        self.false_response["mac"] = None
+        if request.method == 'PUT':	
+            if "mac" in kwargs:
+                mac = kwargs["mac"]
+                self.true_response["mac"] = mac
+                self.false_response["mac"] = mac
+                query = "SELECT COUNT(1) FROM meru_controller WHERE \
+                        `controller_mac` = '%s'" % mac
+                cursor = connections['meru_cnms'].cursor()
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if not result[0][0]:
+                    return HttpResponse(json.dumps(self.false_response))
+                try:
+                    db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
+                    query = """ UPDATE meru_command SET command_status = 2 WHERE \
+                            command_mac = '%s'""" % mac
+                    cursor = db.cursor()
+                    cursor.execute(query)
+                    db.commit()
+                    cursor.close()
+                    return HttpResponse(json.dumps(self.true_response))
+                except Exception as error:
+                    print error
+                    return HttpResponse(json.dumps(self.false_response))
+            else:
+                return HttpResponse(json.dumps({"status" : "false"}))
+        else:
+            return HttpResponse("Method is Not Supported")
 
 
     def type_casting(self, doc):

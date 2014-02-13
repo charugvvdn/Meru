@@ -398,34 +398,41 @@ class DeviceApplication(View):
         """
         self.true_response["mac"] = None
         self.false_response["mac"] = None
-        if request.method == 'PUT':	
+        put_data = json.loads(request.body)
+        mac = ""
+
+        if request.method == 'PUT':
             if "mac" in kwargs:
                 mac = kwargs["mac"]
                 self.true_response["mac"] = mac
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_controller WHERE \
-                        `controller_mac` = '%s'" % mac
+                `controller_mac` = '%s'" % mac
                 cursor = connections['meru_cnms'].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if not result[0][0]:
                     return HttpResponse(json.dumps(self.false_response))
-                try:
-                    db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
-                    query = """ UPDATE meru_command SET command_status = 2 WHERE \
-                            command_mac = '%s'""" % mac
-                    cursor = db.cursor()
-                    cursor.execute(query)
-                    db.commit()
-                    cursor.close()
-                    return HttpResponse(json.dumps(self.true_response))
-                except Exception as error:
-                    print error
+                if put_data["status"].lower() == "true":
+                    try:
+                        db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
+                        query = """ UPDATE meru_command SET command_status = 2 WHERE \
+                                command_mac = '%s'""" % mac
+                        cursor = db.cursor()
+                        cursor.execute(query)
+                        db.commit()
+                        cursor.close()
+                        return HttpResponse(json.dumps(self.true_response))
+                    except Exception as error:
+                        self.false_response["mac"] = mac
+                        return HttpResponse(json.dumps(self.false_response))
+                else:
                     return HttpResponse(json.dumps(self.false_response))
             else:
-                return HttpResponse(json.dumps({"status" : "false"}))
+                        return HttpResponse(json.dumps({"status" : "false", "mac" : mac}))
         else:
-            return HttpResponse("Method is Not Supported")
+                return HttpResponse("Method is Not Supported")
+
 
 
     def type_casting(self, doc):

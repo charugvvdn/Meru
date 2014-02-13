@@ -53,16 +53,16 @@ def make_ready_controller(controller_list, update=True):
     controller_data = []
     if update:
         for controller in controller_list:
-             #status = 1 if controller['operState'].lower() == "enabled" or \
-             #               controller['operState'].lower() == "up" else 0
-             status = 1 #hardcoding this for now
+             status = 1 if controller['operStat'].lower().strip() == "enabled" or \
+                            controller['operStat'].lower().strip() == "up" else 0
+             #status = 1 #hardcoding this for now
              t = (
                 controller["ip"],
                 controller["hostname"],
                 controller["uptime"],
                 controller["location"],
                 controller["contact"], 
-                controller["operState"], 
+                controller["operStat"], 
                 controller["model"],
                 controller["swVersion"], 
                 controller["countrySettings"],
@@ -327,12 +327,14 @@ def main():
         controller["uptime"] = controllers["uptime"]
         controller["location"] = controllers["location"]
         controller["contact"] = controllers["contact"]
-        controller["operState"] = 1 #controllers["operState"]
+        controller["operStat"] = controllers["operState"]
         controller["model"] = controllers["model"]
         controller["swVersion"] = controllers["swVersion"]
         controller["countrySettings"] = controllers["countrySettings"]
         controller["mac"] = controllers["mac"]
         controller_list.append(controller)
+	print "The Controller list\n"
+	print controller_list
 
         unique_aps = {}
 

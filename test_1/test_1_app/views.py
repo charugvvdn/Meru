@@ -582,14 +582,16 @@ def overall_throughput(request):
         clients = common.calc_type(doc_list, get_type)
 
         out_dict = aps
-
+        
         # join both the dicts
         for times in out_dict:
             if len(clients):
-                for client in clients[times]:
-                    out_dict[times].append(client)
+                for key,val in clients.iteritems():
+                    if key == times:
+                        out_dict[times].extend(clients[times])
 
         # get overall result
+        print "out_dict",out_dict
         rx_list, tx_list, throughput = common.throughput_calc(out_dict)
 
         response_list = [{"label": "rxBytes", "data": rx_list}, \

@@ -4,6 +4,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 import MySQLdb as mydb
+from django import db
+import pymongo
 from pymongo import MongoClient
 from django.shortcuts import render, render_to_response
 from django.template import RequestContext
@@ -20,8 +22,12 @@ from django.views.generic.base import View
 TIME_INDEX = 60
 
 # Connection with mongoDB client
-CLIENT = MongoClient()
-DB = CLIENT['nms']
+try:
+    CLIENT = MongoClient()
+    DB = CLIENT['nms']
+except pymongo.errors.PyMongoError, e:
+    print "Views.py -->"
+    print e
 
 
 def welcome(request):
@@ -111,18 +117,22 @@ class Common():
             offset = utc_now - datetime.timedelta(minutes=30)
             start_time = int((offset - utc_1970).total_seconds())
             end_time = int((utc_now - utc_1970).total_seconds())
-        
-        for mac in mac_list:
-            if not DB.devices.find({"lower_snum": mac.lower()}).count():
-                continue
-            cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
-                : {"$gt": start_time, "$lt": end_time}})
-            
 
-            for doc in cursor:
-                doc_list.append(doc)
+        try:
+            for mac in mac_list:
+                if not DB.devices.find({"lower_snum": mac.lower()}).count():
+                    continue
+                cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
+                    : {"$gt": start_time, "$lt": end_time}})
+                
 
-        return doc_list
+                for doc in cursor:
+                    doc_list.append(doc)
+
+            return doc_list
+        except Exception, e:
+            print e
+            return doc_list
 
     def calc_type(self, doc_list, get_type):
         """
@@ -310,21 +320,23 @@ class DeviceApplication(View):
         if 'snum' in request.GET.keys():
             mac = request.GET.get('snum')
 
+        self.true_response["status"] = "true"
+        self.true_response["mac"] = mac
+        self.false_response["status"] = "false"
+        self.false_response["mac"] = mac
+
         '''if controller.objects.filter(mac_address=mac).exists():
             self.true_response["mac"] = mac
             return HttpResponse(json.dumps(self.true_response))'''
 
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
+
         cursor = connections['meru_cnms'].cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
-            self.false_response["status"] = "false"
-            self.false_response["mac"] = mac
             return HttpResponse(json.dumps(self.false_response))
-        self.true_response["status"] = "true"
-        self.true_response["mac"] = mac
         return HttpResponse(json.dumps(self.true_response))
 
     def post(self, request):
@@ -371,8 +383,11 @@ class DeviceApplication(View):
         post_data['lower_snum'] = mac.lower()
         self.type_casting(post_data)
         
-
-        DB.devices.insert(post_data)
+        try:
+            DB.devices.insert(post_data)
+        except Exception, e:
+            print "post in views.py"
+            print e
 
         raw_model = Raw_Model()  # Raw model class to access the sql
         config_data = raw_model.isConfigData(mac)
@@ -424,6 +439,7 @@ class DeviceApplication(View):
                         cursor.close()
                         return HttpResponse(json.dumps(self.true_response))
                     except Exception as error:
+                        print error
                         self.false_response["mac"] = mac
                         return HttpResponse(json.dumps(self.false_response))
                 else:
@@ -591,7 +607,7 @@ def overall_throughput(request):
                         out_dict[times].extend(clients[times])
 
         # get overall result
-        print "out_dict",out_dict
+        #print "out_dict",out_dict
         rx_list, tx_list, throughput = common.throughput_calc(out_dict)
 
         response_list = [{"label": "rxBytes", "data": rx_list}, \

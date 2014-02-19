@@ -1,10 +1,16 @@
 from pymongo import MongoClient
 import datetime
 from views import Common
+import pymongo
 
 # Connection with mongoDB client
-CLIENT = MongoClient()
-DB = CLIENT['nms']
+try:
+    CLIENT = MongoClient()
+    DB = CLIENT['nms']
+except pymongo.errors.PyMongoError, e:
+    print "api.py -->"
+    print e
+
 UTC_1970 = datetime.datetime(1970, 1, 1)
 UTC_NOW = datetime.datetime.utcnow()
 OFFSET = UTC_NOW - datetime.timedelta(minutes=30)

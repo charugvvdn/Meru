@@ -6,8 +6,10 @@ import time
 '''
     Standalone script to process mongodb data for mysql.
 '''
-
-db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
+try:
+    db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
+except mydb.Error, e:
+    print e
 #cursor = db.cursor()
 t_stmp = int(time.time())
 

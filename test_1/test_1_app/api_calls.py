@@ -1,9 +1,14 @@
-from api import DashboardStats,HomeStats,DB,OFFSET,UTC_1970,UTC_NOW
 import json
 from django.http import HttpResponse
 from django.views.generic.base import View
 from views import Common
 import ast
+
+try:
+    from api import DashboardStats,HomeStats,OFFSET,UTC_1970,UTC_NOW,DB
+except ImportError, e:
+    print "api_calls.py"
+    print e
 
 class HomeApi(View):
 
@@ -217,11 +222,14 @@ class DashboardApi(View):
         
         mac_list = dash_stats.post_data['mac'] if not response else []
         # get all the documents with the matching mac irrespective of timestamp
-        for mac in mac_list:
-            cursor = DB.devices.find({"lower_snum":mac.lower() })\
-            .sort('timestamp', -1).limit(1)
-            for doc in cursor:
-                doc_list.append(doc)
+        try:
+            for mac in mac_list:
+                cursor = DB.devices.find({"lower_snum":mac.lower() })\
+                .sort('timestamp', -1).limit(1)
+                for doc in cursor:
+                    doc_list.append(doc)
+        except Exception, e:
+            print e
 
         ''' spiliting the functions to separate APIs'''
         if 'reportType' in request.GET and dash_stats.post_data['reportType'] and not response:

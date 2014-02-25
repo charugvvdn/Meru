@@ -17,53 +17,111 @@ class ClientReport():
         self.gt = kwargs['gt']
         self.doc_list = []
         self.cursor = DB.devices.find({"timestamp" : {"$gt":self.lt , "$lt":self.gt }})
-        
-
-    
+        for doc in self.cursor:
+            self.doc_list.append(doc)
     def busiestClients(self, **kwargs ):
         '''Calculating top 10 busiest clients '''
         typeof = 'clients'
         result_list = []
         usage = 0
         doc_list = []
-        for doc in self.cursor:
-            doc_list.append(doc)
-        for doc in doc_list:
+        unique_clients = {}
+        for doc in self.doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     # get clients
                     
                     clients = doc.get('msgBody').get('controller').get(typeof)
-                    unique_clients = {}
-                    
                     for client in clients:
                         if client["mac"] not in unique_clients:
                             usage = client['rxBytes']+client['txBytes']
+                            unique_clients[client["mac"]] = usage
+                            
+                        else:
+                            if client['rxBytes']+client['txBytes'] > unique_clients[client['mac']]:
+                                usage = client['rxBytes']+client['txBytes']
+                                unique_client[client['mac']] = usage
+        for client_mac in unique_clients:
+            result_list.append([client_mac,unique_clients[client_mac]])
+
+        print result_list
+        return result_list
+    def summaryClient(self, **kwargs ):
+
+        '''Calculating device type of clients '''
+        typeof = 'clients'
+        result_list = []
+        doc_list = []
+        device_dict = {}
+        unique_clients = {}
+        for doc in self.doc_list:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    # get clients
+                    
+                    clients = doc.get('msgBody').get('controller').get(typeof)
+                    for client in clients:
+                        if client["mac"] not in unique_clients:
+                            if client['clientType'] in device_dict:
+                                device_dict[client['clientType']] += 1
+                            else:
+                                device_dict[client['clientType']] = 1
+
                             unique_clients[client["mac"]] = 0
-                            result_list.append([client['mac'],usage])
+                    
+        for device in device_dict:
+            result_list.append([device,device_dict[device]])
+        print result_list
+        return result_list
+    def uniqueClient(self, **kwargs ):
+        '''Calculating unique clients '''
+        typeof = 'clients'
+        result_list = []
+        doc_list = []
+        unique_clients = {}
+        for doc in self.doc_list:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    # get clients
+                    
+                    clients = doc.get('msgBody').get('controller').get(typeof)
+                    for client in clients:
+                        if client["mac"] not in unique_clients:
+                            unique_clients[client["mac"]] = 0
+                            result_list.append(client["mac"])
+        print result_list
+        return result_list
+    def ssidClient(self, **kwargs ):
+        '''Calculating clients by SSID '''
+        typeof = 'clients'
+        result_list = []
+        doc_list = []
+        ssid_dict = {}
+        unique_clients = {}
+        for doc in self.doc_list:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    # get clients
+                    
+                    clients = doc.get('msgBody').get('controller').get(typeof)
+                    for client in clients:
+                        if client["mac"] not in unique_clients:
+                            if client['ssid'] not in ssid_dict:
+                                ssid_dict[client['ssid']] = 0
+                            else:
+                                ssid_dict[client['ssid']] += 1
+                            unique_clients[client["mac"]] = 0
+        for ssid in ssid_dict:
+            result_list.append([ssid,ssid_dict[ssid]])
         print result_list
         return result_list
 def main():
-    obj = ClientReport(lt=1392871841,gt=1392871845)
+    obj = ClientReport(lt=1392636637,gt=1392871845)
     obj.busiestClients()
+    obj.summaryClient()
+    obj.uniqueClient()
+    obj.ssidClient()
 
 if __name__ == "__main__":
         main()
 
-'''class Client_report(View):
-
-    lient Report generation
-
-    def get(self, request):
-        Client report Generation
-        response_list = []
-        response = {}
-        obj = ClientReport()
-        reporttype = ''
-        if 'reporttype' in request.GET:
-            reporttype = int(request.GET.get('reporttype'))
-        if reporttype == "busiestclient":
-            result = obj.busiestClients()
-            print result
-        
-        return response'''

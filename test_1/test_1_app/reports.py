@@ -2,13 +2,10 @@ from pymongo import MongoClient
 import datetime
 import json
 import ast
-
 # Connection with mongoDB client
 CLIENT = MongoClient()
 DB = CLIENT['nms']
-UTC_1970 = datetime.datetime(1970, 1, 1)
-UTC_NOW = datetime.datetime.utcnow()
-OFFSET = UTC_NOW - datetime.timedelta(minutes=30)
+
 class ClientReport():
 
     '''Common variable used under the class methods'''
@@ -40,7 +37,7 @@ class ClientReport():
                         else:
                             if client['rxBytes']+client['txBytes'] > unique_clients[client['mac']]:
                                 usage = client['rxBytes']+client['txBytes']
-                                unique_client[client['mac']] = usage
+                                unique_clients[client['mac']] = usage
         for client_mac in unique_clients:
             if len(result_list) < 10:
                 result_list.append([client_mac,unique_clients[client_mac]])
@@ -118,6 +115,9 @@ class ClientReport():
         return result_list
 def main():
     obj = ClientReport(lt=1392636637,gt=1392871845)
+    '''ts = 1392636637
+    print datetime.datetime.utcfromtimestamp(ts)
+    print datetime.datetime.now()-datetime.datetime.utcfromtimestamp(ts)'''
     obj.busiestClients()
     obj.summaryClient()
     obj.uniqueClient()

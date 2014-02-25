@@ -42,7 +42,8 @@ class ClientReport():
                                 usage = client['rxBytes']+client['txBytes']
                                 unique_client[client['mac']] = usage
         for client_mac in unique_clients:
-            result_list.append([client_mac,unique_clients[client_mac]])
+            if len(result_list) < 10:
+                result_list.append([client_mac,unique_clients[client_mac]])
 
         print result_list
         return result_list

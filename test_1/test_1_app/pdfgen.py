@@ -64,6 +64,8 @@ class BaseDocTemplate():
 
     def add_graphics(self, graphic_type, labels, data, part):
         if graphic_type == 'pie':
+            if len(data) == 0:
+                return part
             drawing = Drawing(120, 120)
             pc = Pie()
             pc.x = 90
@@ -77,6 +79,8 @@ class BaseDocTemplate():
             part.append(drawing)
             return part
         elif graphic_type == 'barchart':
+            if len(data) == 0:
+                return part
             drawing = Drawing(400, 200)
             yaxis = [[]]
             map(lambda x: yaxis[0].append(x), data)
@@ -160,7 +164,7 @@ def main():
         ]
     c = canvas.Canvas(file_name, pagesize=letter, bottomup=1)
 
-    doc = BaseDocTemplate(lt=1392323231, gt=1388787871)
+    doc = BaseDocTemplate(lt=1392323231, gt=1392323231)
     custom_heading = doc.custom_heading
     heading_style = doc.p_style
 

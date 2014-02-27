@@ -13,10 +13,12 @@ class ClientReport():
     def __init__(self,**kwargs):
         self.lt= kwargs['lt']
         self.gt = kwargs['gt']
+        self.mac = kwargs['mac']
         self.doc_list = []
-        self.cursor = DB.devices.find({"timestamp" : {"$gt":self.gt , "$lt":self.lt }})
-        for doc in self.cursor:
-            self.doc_list.append(doc)
+        for mac in self.mac:
+            self.cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}})
+            for doc in self.cursor:
+                self.doc_list.append(doc)
     def busiestClients(self, **kwargs ):
         '''Calculating top 10 busiest clients '''
         typeof = 'clients'
@@ -123,7 +125,7 @@ class ClientReport():
         return result_list
 def main():
     
-    obj = ClientReport(gt=1393390192,lt=1393390200)
+    obj = ClientReport(mac=['aa:bb:cc:dd:174:dd','AA:BB:CC:DD:43:DD'],gt=1393390192,lt=1393390200)
     '''ts = 1392636637
     print datetime.datetime.utcfromtimestamp(ts)
     print datetime.datetime.utcnow()

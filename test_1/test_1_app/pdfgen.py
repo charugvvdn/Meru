@@ -18,6 +18,7 @@ from reportlab.graphics.widgets.markers import makeMarker
 from reports import ClientReport
 from django.http import HttpResponse
 import datetime as d
+import json
 from django.core.management import setup_environ
 from django.conf import settings
 from django.core import mail
@@ -30,9 +31,10 @@ except ImportError:
 class BaseDocTemplate():
     """ The Base template class for the clients report"""
 
-    def __init__(self, lt=None, gt=None):
+    def __init__(self, lt=None, gt=None, mac=None):
         self.lt = lt
         self.gt = gt
+        self.mac = mac
         self.PAGE_HEIGHT=defaultPageSize[1]
         self.PAGE_WIDTH=defaultPageSize[0]
         self.styles = getSampleStyleSheet()
@@ -59,7 +61,7 @@ class BaseDocTemplate():
         self.styleH = self.styles["Heading1"]
 
         self.labels = []
-        self.client_report = ClientReport(lt=self.lt, gt=self.gt)
+        self.client_report = ClientReport(lt=self.lt, gt=self.gt, mac=self.mac)
 
     def add_frame(self, xpos, ypos, width, height, **kw):
         """  Add the frame to canvas"""
@@ -103,7 +105,7 @@ class BaseDocTemplate():
             bc.width = 400 #customize this
             bc.data = yaxis
             bc.strokeColor = colors.black
-            bc.barWidth = 5 #customize this
+            bc.barWidth = 2 #customize this
             bc.groupSpacing = 10 #customize this
             bc.valueAxis.valueMin = 0
             bc.valueAxis.valueMax = max(data)
@@ -276,8 +278,22 @@ def main_view(request):
     default_start = int((offset - d.datetime(1970, 1, 1)).total_seconds())
     default_end  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
 
-    gt = request.GET.get('start_time', 1383408852)
-    lt = request.GET.get('end_time', 1393408852)
+    post_data = json.loads(request.body)
+
+    mac = post_data['mac']
+
+    if 'time' in post_data and post_data.get['time']:
+        gt = post_data.get['time'][0]
+        lt = post_data.get['time'][1]
+    else:
+        gt = default_start
+        lt = default_end
+
+    title = None
+
+    if 'reportTitle' in post_data and post_data['reportTitle']:
+        title = post_data['reportTitle']
+
     file_name = 'demo_clients_report.pdf'   
     w, h = letter
     frame_height = 4*inch
@@ -292,23 +308,25 @@ def main_view(request):
         ]
     c = canvas.Canvas(buffer)
 
-    doc = BaseDocTemplate(lt=1392323231, gt=1382323231)
+    doc = BaseDocTemplate(lt=lt, gt=gt, mac=mac)
     custom_heading = doc.custom_heading
     heading_style = doc.p_style
 
     """frame = doc.add_frame(0, h-(frame_height+0.5*inch), frame_width, 
                             frame_height, showBoundary=1
             )"""
-    frame = Frame(0, h-0.5*inch, w, 0.5*inch, showBoundary=1)
+    frame = Frame(0, h-0.5*inch, w, 0.5*inch, showBoundary=0)
     part = []
-    part = doc.add_flowables(Paragraph("<u>Clients Report</u>", 
+    part = doc.add_flowables(Paragraph("<u>%s</u>" % title, 
                             heading_style), part
     )
     frame.addFromList(part, c)
 
+
     frame = Frame(0, h-(frame_height+0.5*inch), frame_width, 
-                        frame_height, showBoundary=1
+                        frame_height, showBoundary=0
     )
+
     part = []
     part = doc.add_flowables(Paragraph("<u>Busiest Clients</u>", 
                             custom_heading), part
@@ -319,7 +337,7 @@ def main_view(request):
     frame.addFromList(part, c)
 
     frame = Frame(4*inch, h-(frame_height+0.5*inch), frame_width, 
-                            frame_height, showBoundary=1
+                            frame_height, showBoundary=0
     )
     part = []
     part = doc.add_flowables(Paragraph("<u>Clients by Device Type</u>", 
@@ -329,7 +347,7 @@ def main_view(request):
     part = doc.add_graphics('pie', labels, data, part)
     frame.addFromList(part, c)
 
-    frame = Frame(0, 2.5*inch, frame_width, frame_height, showBoundary=1)
+    frame = Frame(0, 2.5*inch, frame_width, frame_height, showBoundary=0)
     part = []
     part = doc.add_flowables(Paragraph("<u>Clients by SSID</u>",
                             custom_heading), part
@@ -339,7 +357,7 @@ def main_view(request):
     part = doc.add_flowables(table, part)
     frame.addFromList(part, c)
 
-    frame = Frame(4*inch, 2.5*inch, frame_width, frame_height, showBoundary=1)
+    frame = Frame(4*inch, 2.5*inch, frame_width, frame_height, showBoundary=0)
     part = []
     part = doc.add_flowables(Paragraph("<u>Unique Clients</u>",
                             custom_heading), part
@@ -352,7 +370,7 @@ def main_view(request):
     c.showPage()
 
     frame = Frame(0, h-(frame_height+0.5*inch), frame_width + 4*inch, 
-                        frame_height, showBoundary=1
+                        frame_height, showBoundary=0
     )
     part = []
     part = doc.add_flowables(Paragraph("<u>Clients by SSID</u>",
@@ -365,11 +383,25 @@ def main_view(request):
     c.save()
 
     pdf = buffer.getvalue()
+    #send_mail(pdf)
     buffer.close()
     response.write(pdf)
 
     return response
-    
+
+def send_mail(pdf):
+    connection = mail.get_connection()
+    connection.open()
+
+    email = mail.EmailMessage('Hey', 'This is the <strong>Clients Report</strong>', 
+                        'pardeep.singh@vvdntech.com',
+                        ['pardeep.singh@teramatrix.co'], connection=connection)
+    email.content_subtype = "html"
+    email.attach('client_report.pdf', pdf, 'application/pdf')
+    email.send(fail_silently=False)
+
+    connection.close()
+    #return HttpResponse("Mail sent")
 
 if __name__ == "__main__":
     main()

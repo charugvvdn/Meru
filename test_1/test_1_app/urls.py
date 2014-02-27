@@ -31,6 +31,7 @@ urlpatterns = patterns('',
                        url(r'^dashboard/api/$', DashboardApi.as_view()),
                        url(r'^alarms/api/$', AlarmsApi.as_view()),
                        url(r'^report-gen/$', pdfgen.main_view),
+                       url(r'^send-mail/$', pdfgen.send_mail),
 
 
 

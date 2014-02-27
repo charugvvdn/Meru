@@ -863,7 +863,3 @@ def devicetype(request):
     else:
         pass
     return HttpResponse(json.dumps({"status": "false"}))
-from django.http import HttpResponse, HttpResponseServerError
-from django.db import connections, transaction
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.csrf import csrf_exempt

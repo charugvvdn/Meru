@@ -1,6 +1,8 @@
 from django.conf.urls import patterns, include, url
 from test_1_app import views, api
 from test_1_app.views import DeviceApplication as dav
+from test_1_app import pdfgen
+from test_1_app.pdfgen import ApiBaseClass as pdf_api
 from test_1_app.api_calls import HomeApi, HomeApi2, DashboardApi, AlarmsApi
 
 deviceapp = dav()
@@ -28,6 +30,7 @@ urlpatterns = patterns('',
                        url(r'^home/api2/$', HomeApi2.as_view()),
                        url(r'^dashboard/api/$', DashboardApi.as_view()),
                        url(r'^alarms/api/$', AlarmsApi.as_view()),
+                       url(r'^report-gen/$', pdfgen.main_view),
 
 
 

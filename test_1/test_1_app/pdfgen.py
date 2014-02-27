@@ -1,3 +1,6 @@
+from django.core.management import setup_environ
+from django.conf import settings
+from django.views.generic.base import View
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib import colors
@@ -13,7 +16,16 @@ from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics.widgets.markers import makeMarker
 from reports import ClientReport
+from django.http import HttpResponse
+import datetime as d
+from django.core.management import setup_environ
+from django.conf import settings
+from django.core import mail
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 class BaseDocTemplate():
     """ The Base template class for the clients report"""
@@ -137,20 +149,136 @@ class BaseDocTemplate():
 
         elif action == 'clients_by_ssid_graphic':
             self.ssid_clients = self.client_report.ssidClient()
-            self.labels = map(lambda x: x[0], self.devtype_data)
-            self.data = map(lambda x: x[1], self.devtype_data)
+            self.labels = map(lambda x: x[0], self.ssid_clients)
+            self.data = map(lambda x: x[1], self.ssid_clients)
             return self.labels, self.data
 
         elif action == 'unique_clients':
             self.unique_clients = self.client_report.uniqueClient()
-            self.table_fields = ['Mac']
+            self.unique_clients.sort(key = lambda row: row[0], reverse=True)
+            self.table_fields = ['Date', 'No of Clients']
             self.unique_clients.insert(0, self.table_fields)
             return self.unique_clients
         
+class ApiBaseClass(View):
+    """ Base class to be called for apis"""
 
+    def __init__(self):
+        """ Init for the base api"""
 
-def main():
-    file_name = 'demo_clients_report.pdf'
+        self.w, self.h = letter
+        self.frame_height, self.frame_width = 4*inch, 4*inch
+        self.table_styleset = [
+        ('FONT', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.green),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ]
+
+    def get(self, request):
+        """ `get` call initiated for the apis"""
+
+        response = HttpResponse(mimetype='application/pdf')
+        response['Content-Disposition'] = 'filename="client_report.pdf"'
+
+        offset  = d.datetime.utcnow() - d.timedelta(minutes=30)
+        default_start = int((offset - d.datetime(1970, 1, 1)).total_seconds())
+        default_end  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
+
+        self.file_name = request.GET.get('file_name', 'client_report.pdf')
+        self.gt = request.GET.get('start_time', 1383408852)
+        self.lt = request.GET.get('end_time', 1393408852)
+
+        c = canvas.Canvas(response)
+        #c = canvas.Canvas(self.file_name, pagesize=letter, bottomup=1)
+
+        doc = BaseDocTemplate(lt=self.lt, gt=self.gt)
+        custom_heading = doc.custom_heading
+        heading_style = doc.p_style
+
+        frame = Frame(0, self.h-0.5*inch, self.w, 0.5*inch, showBoundary=1)
+        part = []
+        part = doc.add_flowables(Paragraph("<u>Clients Report</u>", 
+                                heading_style), part
+        )
+        frame.addFromList(part, c)
+
+        frame = Frame(0, self.h-(self.frame_height+0.5*inch), self.frame_width, 
+                            self.frame_height, showBoundary=1
+        )
+        part = []
+        part = doc.add_flowables(Paragraph("<u>Busiest Clients</u>", 
+                                custom_heading), part
+        )
+        tab_data = doc.consume_api('high_clients')
+        table = doc.create_table(tab_data, [1.5*inch, 1.5*inch], self.table_styleset)
+        part = doc.add_flowables(table, part)
+        frame.addFromList(part, c)
+
+        frame = Frame(4*inch, self.h-(self.frame_height+0.5*inch), self.frame_width, 
+                                self.frame_height, showBoundary=1
+        )
+        part = []
+        part = doc.add_flowables(Paragraph("<u>Clients by Device Type</u>", 
+                                custom_heading), part
+        )
+        labels, data = doc.consume_api('clients_devtype')
+        part = doc.add_graphics('pie', labels, data, part)
+        frame.addFromList(part, c)
+
+        frame = Frame(0, 2.5*inch, self.frame_width, self.frame_height, showBoundary=1)
+        part = []
+        part = doc.add_flowables(Paragraph("<u>Clients by SSID</u>",
+                                custom_heading), part
+        )
+        tab_data = doc.consume_api('clients_by_ssid')
+        table = doc.create_table(tab_data, [1.5*inch, 1.5*inch], self.table_styleset)
+        part = doc.add_flowables(table, part)
+        frame.addFromList(part, c)
+
+        frame = Frame(4*inch, 2.5*inch, self.frame_width, self.frame_height, showBoundary=1)
+        part = []
+        part = doc.add_flowables(Paragraph("<u>Unique Clients</u>",
+                                custom_heading), part
+        )
+        tab_data = doc.consume_api('unique_clients')
+        table = doc.create_table(tab_data, [1.5*inch], self.table_styleset)
+        part = doc.add_flowables(table, part)
+        frame.addFromList(part, c)
+
+        c.showPage()
+
+        frame = Frame(0, self.h-(self.frame_height+0.5*inch), self.frame_width + 4*inch, 
+                            self.frame_height, showBoundary=1
+        )
+        part = []
+        part = doc.add_flowables(Paragraph("<u>Clients by SSID</u>",
+                                custom_heading), part
+        )
+        labels, data = doc.consume_api('clients_by_ssid_graphic')
+        part = doc.add_graphics('barchart', labels, data, part)
+        frame.addFromList(part, c)
+
+        c.save()
+
+        return response
+
+def main_view(request):
+    response = HttpResponse(mimetype='application/pdf')
+    #response['Content-Disposition'] = 'attachment; filename="client_report.pdf"'
+    response['Content-Disposition'] = 'filename="client_report.pdf"'
+
+    buffer = StringIO()
+
+    offset  = d.datetime.utcnow() - d.timedelta(minutes=30)
+    default_start = int((offset - d.datetime(1970, 1, 1)).total_seconds())
+    default_end  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
+
+    gt = request.GET.get('start_time', 1383408852)
+    lt = request.GET.get('end_time', 1393408852)
+    file_name = 'demo_clients_report.pdf'   
     w, h = letter
     frame_height = 4*inch
     frame_width  = 4*inch
@@ -162,15 +290,15 @@ def main():
         ('BOX', (0, 0), (-1, 0), 0.25, colors.green),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ]
-    c = canvas.Canvas(file_name, pagesize=letter, bottomup=1)
+    c = canvas.Canvas(buffer)
 
-    doc = BaseDocTemplate(lt=1392323231, gt=1392323231)
+    doc = BaseDocTemplate(lt=1392323231, gt=1382323231)
     custom_heading = doc.custom_heading
     heading_style = doc.p_style
 
-    '''frame = doc.add_frame(0, h-(frame_height+0.5*inch), frame_width, 
+    """frame = doc.add_frame(0, h-(frame_height+0.5*inch), frame_width, 
                             frame_height, showBoundary=1
-            )'''
+            )"""
     frame = Frame(0, h-0.5*inch, w, 0.5*inch, showBoundary=1)
     part = []
     part = doc.add_flowables(Paragraph("<u>Clients Report</u>", 
@@ -236,5 +364,14 @@ def main():
 
     c.save()
 
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+
+    return response
+    
+
 if __name__ == "__main__":
     main()
+    #send_mail()
+

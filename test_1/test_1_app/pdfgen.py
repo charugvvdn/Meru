@@ -282,9 +282,9 @@ def main_view(request):
 
     mac = post_data['mac']
 
-    if 'time' in post_data and post_data.get['time']:
-        gt = post_data.get['time'][0]
-        lt = post_data.get['time'][1]
+    if 'time' in post_data and post_data['time']:
+        gt = post_data['time'][0]
+        lt = post_data['time'][1]
     else:
         gt = default_start
         lt = default_end

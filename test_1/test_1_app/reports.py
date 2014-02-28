@@ -16,7 +16,8 @@ class ClientReport():
         self.mac = kwargs['mac']
         self.doc_list = []
         for mac in self.mac:
-            self.cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}})
+            self.cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
+                                sort('timestamp', -1)
             for doc in self.cursor:
                 self.doc_list.append(doc)
     def busiestClients(self, **kwargs ):
@@ -85,16 +86,16 @@ class ClientReport():
                 if typeof in doc['msgBody'].get('controller'):
                     # get clients
                     thisdate = datetime.datetime.utcfromtimestamp(doc['timestamp'])
-                    previousdate = thisdate-datetime.timedelta(days=1)
-                    previousdate_timestamp = int((previousdate - utc_1970).total_seconds())
+                    #previousdate = thisdate-datetime.timedelta(days=1)
+                    #previousdate_timestamp = int((previousdate - utc_1970).total_seconds())
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
                         if client["mac"] not in unique_clients:
                             unique_clients[client["mac"]] = 0
-                            if previousdate.date() not in perday_dict:
-                                perday_dict[previousdate.date()] = 1
+                            if thisdate.date() not in perday_dict:
+                                perday_dict[thisdate.date()] = 1
                             else:
-                                perday_dict[previousdate.date()] += 1
+                                perday_dict[thisdate.date()] += 1
         for perday in perday_dict:
             result_list.append([perday,perday_dict[perday]])
         print result_list

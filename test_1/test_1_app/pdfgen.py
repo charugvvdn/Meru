@@ -269,9 +269,9 @@ class ApiBaseClass(View):
 
 def main_view(request):
     response = HttpResponse(mimetype='application/pdf')
-    #response['Content-Disposition'] = 'attachment; filename="client_report.pdf"'
-    response['Content-Disposition'] = 'filename="client_report.pdf"'
-
+    #response['Content-Disposition'] = 'attachment'
+    #response['Content-Disposition'] = 'filename="client_report.pdf"'
+    #response = HttpResponse()
     buffer = StringIO()
 
     offset  = d.datetime.utcnow() - d.timedelta(minutes=30)
@@ -279,6 +279,7 @@ def main_view(request):
     default_end  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
 
     post_data = json.loads(request.body)
+    print post_data
 
     mac = post_data['mac']
 

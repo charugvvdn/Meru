@@ -222,7 +222,7 @@ class Raw_Model():
                             "ess-state": "", "ess-ssid-broadcast": "",
                             "ess-security-profile": ""}'''
 
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['nms_test_1_clone'].cursor()
 
         '''q = "SELECT ssid.ssid,\
         security_profile.security_profile_id ,\
@@ -332,7 +332,7 @@ class DeviceApplication(View):
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
 
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['nms_test_1_clone'].cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -369,7 +369,7 @@ class DeviceApplication(View):
 
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnms'].cursor()
+        cursor = connections['nms_test_1_clone'].cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -423,14 +423,14 @@ class DeviceApplication(View):
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_controller WHERE \
                 `controller_mac` = '%s'" % mac
-                cursor = connections['meru_cnms'].cursor()
+                cursor = connections['nms_test_1_clone'].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if not result[0][0]:
                     return HttpResponse(json.dumps(self.false_response))
                 if put_data["status"].lower() == "true":
                     try:
-                        db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
+                        db = mydb.connect(host='localhost', user='root', db='nms_test_1_clone', passwd='zaqwsxCDE')
                         query = """ UPDATE meru_command SET command_status = 2 WHERE \
                                 command_mac = '%s'""" % mac
                         cursor = db.cursor()

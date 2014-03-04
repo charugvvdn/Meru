@@ -2,11 +2,19 @@ from pymongo import MongoClient
 import datetime
 import json
 import ast
+import csv, json
 # Connection with mongoDB client
 CLIENT = MongoClient()
 DB = CLIENT['nms']
 utc_1970 = datetime.datetime(1970, 1, 1) #UTC since jan 1970
 utc_now = datetime.datetime.utcnow() #UTC now
+def gen_csv(col1,col2,x):
+    x = json.loads(x)
+    f = csv.writer(open("/home/charu/csv_reports/"+col1+".csv", "wb+"))
+    f.writerow([col1, col2])
+    for row in x:
+        f.writerow( [row.keys()[0],row.values()[0]])
+
 class ClientReport():
 
     '''Common variable used under the class methods'''
@@ -25,7 +33,9 @@ class ClientReport():
         typeof = 'clients'
         result_list = []
         usage = 0
+        
         doc_list = []
+        csv_result_list = []
         unique_clients = {}
         for doc in self.doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
@@ -44,9 +54,14 @@ class ClientReport():
                                 unique_clients[client['mac']] = usage
         for client_mac in unique_clients:
             if len(result_list) < 10:
+                csv_data = {}
                 result_list.append([client_mac,unique_clients[client_mac]])
+                csv_data[client_mac] = unique_clients[client_mac]
+                csv_result_list.append(csv_data)
 
+        
         print result_list
+        #gen_csv('Busiest Client','Clients count',json.dumps(csv_result_list))
         return result_list
     def summaryClient(self, **kwargs ):
 
@@ -54,6 +69,7 @@ class ClientReport():
         typeof = 'clients'
         result_list = []
         doc_list = []
+        csv_result_list = []
         device_dict = {}
         unique_clients = {}
         for doc in self.doc_list:
@@ -73,21 +89,53 @@ class ClientReport():
                     
         for device in device_dict:
             result_list.append([device,device_dict[device]])
+            csv_data = {}
+            csv_data[device]=device_dict[device]
+            csv_result_list.append(csv_data)
         print result_list
+        #gen_csv('Device Type','Device count',json.dumps(csv_result_list))
         return result_list
     def uniqueClient(self, **kwargs ):
         '''Calculating unique clients '''
         typeof = 'clients'
         result_list = []
         perday_dict = {}
+        csv_result_list = []
         unique_clients = {}
         for doc in self.doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     # get clients
                     thisdate = datetime.datetime.utcfromtimestamp(doc['timestamp'])
-                    #previousdate = thisdate-datetime.timedelta(days=1)
-                    #previousdate_timestamp = int((previousdate - utc_1970).total_seconds())
+                    clients = doc.get('msgBody').get('controller').get(typeof)
+                    for client in clients:
+                        if client["mac"] not in unique_clients:
+                            unique_clients[client["mac"]] = 0
+                            if thisdate.date() not in perday_dict:
+                                perday_dict[thisdate.date()] = [client["mac"]]
+                            else:
+                                perday_dict[thisdate.date()].append(client["mac"])
+        for perday in perday_dict:
+            result_list.append([perday,perday_dict[perday]])
+            csv_data = {}
+            csv_data[str(perday)]=perday_dict[perday]
+            csv_result_list.append(csv_data)
+
+        print result_list
+        #gen_csv('Unique clients','Clients count',json.dumps(csv_result_list))
+        return result_list
+    def maxClient(self, **kwargs ):
+        '''Calculating unique clients '''
+        typeof = 'clients'
+        result_list = []
+        perday_dict = {}
+        csv_result_list = []
+        unique_clients = {}
+        for doc in self.doc_list:
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if typeof in doc['msgBody'].get('controller'):
+                    # get clients
+                    thisdate = datetime.datetime.utcfromtimestamp(doc['timestamp'])
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
                         if client["mac"] not in unique_clients:
@@ -98,13 +146,20 @@ class ClientReport():
                                 perday_dict[thisdate.date()] += 1
         for perday in perday_dict:
             result_list.append([perday,perday_dict[perday]])
+            csv_data = {}
+            csv_data[str(perday)]=perday_dict[perday]
+            csv_result_list.append(csv_data)
+
         print result_list
+        #gen_csv('Max clients','Clients count',json.dumps(csv_result_list))
         return result_list
+
     def ssidClient(self, **kwargs ):
         '''Calculating clients by SSID '''
         typeof = 'clients'
         result_list = []
         doc_list = []
+        csv_result_list = []
         ssid_dict = {}
         unique_clients = {}
         for doc in self.doc_list:
@@ -122,7 +177,11 @@ class ClientReport():
                             unique_clients[client["mac"]] = 0
         for ssid in ssid_dict:
             result_list.append([ssid,ssid_dict[ssid]])
+            csv_data = {} 
+            csv_data[ssid] = ssid_dict[ssid]
+            csv_result_list.append(csv_data)
         print result_list
+        #gen_csv('SSID','Clients count',json.dumps(csv_result_list))
         return result_list
 def main():
     
@@ -136,6 +195,7 @@ def main():
     obj.busiestClients()
     obj.summaryClient()
     obj.uniqueClient()
+    obj.maxClient()
     obj.ssidClient()
 
 if __name__ == "__main__":

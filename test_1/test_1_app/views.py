@@ -14,6 +14,7 @@ import itertools
 from collections import Counter, OrderedDict
 import ast
 import json
+import requests
 
 from test_1_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
@@ -251,8 +252,8 @@ class Raw_Model():
              ORDER BY  `command`.`timestamp` \
               ASC limit 0 , 1" % str(mac)'''
 
-        query = """SELECT command_json FROM meru_command WHERE \
-        `command_mac` = '%s' AND 'commandId' > '%s' LIMIT 1""" % (mac,command_id)
+        query = """SELECT command_json, command_id FROM meru_command WHERE \
+        `command_mac` = '%s' AND `command_id` > %s LIMIT 1""" % (mac,command_id)
 
         cursor.execute(query)
         result = cursor.fetchall()
@@ -287,7 +288,10 @@ class Raw_Model():
         else:
             return []'''
         if result:
+            new_command_id = result[0][1]
             response = ast.literal_eval(result[0][0])
+            response["next-commandId"] = new_command_id
+            print response
         else:
             response = []
         return response
@@ -353,6 +357,7 @@ class DeviceApplication(View):
         :return:
         """
         
+        post_data = json.loads(request.body)
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
         else:
@@ -385,14 +390,14 @@ class DeviceApplication(View):
             print "post in views.py"
             print e
         try:
-            post_data = json.loads(request.body)
             
             command_id = post_data.get('commandId') if post_data.get('commandId') else 0
             if command_id == 0:
                 # php api call
-                r = requests.get('https://api.github.com', mac=post_data.get('snum'))
-                response_js =  r.text
-                return HttpResponse(json.dumps(config_data))
+                #r = requests.get('https://api.github.com', mac=post_data.get('snum'))
+                #response_js =  r.text
+                response_js = {"status" : "response_js"}
+                return HttpResponse(json.dumps(response_js))
             else:
                 raw_model = Raw_Model()  # Raw model class to access the sql
                 config_data = raw_model.isConfigData(post_data.get('snum'),command_id)

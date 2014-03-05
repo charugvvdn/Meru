@@ -209,7 +209,7 @@ class Raw_Model():
     Raw SQL queries methods
     """
 
-    def isConfigData(self, mac):
+    def isConfigData(self, mac,command_id):
         """
         Generating the commands for the controller with
         given controller mac address passed as `mac`
@@ -252,7 +252,7 @@ class Raw_Model():
               ASC limit 0 , 1" % str(mac)'''
 
         query = """SELECT command_json FROM meru_command WHERE \
-        `command_mac` = '%s' ORDER BY command_createdon DESC LIMIT 1""" % mac
+        `command_mac` = '%s' AND 'commandId' > '%s' LIMIT 1""" % (mac,command_id)
 
         cursor.execute(query)
         result = cursor.fetchall()
@@ -352,11 +352,7 @@ class DeviceApplication(View):
         :param kwargs:
         :return:
         """
-        try:
-            post_data = json.loads(request.body)
-        except ValueError as error:
-            return HttpResponse(json.dumps({"status" : "false", "mac" : "No JSON object decoded"}))
-
+        
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
         else:
@@ -388,9 +384,25 @@ class DeviceApplication(View):
         except Exception, e:
             print "post in views.py"
             print e
+        try:
+            post_data = json.loads(request.body)
+            
+            command_id = post_data.get('commandId') if post_data.get('commandId') else 0
+            if command_id == 0:
+                # php api call
+                r = requests.get('https://api.github.com', mac=post_data.get('snum'))
+                response_js =  r.text
+                return HttpResponse(json.dumps(config_data))
+            else:
+                raw_model = Raw_Model()  # Raw model class to access the sql
+                config_data = raw_model.isConfigData(post_data.get('snum'),command_id)
 
-        raw_model = Raw_Model()  # Raw model class to access the sql
-        config_data = raw_model.isConfigData(mac)
+
+        except ValueError as error:
+            return HttpResponse(json.dumps({"status" : "false", "mac" : "No JSON object decoded"}))
+
+        #raw_model = Raw_Model()  # Raw model class to access the sql
+        #config_data = raw_model.isConfigData(mac)
 
         return HttpResponse(json.dumps(config_data))
 

@@ -320,7 +320,7 @@ class DeviceApplication(View):
         if 'snum' in request.GET.keys():
             mac = request.GET.get('snum')
 
-        self.true_response["status"] = "true"
+        self.true_response["status"] = "this_true"
         self.true_response["mac"] = mac
         self.false_response["status"] = "false"
         self.false_response["mac"] = mac

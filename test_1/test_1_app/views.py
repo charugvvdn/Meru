@@ -216,82 +216,21 @@ class Raw_Model():
         given controller mac address passed as `mac`
         :param mac:
         """
-        '''config_data = {}
-        sec_profile_dict = {"sec-enc-mode": "", "sec-passphrase": "",
-                            "sec-profile-name": "", "sec-l2-mode": ""}
-        ess_profile_dict = {"ess-profile-name": "", "ess-dataplane-mode": "",
-                            "ess-state": "", "ess-ssid-broadcast": "",
-                            "ess-security-profile": ""}'''
 
-        cursor = connections['nms_test_1_clone'].cursor()
+        cursor = connections['meru_cnms_dev'].cursor()
 
-        '''q = "SELECT ssid.ssid,\
-        security_profile.security_profile_id ,\
-        security_profile.enc_mode as\
-            'sec-enc-mode',security_profile.passphrase as\
-             'sec-passphrase',security_profile.profile_name as\
-            'sec-profile-name',security_profile.l2_mode as\
-             'sec-l2-mode',`ssid`.name as 'ess-profile-name',\
-            `ssid`.dataplane_mode as \
-            'ess-dataplane-mode',`ssid`.enabled as 'ess-state',\
-            `ssid`.visible as 'ess-ssid-broadcast',\
-            `security_profile`.profile_name as\
-            'ess-security-profile' FROM  `ssid`\
-                    LEFT JOIN\
-             `security_profile` ON \
-             (security_profile.security_profile_id=\
-                `ssid`.security_profile_id)\
-             INNER JOIN ssid_in_command ON \
-             (ssid_in_command.ssid=`ssid`.ssid)\
-             INNER JOIN command ON\
-              (ssid_in_command.command_id=\
-                `command`.command_id)\
-              WHERE `command`.`controller_mac_address` = \
-              '%s'  and (`command`.flag='0' or \
-                `command`.flag='1')\
-             ORDER BY  `command`.`timestamp` \
-              ASC limit 0 , 1" % str(mac)'''
 
         query = """SELECT command_json, command_id FROM meru_command WHERE \
         `command_mac` = '%s' AND `command_id` > %s LIMIT 1""" % (mac,command_id)
 
         cursor.execute(query)
         result = cursor.fetchall()
+	cursor.close()
 
-        '''if len(result) != 0:
-            if str(result[0][4]) == 'None':
-                ess_profile_dict["ess-profile-name"] = str(result[0][6])
-                ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
-                ess_profile_dict["ess-state"] = str(result[0][8])
-                ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
-                ess_profile_dict["ess-security-profile"] = str(result[0][10])
-
-                config_data["ESSProfiles"] = [ess_profile_dict]
-                config_data["status"] = "true"
-                config_data["mac"] = str(mac)
-
-            else:
-                sec_profile_dict["sec-enc-mode"] = str(result[0][2])
-                sec_profile_dict["sec-passphrase"] = str(result[0][3])
-                sec_profile_dict["sec-profile-name"] = str(result[0][4])
-                sec_profile_dict["sec-l2-mode"] = str(result[0][5])
-                ess_profile_dict["ess-profile-name"] = str(result[0][6])
-                ess_profile_dict["ess-dataplane-mode"] = str(result[0][7])
-                ess_profile_dict["ess-state"] = str(result[0][8])
-                ess_profile_dict["ess-ssid-broadcast"] = str(result[0][9])
-                ess_profile_dict["ess-security-profile"] = str(result[0][10])
-
-                config_data["SecurityProfiles"] = [sec_profile_dict]
-                config_data["ESSProfiles"] = [ess_profile_dict]
-                config_data["status"] = "true"
-                config_data["mac"] = str(mac)
-        else:
-            return []'''
         if result:
             new_command_id = result[0][1]
             response = ast.literal_eval(result[0][0])
-            response["next-commandId"] = new_command_id
-            print response
+            response["command-id"] = new_command_id
         else:
             response = []
         return response
@@ -336,7 +275,7 @@ class DeviceApplication(View):
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
 
-        cursor = connections['nms_test_1_clone'].cursor()
+        cursor = connections['meru_cnms_dev'].cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -370,7 +309,7 @@ class DeviceApplication(View):
 
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
-        cursor = connections['nms_test_1_clone'].cursor()
+        cursor = connections['meru_cnms_dev'].cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -391,19 +330,21 @@ class DeviceApplication(View):
             print e
         try:
             
-            command_id = post_data.get('commandId') if post_data.get('commandId') else 0
+            command_id = post_data.get('command-id') if post_data.get('command-id') else 0
             if command_id == 0:
                 # php api call
-                #r = requests.get('https://api.github.com', mac=post_data.get('snum'))
-                #response_js =  r.text
-                response_js = {"status" : "response_js"}
-                return HttpResponse(json.dumps(response_js))
+		url = "http://54.186.33.61/meru_cnms/command/controller/create"
+		data = json.dumps({"mac" : mac})
+		headers = {'Content-Type': 'application/json'}
+		r = requests.post(url, data=data, headers=headers)
+		return HttpResponse(r.text)
             else:
                 raw_model = Raw_Model()  # Raw model class to access the sql
                 config_data = raw_model.isConfigData(post_data.get('snum'),command_id)
 
 
         except ValueError as error:
+	    print error
             return HttpResponse(json.dumps({"status" : "false", "mac" : "No JSON object decoded"}))
 
         #raw_model = Raw_Model()  # Raw model class to access the sql
@@ -440,14 +381,14 @@ class DeviceApplication(View):
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_controller WHERE \
                 `controller_mac` = '%s'" % mac
-                cursor = connections['nms_test_1_clone'].cursor()
+                cursor = connections['meru_cnms_dev'].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if not result[0][0]:
                     return HttpResponse(json.dumps(self.false_response))
                 if put_data["status"].lower() == "true":
                     try:
-                        db = mydb.connect(host='localhost', user='root', db='nms_test_1_clone', passwd='zaqwsxCDE')
+                        db = mydb.connect(host='localhost', user='root', db='meru_cnms_dev', passwd='root')
                         query = """ UPDATE meru_command SET command_status = 2 WHERE \
                                 command_mac = '%s'""" % mac
                         cursor = db.cursor()

@@ -26,7 +26,16 @@ DATABASES = {
 	'PASSWORD' : 'zaqwsxCDE',
 	'HOST' : '',
 	'PORT' : '',
-	}
+	},
+   'meru_cnms_dev' : {
+        'ENGINE' : 'django.db.backends.mysql',
+        'NAME' : 'meru_cnms_dev',
+        'USER' : 'root',
+        'PASSWORD' : 'root',
+        'HOST' : '',
+        'PORT' : '',
+        }
+
 }
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False

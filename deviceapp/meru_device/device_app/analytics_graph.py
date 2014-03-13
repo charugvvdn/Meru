@@ -16,27 +16,31 @@ class AnalyticsReport():
 
     '''Common variable used under the class methods'''
     def __init__(self,**kwargs):
-        self.lt= kwargs['lt']
-        self.gt = kwargs['gt']
-        #self.mac = kwargs['mac']
+        self.lt= kwargs['lt'] if 'lt' in kwargs else None
+        self.gt = kwargs['gt'] if 'gt' in kwargs else None
+        self.maclist = kwargs['maclist'] if 'maclist' in kwargs else None
         self.doc_list = []
         self.get_data = {}
-        if self.lt and self.gt and self.mac:
-            self.cursor = DB.devices.find({ "lower_snum":{self.mac.lower()}, "timestamp": {"$gt": self.gt, "$lt": self.lt}}).sort('timestamp', -1)
+        
+        if self.lt and self.gt and self.maclist:
+            for mac in self.maclist:
+                self.cursor = DB.devices.find({ "lower_snum":mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).sort('timestamp', -1)
+                for doc in self.cursor:
+                    self.doc_list.append(doc)
         elif self.lt and self.gt:
             self.cursor = DB.devices.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
                                 sort('timestamp', -1)
             for doc in self.cursor:
                 self.doc_list.append(doc)
+        
     def clientDeviceType(self, **kwargs ):
 
         '''Calculating device type of clients '''
         typeof = 'clients'
         result_list = []
-        doc_list = []
-        csv_result_list = []
-        device_dict = {}
+        device_dict = {"device_type":{}}
         unique_clients = {}
+        
         for doc in self.doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
@@ -45,30 +49,23 @@ class AnalyticsReport():
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
                         if client["mac"] not in unique_clients:
-                            if client['clientType'] in device_dict:
-                                device_dict[client['clientType']] += 1
+                            if client['clientType'] in device_dict['device_type']:
+                                device_dict['device_type'][client['clientType']] += 1
                             else:
-                                device_dict[client['clientType']] = 1
+                                device_dict['device_type'][client['clientType']] = 1
 
                             unique_clients[client["mac"]] = 0
                     
-        for device in device_dict:
-            result_list.append([device,device_dict[device]])
-            csv_data = {}
-            csv_data[device]=device_dict[device]
-            csv_result_list.append(csv_data)
-        print result_list
-        #gen_csv('Device Type','Device count',json.dumps(csv_result_list))
-        return result_list
+        
+        return device_dict
+
     def busiestClients(self, **kwargs ):
         '''Calculating top 5 busiest clients '''
         typeof = 'clients'
         result_list = []
         usage = 0
-        
-        doc_list = []
-        csv_result_list = []
-        unique_clients = {}
+        unique_clients = {"busiest_client":{}}
+
         for doc in self.doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
@@ -76,25 +73,18 @@ class AnalyticsReport():
                     
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
+                        #if len(unique_clients['busiest_client']) < 5:
                         if client["mac"] not in unique_clients:
                             usage = client['rxBytes']+client['txBytes']
-                            unique_clients[client["mac"]] = usage
+                            unique_clients['busiest_client'][client["mac"]] = usage
                             
                         else:
                             if client['rxBytes']+client['txBytes'] > unique_clients[client['mac']]:
                                 usage = client['rxBytes']+client['txBytes']
-                                unique_clients[client['mac']] = usage
-        for client_mac in unique_clients:
-            if len(result_list) < 5:
-                csv_data = {}
-                result_list.append([client_mac,unique_clients[client_mac]])
-                csv_data[client_mac] = unique_clients[client_mac]
-                csv_result_list.append(csv_data)
-
+                                unique_clients['busiest_client'][client['mac']] = usage
         
-        print result_list
-        #gen_csv('Busiest Client','Clients count',json.dumps(csv_result_list))
-        return result_list
+        return sorted(unique_clients['busiest_client'].values(),reverse=True)[:5] if len(unique_clients['busiest_client'])>5 else unique_clients['busiest_client']
+
     def report_analytics (self,**kwargs):
         # to count the number of online aps for last 24 hours
         typeof = 'clients'
@@ -171,18 +161,28 @@ class analytics_api(View):
         response_list = []
         request_dict ={}
         response = {}
-        
+        maclist = []
         for key in request.GET:
-            request_dict = {}
+
             request_dict[key] = ast.literal_eval(request.GET.get(key).strip()
                                  ) if request.GET.get(key) else 0
-        if 'time' in request_dict:
-            if request_dict['time'][0] > request_dict['time'][1]:
+        if "time" not in request_dict:
+                response = HttpResponse(json.dumps({"status": "false","message": "No time stamp specified"}))
+        if not response and request_dict['time'][0] > request_dict['time'][1]:
                 response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
-            if not response:
+        if not response:
+            if 'time' in request_dict and "mac" in request_dict:
+                # API for gathering detailed info about the analyitics point graph on timestamp and MAC list basis
+                maclist = request_dict['mac']
+                obj = AnalyticsReport(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1])
+                response_list.append(obj.busiestClients())
+                response_list.append(obj.clientDeviceType())
+                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "Device type distribution and 5 busiest clients"}))
+            
+            elif 'time' in request_dict:
+                # API for gathering info about the analyitics point graph on the basis of timestamp
                 obj = AnalyticsReport(gt=request_dict['time'][0],lt=request_dict['time'][1])
                 response_list.append(obj.report_analytics())
                 response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "onlineAPs, no.of clients and controller thoughput"}))
-        else:
-            response = HttpResponse(json.dumps({"status": "false","message": "No time stamp specified"}))
+            
         return response

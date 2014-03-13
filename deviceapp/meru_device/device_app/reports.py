@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from django.http import HttpResponse
 import datetime
 import json
 import ast
@@ -29,76 +30,7 @@ class ClientReport():
             for doc in self.cursor:
                 self.doc_list.append(doc)
 
-    def report_analytics (self,**kwargs):
-        # to count the number of online aps for last 24 hours
-        typeof = 'clients'
-        result_list = []
-        doc_list = []
-        # create a dictionary for 24 hours
-        date_dict ={}
-        
-        from_time = self.gt
-        to_time = self.lt
-        
-        while from_time <= to_time:
-            thistime = datetime.datetime.utcfromtimestamp(from_time)
-            thisdate = str(thistime.date())
-            
-            if thisdate not in date_dict:
-                date_dict[thisdate] = {"no_of_client":{},"onlineAPs":{},"controller_thru":{}}
-                if thistime.time().hour not in date_dict[thisdate]['no_of_client']:
-                    date_dict[thisdate]['no_of_client'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['onlineAPs']:
-                    date_dict[thisdate]['onlineAPs'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['controller_thru']:
-                    date_dict[thisdate]['controller_thru'][thistime.time().hour] = 0
-            else:
-                if thistime.time().hour not in date_dict[thisdate]['no_of_client']:
-                    date_dict[thisdate]['no_of_client'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['onlineAPs']:
-                    date_dict[thisdate]['onlineAPs'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['controller_thru']:
-                    date_dict[thisdate]['controller_thru'][thistime.time().hour] = 0
-            from_time = from_time + 1 * 60 * 60
-        
-            
-        '''counting 
-        1. no of clients
-        2. online aps
-        3. controller throughput 
-            from documents filetered on timestamp'''
-        
-        for doc in self.doc_list:
-            client_rx = 0
-            client_tx = 0
-            ap_rx = 0
-            ap_tx = 0
-            current_time = datetime.datetime.utcfromtimestamp(doc['timestamp'])
-            currentdate = str(current_time.date())
-            if currentdate in date_dict:
-                if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        if current_time.time().hour in date_dict[currentdate]['no_of_client']:
-                            clients = doc.get('msgBody').get('controller').get('clients')
-                            date_dict[currentdate]['no_of_client'][current_time.time().hour] += len(clients)
-                            for client in clients:
-                                client_rx += client['rxBytes']
-                                client_tx += client['txBytes']
-                        if current_time.time().hour in date_dict[currentdate]['onlineAPs']:
-                            aps = doc.get('msgBody').get('controller').get('aps')
-                            for ap in aps:
-                                if ap['status'].lower() == 'up':
-                                    date_dict[currentdate]['onlineAPs'][current_time.time().hour] += 1
-                                    ap_rx += ap['rxBytes']
-                                    ap_tx += ap['txBytes']
-                        if current_time.time().hour in date_dict[currentdate]['controller_thru']:
-                            date_dict[currentdate]['controller_thru'][current_time.time().hour] += (client_rx+ap_rx) +(client_tx+ap_tx)
-
-        return date_dict
-                    
-        
-
-    """def busiestClients(self, **kwargs ):
+    def busiestClients(self, **kwargs ):
         '''Calculating top 10 busiest clients '''
         typeof = 'clients'
         result_list = []
@@ -252,10 +184,10 @@ class ClientReport():
             csv_result_list.append(csv_data)
         print result_list
         #gen_csv('SSID','Clients count',json.dumps(csv_result_list))
-        return result_list"""
+        return result_list
 def main():
     
-    obj = ClientReport(mac=['aa:bb:cc:dd:174:dd','AA:BB:CC:DD:43:DD'],gt=1394617641,lt=1394621267)
+    obj = ClientReport(mac=['aa:bb:cc:dd:174:dd','AA:BB:CC:DD:43:DD'],gt=1394417641,lt=1394627625)
     '''ts = 1392636637
     print datetime.datetime.utcfromtimestamp(ts)
     print datetime.datetime.utcnow()
@@ -263,16 +195,18 @@ def main():
     eachday = utc_now- datetime.timedelta(days=1) #UTC for last day
     print int((eachday - utc_1970).total_seconds()) #converting to last day timestamp'''
     
-    '''obj.busiestClients()
+    obj.busiestClients()
     obj.summaryClient()
     obj.uniqueClient()
     obj.maxClient()
-    obj.ssidClient()'''
-    response_list = []
+    obj.ssidClient()
+    #obj.report_analytics ()
+
+    '''response_list = []
     response_list.append(obj.report_analytics ())
     print response_list
-    response = HttpResponse(json.dumps({"status": "true", \
-             "data": response_list }))
+    response = HttpResponse(json.dumps({"status": "true", "data": response_list }))
+    return response'''
 if __name__ == "__main__":
         main()
 

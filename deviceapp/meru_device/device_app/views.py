@@ -408,7 +408,6 @@ class DeviceApplication(View):
                 return HttpResponse("Method is Not Supported")
 
 
-
     def type_casting(self, doc):
         '''type casting the data received from controller , \
         converting required values to int'''
@@ -426,8 +425,10 @@ class DeviceApplication(View):
 
         if 'clients' in doc.get('msgBody').get('controller'):
             for client in doc.get('msgBody').get('controller').get('clients'):
-                client['apId'] = int(client['apId']) if str(client['apId']).\
-                isdigit() else 0
+                if str(client['apId']).isdigit():
+                    client['apId'] = int(client['apId'])
+                if str(client['wifiExp']).isdigit():
+                   client['wifiExp'] = int(client['wifiExp'])
                 client['rxBytes'] = int(client['rxBytes']) \
                 if str(client['rxBytes']).isdigit() else 0
                 client['txBytes'] = int(client['txBytes']) \
@@ -436,6 +437,30 @@ class DeviceApplication(View):
                 if str(client['txBytes']).isdigit() else 0
 
         return doc
+
+
+    """def process_alarms(self, doc):
+        new_alarms_list = []
+        last_alarm = []
+        mac = doc.get('snum')
+        if mac is None:
+            mac = doc.get('msgBody').get('controller').get('mac')
+        if 'alarms' in doc.get('msgBody').get('controller'):
+            new_alarms_list = doc.get('msgBody').get('controller').get('alarms')
+        #if new_alarms_list:
+        #    new_alarms_list.sort(key=lambda t: t['timeStamp'], reverse=True)
+        try:
+            cursor = DB.device_alarms.find({ "mac" : mac}, { "alarms" : { "$slice" : -1}})
+        except Exception as error:
+            print "mongoDB error in process_alarms"
+            print error
+        for c in cursor:
+            last_alarm.append(c)
+        if len(last_alarm):
+            for alarm in new_alarms_list:
+                pass
+        else:
+            pass"""
 
 
 def client_throughput(request):

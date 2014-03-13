@@ -38,7 +38,7 @@ class AnalyticsReport():
         '''Calculating device type of clients '''
         typeof = 'clients'
         result_list = []
-        device_dict = {"device_type":{}}
+        device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
         unique_clients = {}
         
         for doc in self.doc_list:
@@ -49,11 +49,9 @@ class AnalyticsReport():
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
                         if client["mac"] not in unique_clients:
-                            if client['clientType'] in device_dict['device_type']:
-                                device_dict['device_type'][client['clientType']] += 1
-                            else:
-                                device_dict['device_type'][client['clientType']] = 1
-
+                            if client['clientType'].lower() in device_dict['device_type']:
+                                device_dict['device_type'][client['clientType'].lower()] += 1
+                            
                             unique_clients[client["mac"]] = 0
                     
         
@@ -63,27 +61,25 @@ class AnalyticsReport():
         '''Calculating top 5 busiest clients '''
         typeof = 'clients'
         result_list = []
-        usage = 0
-        unique_clients = {"busiest_client":{}}
-
+        busiest_dict = {"busiest_client":{}}
+        unique_clients = {}
         for doc in self.doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     # get clients
-                    
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     for client in clients:
                         #if len(unique_clients['busiest_client']) < 5:
                         if client["mac"] not in unique_clients:
                             usage = client['rxBytes']+client['txBytes']
-                            unique_clients['busiest_client'][client["mac"]] = usage
+                            unique_clients[client["mac"]] = usage
                             
                         else:
                             if client['rxBytes']+client['txBytes'] > unique_clients[client['mac']]:
                                 usage = client['rxBytes']+client['txBytes']
-                                unique_clients['busiest_client'][client['mac']] = usage
-        
-        return sorted(unique_clients['busiest_client'].values(),reverse=True)[:5] if len(unique_clients['busiest_client'])>5 else unique_clients['busiest_client']
+                                unique_clients[client['mac']] = usage
+        busiest_dict['busiest_client']= sorted(unique_clients.values(),reverse=True)[:5] if len(unique_clients)>5 else unique_clients
+        return busiest_dict
 
     def report_analytics (self,**kwargs):
         # to count the number of online aps for last 24 hours

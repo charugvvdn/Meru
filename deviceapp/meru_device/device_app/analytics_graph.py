@@ -28,7 +28,7 @@ class AnalyticsReport():
                                 sort('timestamp', -1)
             for doc in self.cursor:
                 self.doc_list.append(doc)
-     def clientDeviceType(self, **kwargs ):
+    def clientDeviceType(self, **kwargs ):
 
         '''Calculating device type of clients '''
         typeof = 'clients'

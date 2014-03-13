@@ -2,6 +2,7 @@ from pymongo import MongoClient
 import datetime
 from views import Common
 import pymongo
+import datetime
 
 # Connection with mongoDB client
 try:
@@ -396,11 +397,13 @@ class HomeStats():
         offline_maclist = []
         online_maclist = []
         for mac in kwargs['mac_list']:
-
+            print "db access in access_points:"
+            print datetime.datetime.now()
             cursor = DB.devices.find({"lower_snum": mac.lower() , "timestamp":\
              {"$gt": kwargs['start_time'], "$lt": kwargs['end_time']}})\
             .sort('timestamp', -1)
-
+            print "process done at:"
+            print datetime.datetime.now()
         
             for doc in cursor:
         
@@ -439,9 +442,12 @@ class HomeStats():
         
         # query over mongo DB to get the data between the given timestamp in
         # desc
-
+        print "db access in wireless_clients:"
+        print datetime.datetime.now()
         cursor = DB.devices.find({"timestamp": {"$gt": kwargs['start_time'] , \
          "$lt": kwargs['end_time']}}).sort('timestamp', -1)
+        print "process done at :"
+        print datetime.datetime.now()
         
         mac_list = [x.lower() for x in kwargs['mac_list']]
         result_list = []
@@ -453,7 +459,11 @@ class HomeStats():
             if elem['timestamp'] not in time_list:
                 time_list.append(elem['timestamp']) 
         for time in time_list:
+            print "db access in wireless_clients:"
+            print datetime.datetime.now()
             cursor = DB.devices.find({"timestamp": time})
+            print "process done at:"
+            print datetime.datetime.now()
             
             count = 0
             unique_clients = {}
@@ -520,9 +530,14 @@ class HomeStats():
         for mac in mac_list:
 
             doc_list = []
+            print "db access in wireless_stats:"
+            print datetime.datetime.now()
             # filter over given mac and timestamp (in query string)
             cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
                 : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
+            print "process done at:"
+            print datetime.datetime.now()
+
             res = cursor.count()
             if res == 0:
                 continue

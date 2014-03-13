@@ -24,6 +24,8 @@ class ClientReport():
         self.mac = kwargs['mac']
         self.doc_list = []
         for mac in self.mac:
+            print "db access in ClientReport:"
+            print datetime.datetime.now()
             self.cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
                                 sort('timestamp', -1)
             for doc in self.cursor:

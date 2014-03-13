@@ -224,6 +224,8 @@ class DashboardApi(View):
         # get all the documents with the matching mac irrespective of timestamp
         try:
             for mac in mac_list:
+                print "db access in DashboardApi:"
+                print datetime.datetime.now()
                 cursor = DB.devices.find({"lower_snum":mac.lower() })\
                 .sort('timestamp', -1).limit(1)
                 for doc in cursor:

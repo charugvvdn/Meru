@@ -121,6 +121,8 @@ class Common():
 
         try:
             for mac in mac_list:
+                print "db access in let_the_docs_out:"
+                print datetime.datetime.now()
                 if not DB.devices.find({"lower_snum": mac.lower()}).count():
                     continue
                 cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
@@ -217,7 +219,7 @@ class Raw_Model():
         :param mac:
         """
 
-        cursor = connections['meru_cnms_dev'].cursor()
+        cursor = connections['nms_test_1_clone'].cursor()
 
 
         query = """SELECT command_json, command_id FROM meru_command WHERE \
@@ -275,7 +277,7 @@ class DeviceApplication(View):
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
 
-        cursor = connections['meru_cnms_dev'].cursor()
+        cursor = connections['nms_test_1_clone'].cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -309,7 +311,7 @@ class DeviceApplication(View):
 
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
-        cursor = connections['meru_cnms_dev'].cursor()
+        cursor = connections['nms_test_1_clone'].cursor()
         cursor.execute(query)
         result = cursor.fetchall()
         if not result[0][0]:
@@ -324,9 +326,14 @@ class DeviceApplication(View):
         self.type_casting(post_data)
         
         try:
-            DB.devices.insert(post_data)
+            #post_data = self.process_alarms(post_data)
+            print "db access in post:"
+            print datetime.datetime.now()
+            DB.fifty_aps.insert(post_data)
+            print "process complete at:"
+            print datetime.datetime.now()
         except Exception, e:
-            print "post in views.py"
+            print "mongoDB error in post views.py"
             print e
         try:
             
@@ -381,14 +388,14 @@ class DeviceApplication(View):
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_controller WHERE \
                 `controller_mac` = '%s'" % mac
-                cursor = connections['meru_cnms_dev'].cursor()
+                cursor = connections['nms_test_1_clone'].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if not result[0][0]:
                     return HttpResponse(json.dumps(self.false_response))
                 if put_data["status"].lower() == "true":
                     try:
-                        db = mydb.connect(host='localhost', user='root', db='meru_cnms_dev', passwd='root')
+                        db = mydb.connect(host='localhost', user='root', db='nms_test_1_clone', passwd='root')
                         query = """ UPDATE meru_command SET command_status = 2 WHERE \
                                 command_mac = '%s'""" % mac
                         cursor = db.cursor()
@@ -426,8 +433,10 @@ class DeviceApplication(View):
 
         if 'clients' in doc.get('msgBody').get('controller'):
             for client in doc.get('msgBody').get('controller').get('clients'):
-                client['apId'] = int(client['apId']) if str(client['apId']).\
-                isdigit() else 0
+                if str(client['apId']).isdigit():
+                    client['apId'] = int(client['apId'])
+                if str(client['wifiExp']).isdigit():
+	               client['wifiExp'] = int(client['wifiExp'])
                 client['rxBytes'] = int(client['rxBytes']) \
                 if str(client['rxBytes']).isdigit() else 0
                 client['txBytes'] = int(client['txBytes']) \
@@ -436,6 +445,29 @@ class DeviceApplication(View):
                 if str(client['txBytes']).isdigit() else 0
 
         return doc
+
+    """def process_alarms(self, doc):
+        new_alarms_list = []
+        last_alarm = []
+        mac = doc.get('snum')
+        if mac is None:
+            mac = doc.get('msgBody').get('controller').get('mac')
+        if 'alarms' in doc.get('msgBody').get('controller'):
+            new_alarms_list = doc.get('msgBody').get('controller').get('alarms')
+        #if new_alarms_list:
+        #    new_alarms_list.sort(key=lambda t: t['timeStamp'], reverse=True)
+        try:
+            cursor = DB.device_alarms.find({ "mac" : mac}, { "alarms" : { "$slice" : -1}})
+        except Exception as error:
+            print "mongoDB error in process_alarms"
+            print error
+        for c in cursor:
+            last_alarm.append(c)
+        if len(last_alarm):
+            for alarm in new_alarms_list:
+                pass
+        else:
+            pass"""
 
 
 def client_throughput(request):
@@ -546,7 +578,7 @@ def overall_throughput(request):
                                         "message": "No POST data"}))
 
     if 'mac' in post_data:
-        # fetch thdevicedistdevicedistdevicedistdevicedistdevicediste docs
+        # fetch the docs
         doc_list = common.let_the_docs_out(post_data)
 
         get_type = "aps"

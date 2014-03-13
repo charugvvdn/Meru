@@ -1,5 +1,6 @@
 from django.core.management import setup_environ
 from django.conf import settings
+#setup_environ(settings)
 from django.views.generic.base import View
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, letter
@@ -19,9 +20,9 @@ from reports import ClientReport
 from django.http import HttpResponse
 import datetime as d
 import json
-from django.core.management import setup_environ
-from django.conf import settings
 from django.core import mail
+import os
+import sys
 
 try:
     from cStringIO import StringIO
@@ -160,9 +161,10 @@ class BaseDocTemplate():
             self.unique_clients.sort(key = lambda row: row[0], reverse=True)
             self.table_fields = ['Date', 'No of Clients']
             self.unique_clients.insert(0, self.table_fields)
+            print self.unique_clients
             return self.unique_clients
         
-class ApiBaseClass(View):
+'''class ApiBaseClass(View):
     """ Base class to be called for apis"""
 
     def __init__(self):
@@ -265,23 +267,21 @@ class ApiBaseClass(View):
 
         c.save()
 
-        return response
+        return response'''
 
 def main_view(request):
     response = HttpResponse(mimetype='application/pdf')
     #response['Content-Disposition'] = 'attachment'
     #response['Content-Disposition'] = 'filename="client_report.pdf"'
     #response = HttpResponse()
-    buffer = StringIO()
+
+    post_data = json.loads(request.body)
+    mac = post_data['mac']
+    
 
     offset  = d.datetime.utcnow() - d.timedelta(minutes=30)
     default_start = int((offset - d.datetime(1970, 1, 1)).total_seconds())
     default_end  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
-
-    post_data = json.loads(request.body)
-    print post_data
-
-    mac = post_data['mac']
 
     if 'time' in post_data and post_data['time']:
         gt = post_data['time'][0]
@@ -291,9 +291,20 @@ def main_view(request):
         lt = default_end
 
     title = None
-
     if 'reportTitle' in post_data and post_data['reportTitle']:
         title = post_data['reportTitle']
+
+    pdf = gen_pdf(title, mac, gt, lt)
+
+    if 'send_mail' in post_data and post_data['send_mail']:
+        send_mail(pdf, None, None)
+        return HttpResponse("Mail Sent from main_view")
+
+    response.write(pdf)
+    return response
+
+def gen_pdf(title, mac, start_time, end_time):
+    buffer = StringIO()
 
     file_name = 'demo_clients_report.pdf'   
     w, h = letter
@@ -309,7 +320,7 @@ def main_view(request):
         ]
     c = canvas.Canvas(buffer)
 
-    doc = BaseDocTemplate(lt=lt, gt=gt, mac=mac)
+    doc = BaseDocTemplate(lt=end_time, gt=start_time, mac=mac)
     custom_heading = doc.custom_heading
     heading_style = doc.p_style
 
@@ -363,9 +374,10 @@ def main_view(request):
     part = doc.add_flowables(Paragraph("<u>Unique Clients</u>",
                             custom_heading), part
     )
-    tab_data = doc.consume_api('unique_clients')
-    table = doc.create_table(tab_data, [1.5*inch], table_styleset)
-    part = doc.add_flowables(table, part)
+
+    #tab_data = doc.consume_api('unique_clients')
+    #table = doc.create_table(tab_data, [1.5*inch], table_styleset)
+    #part = doc.add_flowables(table, part)
     frame.addFromList(part, c)
 
     c.showPage()
@@ -384,13 +396,11 @@ def main_view(request):
     c.save()
 
     pdf = buffer.getvalue()
-    #send_mail(pdf)
     buffer.close()
-    response.write(pdf)
 
-    return response
+    return pdf
 
-def send_mail(pdf):
+def send_mail(pdf, FROM, TO):
     connection = mail.get_connection()
     connection.open()
 
@@ -402,9 +412,11 @@ def send_mail(pdf):
     email.send(fail_silently=False)
 
     connection.close()
-    #return HttpResponse("Mail sent")
+    return "Mail Sent from send_mail"
 
 if __name__ == "__main__":
-    main()
-    #send_mail()
+    sys.path.append('/home/pardeep/meru_deviceapp/deviceapp/test_1/test_1.settings')
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "test_1.settings")
+    pdf = gen_pdf('Clients Report', ["11:22:33:44:55:66"], 3788888888, 3883333333)
+    send_mail(pdf)
 

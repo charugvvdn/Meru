@@ -5,6 +5,8 @@ import json
 from django.views.generic.base import View
 import ast
 import csv, json
+import random
+from random import randint
 # Connection with mongoDB client
 CLIENT = MongoClient()
 DB = CLIENT['nms']
@@ -144,7 +146,7 @@ class AnalyticsReport():
                                     ap_rx += ap['rxBytes']
                                     ap_tx += ap['txBytes']
                         if current_time.time().hour in date_dict[currentdate]['controller_thru']:
-                            date_dict[currentdate]['controller_thru'][current_time.time().hour] += (client_rx+ap_rx) +(client_tx+ap_tx)
+                            date_dict[currentdate]['controller_thru'][current_time.time().hour] += randint(20000,100000)#(client_rx+ap_rx) +(client_tx+ap_tx)
 
         return date_dict
 

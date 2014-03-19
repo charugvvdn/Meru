@@ -279,10 +279,6 @@ class DeviceApplication(View):
         self.false_response["status"] = "false"
         self.false_response["mac"] = mac
 
-        '''if controller.objects.filter(mac_address=mac).exists():
-            self.true_response["mac"] = mac
-            return HttpResponse(json.dumps(self.true_response))'''
-
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
 
@@ -314,9 +310,6 @@ class DeviceApplication(View):
             mac = post_data.get('controller')
 
         no_mac = {"status": "false", "mac": mac}
-
-        '''if not controller.objects.filter(mac_address=mac).exists():
-            return HttpResponse(json.dumps(no_mac))'''
 
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
@@ -365,13 +358,6 @@ class DeviceApplication(View):
 
         return HttpResponse(json.dumps(config_data))
 
-    '''def put(self, request, *args, **kwargs):
-    	if "mac" in kwargs:
-		mac = kwargs["mac"]
-		print request.method
-		return HttpResponse(json.dumps({ "status" : "True"}))
-	else:
-		return HttpResponse(json.dumps({"status" : "False"}))'''
 
     def put(self, request, *args, **kwargs):
         """
@@ -482,30 +468,6 @@ class DeviceApplication(View):
             print "Exception at process_alarms"
             print e
         return doc
-
-
-    """def process_alarms(self, doc):
-        new_alarms_list = []
-        last_alarm = []
-        mac = doc.get('snum')
-        if mac is None:
-            mac = doc.get('msgBody').get('controller').get('mac')
-        if 'alarms' in doc.get('msgBody').get('controller'):
-            new_alarms_list = doc.get('msgBody').get('controller').get('alarms')
-        #if new_alarms_list:
-        #    new_alarms_list.sort(key=lambda t: t['timeStamp'], reverse=True)
-        try:
-            cursor = DB.device_alarms.find({ "mac" : mac}, { "alarms" : { "$slice" : -1}})
-        except Exception as error:
-            print "mongoDB error in process_alarms"
-            print error
-        for c in cursor:
-            last_alarm.append(c)
-        if len(last_alarm):
-            for alarm in new_alarms_list:
-                pass
-        else:
-            pass"""
 
 
 def client_throughput(request):

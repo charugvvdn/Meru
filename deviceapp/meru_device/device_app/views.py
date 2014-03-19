@@ -220,19 +220,28 @@ class Raw_Model():
         cursor = connections['meru_cnms_dev'].cursor()
 
 
-        query = """SELECT command_json, command_id FROM meru_command WHERE \
+        command_query = """SELECT command_json, command_id FROM meru_command WHERE \
         `command_mac` = '%s' AND `command_id` > %s LIMIT 1""" % (mac,command_id)
 
-        cursor.execute(query)
+	count_query = """SELECT COUNT(*) FROM meru_command WHERE \
+	`command_mac` = '%s' AND `command_id` > %s""" % (mac, command_id)
+
+        cursor.execute(command_query)
         result = cursor.fetchall()
-	cursor.close()
 
         if result:
+	    cursor.execute(count_query)
+	    command_count = cursor.fetchall()
             new_command_id = result[0][1]
             response = ast.literal_eval(result[0][0])
-            response["command-id"] = new_command_id
+	    response["command-id"] = new_command_id
+	    if command_count[0][0] > 1:
+	    	response["eocq"] = "no"
+	    else:
+	    	response["eocq"] = "yes"
         else:
             response = []
+	cursor.close()
         return response
 
 
@@ -333,7 +342,7 @@ class DeviceApplication(View):
             command_id = post_data.get('command-id') if post_data.get('command-id') else 0
             if command_id == 0:
                 # php api call
-		url = "http://54.186.33.61/meru_cnms/command/controller/create"
+		url = "http://54.186.33.61/command/controller/create"
 		data = json.dumps({"mac" : mac})
 		headers = {'Content-Type': 'application/json'}
 		r = requests.post(url, data=data, headers=headers)

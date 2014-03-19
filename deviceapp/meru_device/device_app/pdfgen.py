@@ -15,8 +15,6 @@ from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics.widgets.markers import makeMarker
 from reports import ClientReport
 from django.http import HttpResponse
-from django.core.management import setup_environ
-from django.conf import settings
 import datetime as d
 import json
 from django.core import mail

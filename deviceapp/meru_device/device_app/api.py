@@ -479,7 +479,7 @@ class HomeStats():
                 mac_dict['count'] = count
                 print mac_dict
                 result_maclist.append(mac_dict)
-
+        print result_maclist
         # count of clients currently (near or at last timestamp)
         current = result_list[0] if result_list else 0
         # max count of clients among count of clients at every timestamp
@@ -489,7 +489,7 @@ class HomeStats():
             len(result_list) if len(result_list) > 0 else 0
         result_dict['label'] = 'Wireless Clients'
         result_dict['data'] = [current, peak, avg]
-        if kwargs['getlist'] == 1:
+        if kwargs['getlist'] and len(result_maclist) > 0:
             current_maclist = result_maclist[0]['list']
             peak_mac_list = max(result_maclist, key=lambda x:x['count'])
             peak_maclist = peak_mac_list['list']

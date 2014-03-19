@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from django.http import HttpResponse
 import datetime
 import json
 import ast
@@ -24,10 +25,11 @@ class ClientReport():
         self.mac = kwargs['mac']
         self.doc_list = []
         for mac in self.mac:
-            self.cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
+            self.cursor = DB.devices.find({ "lower_snum":mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
                                 sort('timestamp', -1)
             for doc in self.cursor:
                 self.doc_list.append(doc)
+
     def busiestClients(self, **kwargs ):
         '''Calculating top 10 busiest clients '''
         typeof = 'clients'
@@ -185,19 +187,26 @@ class ClientReport():
         return result_list
 def main():
     
-    obj = ClientReport(mac=['aa:bb:cc:dd:174:dd','AA:BB:CC:DD:43:DD'],gt=1393390192,lt=1393390200)
+    obj = ClientReport(mac=['aa:bb:cc:dd:174:dd','AA:BB:CC:DD:43:DD'],gt=1394417641,lt=1394627625)
     '''ts = 1392636637
     print datetime.datetime.utcfromtimestamp(ts)
     print datetime.datetime.utcnow()
     print datetime.datetime.utcnow()-datetime.datetime.utcfromtimestamp(ts)
     eachday = utc_now- datetime.timedelta(days=1) #UTC for last day
     print int((eachday - utc_1970).total_seconds()) #converting to last day timestamp'''
+    
     obj.busiestClients()
     obj.summaryClient()
     obj.uniqueClient()
     obj.maxClient()
     obj.ssidClient()
+    #obj.report_analytics ()
 
+    '''response_list = []
+    response_list.append(obj.report_analytics ())
+    print response_list
+    response = HttpResponse(json.dumps({"status": "true", "data": response_list }))
+    return response'''
 if __name__ == "__main__":
         main()
 

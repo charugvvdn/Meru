@@ -222,19 +222,28 @@ class Raw_Model():
         cursor = connections['meru_cnms_dev'].cursor()
 
 
-        query = """SELECT command_json, command_id FROM meru_command WHERE \
+        command_query = """SELECT command_json, command_id FROM meru_command WHERE \
         `command_mac` = '%s' AND `command_id` > %s LIMIT 1""" % (mac,command_id)
 
-        cursor.execute(query)
+	count_query = """SELECT COUNT(*) FROM meru_command WHERE \
+	`command_mac` = '%s' AND `command_id` > %s""" % (mac, command_id)
+
+        cursor.execute(command_query)
         result = cursor.fetchall()
-	cursor.close()
 
         if result:
+	    cursor.execute(count_query)
+	    command_count = cursor.fetchall()
             new_command_id = result[0][1]
             response = ast.literal_eval(result[0][0])
-            response["command-id"] = new_command_id
+	    response["command-id"] = new_command_id
+	    if command_count[0][0] > 1:
+	    	response["eocq"] = "no"
+	    else:
+	    	response["eocq"] = "yes"
         else:
             response = []
+	cursor.close()
         return response
 
 
@@ -412,7 +421,6 @@ class DeviceApplication(View):
                 return HttpResponse("Method is Not Supported")
 
 
-
     def type_casting(self, doc):
         '''type casting the data received from controller , \
         converting required values to int'''
@@ -472,6 +480,30 @@ class DeviceApplication(View):
             print "Exception at process_alarms"
             print e
         return doc
+
+
+    """def process_alarms(self, doc):
+        new_alarms_list = []
+        last_alarm = []
+        mac = doc.get('snum')
+        if mac is None:
+            mac = doc.get('msgBody').get('controller').get('mac')
+        if 'alarms' in doc.get('msgBody').get('controller'):
+            new_alarms_list = doc.get('msgBody').get('controller').get('alarms')
+        #if new_alarms_list:
+        #    new_alarms_list.sort(key=lambda t: t['timeStamp'], reverse=True)
+        try:
+            cursor = DB.device_alarms.find({ "mac" : mac}, { "alarms" : { "$slice" : -1}})
+        except Exception as error:
+            print "mongoDB error in process_alarms"
+            print error
+        for c in cursor:
+            last_alarm.append(c)
+        if len(last_alarm):
+            for alarm in new_alarms_list:
+                pass
+        else:
+            pass"""
 
 
 def client_throughput(request):

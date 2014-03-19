@@ -16,7 +16,7 @@ import ast
 import json
 import requests
 
-from device_app.models import controller, command, alarm, dashboard_info, \
+from test_1_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
 
 from django.views.generic.base import View
@@ -38,22 +38,22 @@ def welcome(request):
     """
     context = RequestContext(request)
     if 'station' in request.GET:
-        return render_to_response('deviceapp_templates/stationthru.html',
+        return render_to_response('test_1_app/stationthru.html',
                                   {"d": "Station"}, context)
     if 'ap' in request.GET:
-        return render_to_response('deviceapp_templates/apthru.html',
+        return render_to_response('test_1_app/apthru.html',
                                   {"d": "AP"}, context)
     if 'wifi' in request.GET:
-        return render_to_response('deviceapp_templates/wifiexp.html',
+        return render_to_response('test_1_app/wifiexp.html',
                                   {"d": "Wifi Experience"}, context)
     if 'overall' in request.GET:
-        return render_to_response('deviceapp_templates/overallthru.html',
+        return render_to_response('test_1_app/overallthru.html',
                                   {"d": "Overall Throughput"}, context)
     if 'dist' in request.GET:
-        return render_to_response('deviceapp_templates/devicedist.html',
+        return render_to_response('test_1_app/devicedist.html',
                                   {"d": "Device Dist Throughput"}, context)
     if 'ap_client' in request.GET:
-        return render_to_response('deviceapp_templates/Ap-clients.html',
+        return render_to_response('test_1_app/Ap-clients.html',
                                   {"d": "AP with number of Clients Connected"},\
                                    context)
 
@@ -121,6 +121,8 @@ class Common():
 
         try:
             for mac in mac_list:
+                print "db access in let_the_docs_out:"
+                print datetime.datetime.now()
                 if not DB.devices.find({"lower_snum": mac.lower()}).count():
                     continue
                 cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
@@ -220,19 +222,28 @@ class Raw_Model():
         cursor = connections['meru_cnms_dev'].cursor()
 
 
-        query = """SELECT command_json, command_id FROM meru_command WHERE \
+        command_query = """SELECT command_json, command_id FROM meru_command WHERE \
         `command_mac` = '%s' AND `command_id` > %s LIMIT 1""" % (mac,command_id)
 
-        cursor.execute(query)
+	count_query = """SELECT COUNT(*) FROM meru_command WHERE \
+	`command_mac` = '%s' AND `command_id` > %s""" % (mac, command_id)
+
+        cursor.execute(command_query)
         result = cursor.fetchall()
-	cursor.close()
 
         if result:
+	    cursor.execute(count_query)
+	    command_count = cursor.fetchall()
             new_command_id = result[0][1]
             response = ast.literal_eval(result[0][0])
-            response["command-id"] = new_command_id
+	    response["command-id"] = new_command_id
+	    if command_count[0][0] > 1:
+	    	response["eocq"] = "no"
+	    else:
+	    	response["eocq"] = "yes"
         else:
             response = []
+	cursor.close()
         return response
 
 
@@ -268,10 +279,6 @@ class DeviceApplication(View):
         self.false_response["status"] = "false"
         self.false_response["mac"] = mac
 
-        '''if controller.objects.filter(mac_address=mac).exists():
-            self.true_response["mac"] = mac
-            return HttpResponse(json.dumps(self.true_response))'''
-
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
 
@@ -304,9 +311,6 @@ class DeviceApplication(View):
 
         no_mac = {"status": "false", "mac": mac}
 
-        '''if not controller.objects.filter(mac_address=mac).exists():
-            return HttpResponse(json.dumps(no_mac))'''
-
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
         cursor = connections['meru_cnms_dev'].cursor()
@@ -324,41 +328,36 @@ class DeviceApplication(View):
         self.type_casting(post_data)
         
         try:
+            post_data = self.process_alarms(post_data)
+            print "db access in post:"
+            print datetime.datetime.now()
             DB.devices.insert(post_data)
+            print "process complete at:"
+            print datetime.datetime.now()
         except Exception, e:
-            print "post in views.py"
+            print "mongoDB error in post views.py"
             print e
         try:
             
             command_id = post_data.get('command-id') if post_data.get('command-id') else 0
             if command_id == 0:
                 # php api call
-		url = "http://54.186.33.61/meru_cnms/command/controller/create"
-		data = json.dumps({"mac" : mac})
-		headers = {'Content-Type': 'application/json'}
-		r = requests.post(url, data=data, headers=headers)
-		return HttpResponse(r.text)
+        		url = "http://54.186.33.61/command/controller/create"
+        		data = json.dumps({"mac" : mac})
+        		headers = {'Content-Type': 'application/json'}
+        		r = requests.post(url, data=data, headers=headers)
+        		return HttpResponse(r.text)
             else:
                 raw_model = Raw_Model()  # Raw model class to access the sql
                 config_data = raw_model.isConfigData(post_data.get('snum'),command_id)
 
 
         except ValueError as error:
-	    print error
+            print error
             return HttpResponse(json.dumps({"status" : "false", "mac" : "No JSON object decoded"}))
-
-        #raw_model = Raw_Model()  # Raw model class to access the sql
-        #config_data = raw_model.isConfigData(mac)
 
         return HttpResponse(json.dumps(config_data))
 
-    '''def put(self, request, *args, **kwargs):
-    	if "mac" in kwargs:
-		mac = kwargs["mac"]
-		print request.method
-		return HttpResponse(json.dumps({ "status" : "True"}))
-	else:
-		return HttpResponse(json.dumps({"status" : "False"}))'''
 
     def put(self, request, *args, **kwargs):
         """
@@ -428,7 +427,7 @@ class DeviceApplication(View):
                 if str(client['apId']).isdigit():
                     client['apId'] = int(client['apId'])
                 if str(client['wifiExp']).isdigit():
-                   client['wifiExp'] = int(client['wifiExp'])
+	               client['wifiExp'] = int(client['wifiExp'])
                 client['rxBytes'] = int(client['rxBytes']) \
                 if str(client['rxBytes']).isdigit() else 0
                 client['txBytes'] = int(client['txBytes']) \
@@ -438,10 +437,9 @@ class DeviceApplication(View):
 
         return doc
 
-
-    """def process_alarms(self, doc):
+    def process_alarms(self, doc):
         new_alarms_list = []
-        last_alarm = []
+        alarm_row = []
         mac = doc.get('snum')
         if mac is None:
             mac = doc.get('msgBody').get('controller').get('mac')
@@ -455,12 +453,21 @@ class DeviceApplication(View):
             print "mongoDB error in process_alarms"
             print error
         for c in cursor:
-            last_alarm.append(c)
-        if len(last_alarm):
+            alarm_row.append(c)
+        if len(alarm_row):
+            last_alarm = alarm_row[0].get('alarms')[0]
             for alarm in new_alarms_list:
-                pass
+                if alarm["timeStamp"] > last_alarm["timeStamp"]:
+                    DB.device_alarms.update({ "mac" : mac}, { "$push" : { "alarms" : alarm}})
         else:
-            pass"""
+            DB.device_alarms.insert({ "mac" : mac, "alarms" : new_alarms_list})
+        try:
+            pass
+            doc.get('msgBody').get('controller')['alarms'] = []
+        except KeyError as e:
+            print "Exception at process_alarms"
+            print e
+        return doc
 
 
 def client_throughput(request):
@@ -571,7 +578,7 @@ def overall_throughput(request):
                                         "message": "No POST data"}))
 
     if 'mac' in post_data:
-        # fetch thdevicedistdevicedistdevicedistdevicedistdevicediste docs
+        # fetch the docs
         doc_list = common.let_the_docs_out(post_data)
 
         get_type = "aps"

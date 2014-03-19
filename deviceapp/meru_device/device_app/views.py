@@ -453,7 +453,7 @@ class DeviceApplication(View):
 
     def process_alarms(self, doc):
         new_alarms_list = []
-        last_alarm = []
+        alarm_row = []
         mac = doc.get('snum')
         if mac is None:
             mac = doc.get('msgBody').get('controller').get('mac')
@@ -467,14 +467,16 @@ class DeviceApplication(View):
             print "mongoDB error in process_alarms"
             print error
         for c in cursor:
-            last_alarm.append(c)
-        if len(last_alarm):
+            alarm_row.append(c)
+        if len(alarm_row):
+            last_alarm = alarm_row[0].get('alarms')[0]
             for alarm in new_alarms_list:
                 if alarm["timeStamp"] > last_alarm["timeStamp"]:
                     DB.device_alarms.update({ "mac" : mac}, { "$push" : { "alarms" : alarm}})
         else:
             DB.device_alarms.insert({ "mac" : mac, "alarms" : new_alarms_list})
         try:
+            pass
             doc.get('msgBody').get('controller')['alarms'] = []
         except KeyError as e:
             print "Exception at process_alarms"

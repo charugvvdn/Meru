@@ -39,7 +39,6 @@ class AnalyticsReport():
 
         '''Calculating device type of clients '''
         typeof = 'clients'
-        result_list = []
         device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
         unique_clients = {}
         
@@ -62,9 +61,11 @@ class AnalyticsReport():
     def busiestClients(self, **kwargs ):
         '''Calculating top 5 busiest clients '''
         typeof = 'clients'
+        busiest_dict = {"busiest_client":[]}
         result_list = []
-        busiest_dict = {"busiest_client":{}}
+        temp_dict = {}
         unique_clients = {}
+        
         for doc in self.doc_list:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
@@ -80,13 +81,17 @@ class AnalyticsReport():
                             if client['rxBytes']+client['txBytes'] > unique_clients[client['mac']]:
                                 usage = client['rxBytes']+client['txBytes']
                                 unique_clients[client['mac']] = usage
-        busiest_dict['busiest_client']= sorted(unique_clients.values(),reverse=True)[:5] if len(unique_clients)>5 else unique_clients
+        temp_dict = sorted(unique_clients.values(),reverse=True)[:5] if len(unique_clients)>5 else unique_clients
+        for mac in temp_dict:
+            result_dict = {}
+            result_dict['mac']= mac
+            result_dict['usage'] =  temp_dict[mac]
+            busiest_dict['busiest_client'].append(result_dict)
         return busiest_dict
 
     def report_analytics (self,**kwargs):
         # to count the number of online aps for last 24 hours
         typeof = 'clients'
-        result_list = []
         doc_list = []
         # create a dictionary for 24 hours
         date_dict ={}

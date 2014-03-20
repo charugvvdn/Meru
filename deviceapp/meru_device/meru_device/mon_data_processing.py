@@ -7,7 +7,7 @@ import time
     Standalone script to process mongodb data for mysql.
 '''
 try:
-    db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='zaqwsxCDE')
+    db = mydb.connect(host='localhost', user='root', db='meru_cnms_dev', passwd='root')
 except mydb.Error, e:
     print e
 #cursor = db.cursor()
@@ -42,11 +42,10 @@ def dictValuePad(key):
 def find_controller(controller_mac=None):
     cursor = db.cursor()
     if controller_mac:
-        query = "SELECT `controller_id`, `controller_mac` " \
-         "FROM `meru_controller` " \
-         "WHERE `controller_mac` = %s LIMIT 1"
+        query = "SELECT `controller_id`, `controller_mac` FROM `meru_controller` \
+			WHERE `controller_mac` = '%s' LIMIT 1" % controller_mac
         
-        cursor.execute(query, (controller_mac))
+        cursor.execute(query)
         result = cursor.fetchone()
         cursor.close()
         return result
@@ -55,26 +54,13 @@ def make_ready_controller(controller_list, update=True):
     controller_data = []
     if update:
         for controller in controller_list:
-             status = 1 if controller['operStat'].lower().strip() == "enabled" or \
-                            controller['operStat'].lower().strip() == "up" else 0
+		if controller['operStat'].lower().strip() == "enabled" or controller['operStat'].lower().strip() == "up":
+			status = 1
              #status = 1 #hardcoding this for now
-             t = (
-                controller["ip"],
-                controller["hostname"],
-                controller["uptime"],
-                controller["location"],
-                controller["contact"], 
-                controller["operStat"], 
-                controller["model"],
-                controller["swVersion"], 
-                controller["countrySettings"],
-                t_stmp,
-                status,
-                controller["mac"]
-                )
+    	t = (status, controller["mac"])
 
-             controller_data.append(t)
-             t = ()
+        controller_data.append(t)
+        t = ()
     return controller_data
 
 def update_controller(controller_list):
@@ -84,16 +70,6 @@ def update_controller(controller_list):
         """
         UPDATE `meru_controller` 
         SET 
-        `controller_ip`=%s,
-        `controller_hostname`=%s,
-        `controller_uptime`=%s,
-        `controller_location`=%s,
-        `controller_contact`=%s,
-        `controller_op_state`=%s,
-        `controller_model`=%s,
-        `controller_swversion`=%s,
-        `controller_country_settings`=%s,
-        `controller_modifiedon`=%s,
         `controller_opstatus`=%s 
         WHERE `controller_mac`=%s
         """, controller_data
@@ -132,11 +108,11 @@ def insert_alarm_data(alarm_list):
 def find_ap(ap_mac):
     cursor = db.cursor()
     if ap_mac:
-        query = "SELECT COUNT(*) " \
-                 "FROM `meru_ap` " \
-                 "WHERE `ap_mac` = %s LIMIT 1"
+        query = "SELECT COUNT(*)  \
+                 FROM `meru_ap`  \
+                 WHERE `ap_mac` =' %s' LIMIT 1" % ap_mac
 
-        cursor.execute(query, (ap_mac))
+        cursor.execute(query)
         result = cursor.fetchone()
         cursor.close()
         if result[0]:
@@ -188,7 +164,7 @@ def insert_ap_data(ap_list):
     INSERT INTO `meru_ap`
     (`ap_name`, `ap_cid_fk`, `ap_mac`, 
     `ap_ip`, `ap_model`, `ap_rx`, `ap_tx`, `ap_wifiexp`, 
-    `ap_wifiexp_desc`, `ap_status`, `controller_mac`)
+    `ap_wifiexp_desc`, `ap_status`, `ap_controller_mac`)
     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """,ap_data
         )
@@ -201,8 +177,8 @@ def find_client(client_mac):
     cursor = db.cursor()
     if client_mac:
         query = "SELECT COUNT(*) FROM `meru_client` \
-                WHERE `client_mac` = %s LIMIT 1"
-        cursor.execute(query, (client_mac))
+                WHERE `client_mac` = '%s' LIMIT 1" % client_mac
+        cursor.execute(query)
         result = cursor.fetchone()
         cursor.close()
         if result[0]:

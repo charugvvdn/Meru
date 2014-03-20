@@ -232,7 +232,9 @@ class Raw_Model():
 	    cursor.execute(count_query)
 	    command_count = cursor.fetchall()
             new_command_id = result[0][1]
-            response = ast.literal_eval(result[0][0])
+	    #response = result[0][0]
+	    #print response
+            response = json.loads(result[0][0])
 	    response["command-id"] = new_command_id
 	    if command_count[0][0] > 1:
 	    	response["eocq"] = "no"

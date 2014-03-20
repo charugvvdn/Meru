@@ -15,10 +15,8 @@ from collections import Counter, OrderedDict
 import ast
 import json
 import requests
-
 from device_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
-
 from django.views.generic.base import View
 TIME_INDEX = 60
 
@@ -235,7 +233,9 @@ class Raw_Model():
 	    cursor.execute(count_query)
 	    command_count = cursor.fetchall()
             new_command_id = result[0][1]
-            response = ast.literal_eval(result[0][0])
+	    #response = result[0][0]
+	    #print response
+            response = json.loads(result[0][0])
 	    response["command-id"] = new_command_id
 	    if command_count[0][0] > 1:
 	    	response["eocq"] = "no"
@@ -302,8 +302,12 @@ class DeviceApplication(View):
         :param kwargs:
         :return:
         """
-        
-        post_data = json.loads(request.body)
+	try:    
+        	post_data = json.loads(request.body)
+		print post_data
+	except ValueError as e:
+		print "Malformed json data from cntlr"
+		print e
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
         else:
@@ -339,14 +343,14 @@ class DeviceApplication(View):
             print e
         try:
             
-            command_id = post_data.get('command-id') if post_data.get('command-id') else 0
-            if command_id == 0:
+            command_id = int(post_data.get('command-id')) if post_data.get('command-id') else 0
+            if command_id is 0:
                 # php api call
-        		url = "http://54.186.33.61/command/controller/create"
-        		data = json.dumps({"mac" : mac})
-        		headers = {'Content-Type': 'application/json'}
-        		r = requests.post(url, data=data, headers=headers)
-        		return HttpResponse(r.text)
+	    	url = "http://54.186.33.61/command/controller/create"
+        	data = json.dumps({"mac" : mac})
+        	headers = {'Content-Type': 'application/json'}
+        	r = requests.post(url, data=data, headers=headers)
+        	return HttpResponse(r.text)
             else:
                 raw_model = Raw_Model()  # Raw model class to access the sql
                 config_data = raw_model.isConfigData(post_data.get('snum'),command_id)
@@ -460,7 +464,8 @@ class DeviceApplication(View):
                 if alarm["timeStamp"] > last_alarm["timeStamp"]:
                     DB.device_alarms.update({ "mac" : mac}, { "$push" : { "alarms" : alarm}})
         else:
-            DB.device_alarms.insert({ "mac" : mac, "alarms" : new_alarms_list})
+	    if len(new_alarms_list):
+            	DB.device_alarms.insert({ "mac" : mac, "alarms" : new_alarms_list})
         try:
             pass
             doc.get('msgBody').get('controller')['alarms'] = []

@@ -35,7 +35,7 @@ class AnalyticsReport():
             for doc in self.cursor:
                 self.doc_list.append(doc)
         
-    def clientDeviceType(self, **kwargs ):
+    def clientDeviceType(self, **kwargs):
 
         '''Calculating device type of clients '''
         typeof = 'clients'
@@ -95,65 +95,76 @@ class AnalyticsReport():
         doc_list = []
         # create a dictionary for 24 hours
         date_dict ={}
-        
+        date_dict=self.time_grouping()
         from_time = self.gt
         to_time = self.lt
-        
-        while from_time <= to_time:
-            thistime = datetime.datetime.utcfromtimestamp(from_time)
-            thisdate = str(thistime.date())
-            
-            if thisdate not in date_dict:
-                date_dict[thisdate] = {"no_of_client":{},"onlineAPs":{},"controller_thru":{}}
-                if thistime.time().hour not in date_dict[thisdate]['no_of_client']:
-                    date_dict[thisdate]['no_of_client'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['onlineAPs']:
-                    date_dict[thisdate]['onlineAPs'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['controller_thru']:
-                    date_dict[thisdate]['controller_thru'][thistime.time().hour] = 0
-            else:
-                if thistime.time().hour not in date_dict[thisdate]['no_of_client']:
-                    date_dict[thisdate]['no_of_client'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['onlineAPs']:
-                    date_dict[thisdate]['onlineAPs'][thistime.time().hour] = 0
-                if thistime.time().hour not in date_dict[thisdate]['controller_thru']:
-                    date_dict[thisdate]['controller_thru'][thistime.time().hour] = 0
-            from_time = from_time + 1 * 60 * 60
-        
-        
-        '''counting 
-        1. no of clients
-        2. online aps
-        3. controller throughput 
-            from documents filetered on timestamp'''
-        
-        for doc in self.doc_list:
-            client_rx = 0
-            client_tx = 0
-            ap_rx = 0
-            ap_tx = 0
-            current_time = datetime.datetime.utcfromtimestamp(doc['timestamp'])
-            currentdate = str(current_time.date())
-            if currentdate in date_dict:
-                if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                    if typeof in doc['msgBody'].get('controller'):
-                        if current_time.time().hour in date_dict[currentdate]['no_of_client']:
-                            clients = doc.get('msgBody').get('controller').get('clients')
-                            date_dict[currentdate]['no_of_client'][current_time.time().hour] += len(clients)
-                            for client in clients:
-                                client_rx += client['rxBytes']
-                                client_tx += client['txBytes']
-                        if current_time.time().hour in date_dict[currentdate]['onlineAPs']:
-                            aps = doc.get('msgBody').get('controller').get('aps')
-                            for ap in aps:
-                                if ap['status'].lower() == 'up':
-                                    date_dict[currentdate]['onlineAPs'][current_time.time().hour] += 1
-                                    ap_rx += ap['rxBytes']
-                                    ap_tx += ap['txBytes']
-                        if current_time.time().hour in date_dict[currentdate]['controller_thru']:
-                            date_dict[currentdate]['controller_thru'][current_time.time().hour] += randint(20000,100000)#(client_rx+ap_rx) +(client_tx+ap_tx)
+        result_dict = {"no_of_clients":{},"onlineAPs":{},"controller_thru":{}}
+        to = from_time
+        frm = from_time
+        add_time = 0
+        loop_over = 0
+        print date_dict
+        if date_dict['month'] > 0:
+            loop_over = date_dict['month']
+            add_time = 30*24
+        elif date_dict['week'] > 0:
+            loop_over = date_dict['week']
+            add_time = 7*24
+        elif date_dict['days'] > 0:
+            loop_over = date_dict['days']
+            add_time= 24
+        elif date_dict['hours'] > 0:
+            loop_over = date_dict['hours']
+            add_time = 1
 
+        for count in range(0,loop_over):
+            frm = to
+            to = to + add_time * 60 * 60
+            if to >= frm and to <= to_time:
+                result_dict['no_of_clients'][count] = 0
+                result_dict['onlineAPs'][count] = 0
+                result_dict['controller_thru'][count] = 0
+                for doc in self.doc_list:
+                    
+                    if doc['timestamp'] >= frm and doc['timestamp'] <= to:
+                        if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                            if typeof in doc['msgBody'].get('controller'):
+                                clients = doc.get('msgBody').get('controller').get('clients')
+                                result_dict['no_of_clients'][count] += len(clients)
+                                aps = doc.get('msgBody').get('controller').get('aps')
+                                for ap in aps:
+                                    if ap['status'].lower() == 'up':
+                                        result_dict['onlineAPs'][count] += 1
+                                result_dict['controller_thru'][count] += randint(20000,100000)
+
+        return result_dict
+        
+        
+    def time_grouping(self):
+        from_time = self.gt
+        to_time = self.lt
+        from_time = datetime.datetime.utcfromtimestamp(from_time)
+        to_time = datetime.datetime.utcfromtimestamp(to_time)
+        thistime = to_time - from_time
+
+        month = 0
+        week = 0
+        
+        days, seconds = thistime.days, thistime.seconds
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        seconds = (seconds % 60)
+        
+        if days >= 30:
+            month = int(days/30)
+            days = int(days%30)
+        if days >= 7:
+            week = int(days/7)
+            days = int(days%7)
+        date_dict = {"month":month,"week":week,"days":days,"hours":hours}
         return date_dict
+        
+
 
 class analytics_api(View):
 

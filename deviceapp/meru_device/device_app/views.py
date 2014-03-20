@@ -16,7 +16,7 @@ import ast
 import json
 import requests
 
-from test_1_app.models import controller, command, alarm, dashboard_info, \
+from device_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
 
 from django.views.generic.base import View

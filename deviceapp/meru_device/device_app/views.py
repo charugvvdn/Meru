@@ -304,10 +304,11 @@ class DeviceApplication(View):
         """
 	try:    
         	post_data = json.loads(request.body)
-		print post_data
 	except ValueError as e:
 		print "Malformed json data from cntlr"
 		print e
+		return HttpResponse(json.dumps({"status" : "false", "mac" : \
+		"No JSON object decoded"}))
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
         else:

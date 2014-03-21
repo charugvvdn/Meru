@@ -19,6 +19,7 @@ class AnalyticsReport():
     '''Common variable used under the class methods'''
     def __init__(self,**kwargs):
         self.lt= kwargs['lt'] if 'lt' in kwargs else None
+        self.type = kwargs['type'] if 'type' in kwargs else None
         self.gt = kwargs['gt'] if 'gt' in kwargs else None
         self.maclist = kwargs['maclist'] if 'maclist' in kwargs else None
         self.doc_list = []
@@ -105,63 +106,68 @@ class AnalyticsReport():
         loop_over = 0
         print date_dict
         if date_dict['month'] > 0:
-            loop_over = date_dict['month']
-            add_time = 30*24
+                loop_over = date_dict['month']
+                add_time = 30*24
         elif date_dict['week'] > 0:
-            loop_over = date_dict['week']
-            add_time = 7*24
+                loop_over = date_dict['week']
+                add_time = 7*24
         elif date_dict['days'] > 0:
-            loop_over = date_dict['days']
-            add_time= 24
+                loop_over = date_dict['days']
+                add_time= 24
         elif date_dict['hours'] > 0:
-            loop_over = date_dict['hours']
-            add_time = 1
-
+                loop_over = date_dict['hours']
+                add_time= 1
         for count in range(0,loop_over):
             frm = to
             to = to + add_time * 60 * 60
-            if to >= frm and to <= to_time:
-                result_dict['no_of_clients'][count] = 0
-                result_dict['onlineAPs'][count] = 0
-                result_dict['controller_thru'][count] = 0
-                for doc in self.doc_list:
-                    
-                    if doc['timestamp'] >= frm and doc['timestamp'] <= to:
-                        if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                            if typeof in doc['msgBody'].get('controller'):
-                                clients = doc.get('msgBody').get('controller').get('clients')
-                                result_dict['no_of_clients'][count] += len(clients)
-                                aps = doc.get('msgBody').get('controller').get('aps')
-                                for ap in aps:
-                                    if ap['status'].lower() == 'up':
-                                        result_dict['onlineAPs'][count] += 1
-                                result_dict['controller_thru'][count] += randint(20000,100000)
+            result_dict['no_of_clients'][count] =0
+            result_dict['onlineAPs'][count] = 0
+            result_dict['controller_thru'][count] = 0
+            unique_client = {}
+            unique_ap =  {}
+            
+            for doc in self.doc_list:
+                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
+                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                        if typeof in doc['msgBody'].get('controller'):
+                            clients = doc.get('msgBody').get('controller').get('clients')
+                            for client in clients:
+                                if client['mac'] not in unique_client:
+                                    unique_client[client['mac']] = 0
+                                    result_dict['no_of_clients'][count] += 1
+                            aps = doc.get('msgBody').get('controller').get('aps')
+                            for ap in aps:
+                                if ap['status'].lower() == 'up' and ap['mac'] not in unique_ap:
+                                    unique_client[ap['mac']] = 0
+                                    result_dict['onlineAPs'][count] += 1
+                            result_dict['controller_thru'][count] = randint(20000,100000)
+            
 
+            
         return result_dict
         
         
     def time_grouping(self):
+        import math
         from_time = self.gt
         to_time = self.lt
         from_time = datetime.datetime.utcfromtimestamp(from_time)
         to_time = datetime.datetime.utcfromtimestamp(to_time)
         thistime = to_time - from_time
-
         month = 0
         week = 0
+        hours = 0
+        days = 0
+        if self.type=="hours":
+            hours = 24*thistime.days
+        if self.type == "days":
+            days = thistime.days
+        if self.type == "week":
+            week = math.ceil(float(thistime.days)/float(7))if thistime.days >= 7 else 1
+        if self.type == "month":
+            month = math.ceil(float(thistime.days)/float(30)) if thistime.days >= 30 else 1
         
-        days, seconds = thistime.days, thistime.seconds
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        seconds = (seconds % 60)
-        
-        if days >= 30:
-            month = int(days/30)
-            days = int(days%30)
-        if days >= 7:
-            week = int(days/7)
-            days = int(days%7)
-        date_dict = {"month":month,"week":week,"days":days,"hours":hours}
+        date_dict = {"month":int(month),"week":int(week),"days":days,"hours":hours}
         return date_dict
         
 
@@ -195,7 +201,7 @@ class analytics_api(View):
             
             elif 'time' in request_dict:
                 # API for gathering info about the analyitics point graph on the basis of timestamp
-                obj = AnalyticsReport(gt=request_dict['time'][0],lt=request_dict['time'][1])
+                obj = AnalyticsReport(gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict['type'] if 'type' in request_dict else None)
                 response_list.append(obj.report_analytics())
                 response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "onlineAPs, no.of clients and controller thoughput"}))
             

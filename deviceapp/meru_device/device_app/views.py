@@ -226,7 +226,11 @@ class Raw_Model():
 	count_query = """SELECT COUNT(*) FROM meru_command WHERE \
 	`command_mac` = '%s' AND `command_id` > %s""" % (mac, command_id)
 
+	print "mysql access in isConfig"
+	print datetime.datetime.now()
         cursor.execute(command_query)
+	print "process complete"
+	print datetime.datetime.now()
         result = cursor.fetchall()
 
         if result:
@@ -281,9 +285,12 @@ class DeviceApplication(View):
 
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
-
+	print "mysql access in get"
+	print datetime.datetime.now()
         cursor = connections['meru_cnms_dev'].cursor()
         cursor.execute(query)
+	print "process complete"
+	print datetime.datetime.now()
         result = cursor.fetchall()
         if not result[0][0]:
             return HttpResponse(json.dumps(self.false_response))
@@ -304,10 +311,11 @@ class DeviceApplication(View):
         """
 	try:    
         	post_data = json.loads(request.body)
-		print post_data
 	except ValueError as e:
 		print "Malformed json data from cntlr"
 		print e
+		return HttpResponse(json.dumps({"status" : "false", "mac" : \
+		"No JSON object decoded"}))
         if 'snum' in post_data.keys():
             mac = post_data.get('snum')
         else:
@@ -315,10 +323,14 @@ class DeviceApplication(View):
 
         no_mac = {"status": "false", "mac": mac}
 
+	print "mysql access in post"
+	print datetime.datetime.now()
         query = "SELECT COUNT(1) FROM meru_controller WHERE \
         `controller_mac` = '%s'" % mac
         cursor = connections['meru_cnms_dev'].cursor()
         cursor.execute(query)
+	print "process complete"
+	print datetime.datetime.now()
         result = cursor.fetchall()
         if not result[0][0]:
             return HttpResponse(json.dumps(no_mac))

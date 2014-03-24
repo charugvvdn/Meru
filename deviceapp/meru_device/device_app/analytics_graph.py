@@ -140,7 +140,8 @@ class AnalyticsReport():
                                 if ap['status'].lower() == 'up' and ap['mac'] not in unique_ap:
                                     unique_client[ap['mac']] = 0
                                     result_dict['onlineAPs'][count] += 1
-                            result_dict['controller_thru'][count] = randint(20000,100000)
+                                    # controller throughput to be revised with real values
+                                    result_dict['controller_thru'][count] = randint(20000,100000)
             
 
             

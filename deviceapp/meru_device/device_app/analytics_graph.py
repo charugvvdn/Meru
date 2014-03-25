@@ -155,14 +155,31 @@ class AnalyticsReport():
         from_time = datetime.datetime.utcfromtimestamp(from_time)
         to_time = datetime.datetime.utcfromtimestamp(to_time)
         thistime = to_time - from_time
+        # calculating seconds and minutes
+        total_secs = thistime.seconds
+        secs = total_secs % 60
+        total_mins = total_secs / 60
+        mins = total_mins % 60
+        hrs = total_mins / 60
+        #rounding off hours, days, week , month on the basis of given timestamp
         month = 0
         week = 0
         hours = 0
         days = 0
-        if self.type=="hours":
-            hours = 24*thistime.days
+        
+        if secs > 0:
+            mins += 1
+            secs = 0
+        if self.type == "hours":
+            hours = thistime.days * 24
+            if mins > 0:
+                hours += 1
+                mins = 0 
         if self.type == "days":
             days = thistime.days
+            if hrs > 0:
+                days += 1
+                hrs = 0
         if self.type == "week":
             week = math.ceil(float(thistime.days)/float(7))if thistime.days >= 7 else 1
         if self.type == "month":

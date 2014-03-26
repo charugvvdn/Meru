@@ -27,61 +27,62 @@ class AnalyticsReport():
         
         if self.lt and self.gt and self.maclist:
             for mac in self.maclist:
-                self.cursor = DB.devices.find({ "lower_snum":mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).sort('timestamp', -1)
+                # call for fetching clients document list
+                self.cursor = DB.device_clients.find({ "lower_snum":mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).sort('timestamp', -1)
                 for doc in self.cursor:
                     self.doc_list.append(doc)
         elif self.lt and self.gt:
-            self.cursor = DB.devices.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
+            # call for fetching aps document list
+            self.cursor = DB.device_aps.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
                                 sort('timestamp', -1)
             for doc in self.cursor:
                 self.doc_list.append(doc)
+            # call for fetching clients document list
+            self.cursor = DB.device_clients.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
+                                sort('timestamp', -1)
+            for doc in self.cursor:
+                self.doc_list.append(doc)
+            
         
     def clientDeviceType(self, **kwargs):
 
         '''Calculating device type of clients '''
-        typeof = 'clients'
         device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
         unique_clients = {}
         
         for doc in self.doc_list:
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    # get clients
+            if 'clients' in doc:
+                print doc
+                # get clients
+                clients = doc.get('clients')
+                if clients["mac"] not in unique_clients:
+                    if clients['clientType'].lower() in device_dict['device_type']:
+                        device_dict['device_type'][clients['clientType'].lower()] += 1
                     
-                    clients = doc.get('msgBody').get('controller').get(typeof)
-                    for client in clients:
-                        if client["mac"] not in unique_clients:
-                            if client['clientType'].lower() in device_dict['device_type']:
-                                device_dict['device_type'][client['clientType'].lower()] += 1
-                            
-                            unique_clients[client["mac"]] = 0
-                    
+                    unique_clients[clients["mac"]] = 0
+                
         
         return device_dict
 
     def busiestClients(self, **kwargs ):
         '''Calculating top 5 busiest clients '''
-        typeof = 'clients'
         busiest_dict = {"busiest_client":[]}
         result_list = []
         temp_dict = {}
         unique_clients = {}
         
         for doc in self.doc_list:
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    # get clients
-                    clients = doc.get('msgBody').get('controller').get(typeof)
-                    for client in clients:
-                        #if len(unique_clients['busiest_client']) < 5:
-                        if client["mac"] not in unique_clients:
-                            usage = client['rxBytes']+client['txBytes']
-                            unique_clients[client["mac"]] = usage
-                            
-                        else:
-                            if client['rxBytes']+client['txBytes'] > unique_clients[client['mac']]:
-                                usage = client['rxBytes']+client['txBytes']
-                                unique_clients[client['mac']] = usage
+            if 'clients' in doc:
+                # get clients
+                clients = doc.get('clients')
+                if clients["mac"] not in unique_clients:
+                    usage = clients['rxBytes']+clients['txBytes']
+                    unique_clients[clients["mac"]] = usage
+                        
+                else:
+                    if clients['rxBytes']+clients['txBytes'] > unique_clients[clients['mac']]:
+                        usage = clients['rxBytes']+clients['txBytes']
+                        unique_clients[clients['mac']] = usage
         temp_dict = sorted(unique_clients.values(),reverse=True)[:5] if len(unique_clients)>5 else unique_clients
         for mac in temp_dict:
             result_dict = {}
@@ -128,22 +129,18 @@ class AnalyticsReport():
             
             for doc in self.doc_list:
                 if doc['timestamp'] >= frm and doc['timestamp'] <= to:
-                    if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                        if typeof in doc['msgBody'].get('controller'):
-                            clients = doc.get('msgBody').get('controller').get('clients')
-                            for client in clients:
-                                if client['mac'] not in unique_client:
-                                    unique_client[client['mac']] = 0
-                                    result_dict['no_of_clients'][count] += 1
-                            aps = doc.get('msgBody').get('controller').get('aps')
-                            for ap in aps:
-                                if ap['status'].lower() == 'up' and ap['mac'] not in unique_ap:
-                                    unique_client[ap['mac']] = 0
-                                    result_dict['onlineAPs'][count] += 1
-                                    # controller throughput to be revised with real values
-                                    result_dict['controller_thru'][count] = randint(20000,100000)
-            
-
+                    if 'clients' in doc:
+                        clients = doc.get('clients') 
+                        if clients['mac'] not in unique_client:
+                            unique_client[clients['mac']] = 0
+                            result_dict['no_of_clients'][count] += 1
+                    if 'aps' in doc:
+                        aps = doc.get('aps')
+                        if aps['status'].lower() == 'up' and aps['mac'] not in unique_ap:
+                            unique_client[aps['mac']] = 0
+                            result_dict['onlineAPs'][count] += 1
+                            # controller throughput to be revised with real values
+                            result_dict['controller_thru'][count] = randint(20000,100000)
             
         return result_dict
         

@@ -192,7 +192,7 @@ class HomeApi2(View):
             # CONTROLLER UTILIZATION
             response_list.append(home_stats.controller_util\
                 (doc_list = doc_list))
-            response = HttpResponse(json.dumps({"stats": "true", \
+            response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Home page API for pannel 2 stats"}))
         return response

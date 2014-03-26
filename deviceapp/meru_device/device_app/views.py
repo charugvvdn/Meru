@@ -344,12 +344,24 @@ class DeviceApplication(View):
         self.type_casting(post_data)
         
         try:
+            '''saving the complete data to db.devices until 
+            the whole code is updated with splitting with new db'''
+            DB.devices.insert(post_data)
+
+            # spliiting data to save in device_alamrs
             post_data = self.process_alarms(post_data)
+            #splitting data to save in device_clients
+            post_data = self.process_clients(post_data)
+            #splitting data to save in device_aps
+            post_data = self.process_aps(post_data)
             print "db access in post:"
             print datetime.datetime.now()
-            DB.devices.insert(post_data)
+            #DB.devices.insert(post_data)
             print "process complete at:"
             print datetime.datetime.now()
+            
+            
+            
         except Exception, e:
             print "mongoDB error in post views.py"
             print e
@@ -454,15 +466,17 @@ class DeviceApplication(View):
         return doc
 
     def process_alarms(self, doc):
+        # splitting devices collection to new clients collection
         new_alarms_list = []
         alarm_row = []
         mac = doc.get('snum')
+        lower_snum = mac.lower()
+        timestamp = doc.get('timestamp') or 0
         if mac is None:
             mac = doc.get('msgBody').get('controller').get('mac')
         if 'alarms' in doc.get('msgBody').get('controller'):
             new_alarms_list = doc.get('msgBody').get('controller').get('alarms')
-        #if new_alarms_list:
-        #    new_alarms_list.sort(key=lambda t: t['timeStamp'], reverse=True)
+        
         try:
             cursor = DB.device_alarms.find({ "mac" : mac}, { "alarms" : { "$slice" : -1}})
         except Exception as error:
@@ -476,13 +490,55 @@ class DeviceApplication(View):
                 if alarm["timeStamp"] > last_alarm["timeStamp"]:
                     DB.device_alarms.update({ "mac" : mac}, { "$push" : { "alarms" : alarm}})
         else:
-	    if len(new_alarms_list):
-            	DB.device_alarms.insert({ "mac" : mac, "alarms" : new_alarms_list})
+    	    if len(new_alarms_list):
+                	DB.device_alarms.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "alarms" : new_alarms_list})
         try:
             pass
             doc.get('msgBody').get('controller')['alarms'] = []
         except KeyError as e:
             print "Exception at process_alarms"
+            print e
+        return doc
+
+    def process_clients(self, doc):
+        # splitting devices collection to new clients collection
+        clients_list = []
+        mac = doc.get('snum')
+        lower_snum = mac.lower()
+        timestamp = doc.get('timestamp') or 0
+        # get the clients data from controller data
+        if mac is None:
+            mac = doc.get('msgBody').get('controller').get('mac')
+        if 'clients' in doc.get('msgBody').get('controller'):
+            clients_list = doc.get('msgBody').get('controller').get('clients')
+        
+        for client in clients_list:
+            DB.device_clients.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "clients" : client})
+        try:
+            doc.get('msgBody').get('controller')['clients'] = []
+        except KeyError as e:
+            print "Exception at process_clients"
+            print e
+        return doc
+
+    def process_aps(self, doc):
+        # splitting devices collection to new aps collection
+        aps_list = []
+        mac = doc.get('snum')
+        lower_snum = mac.lower()
+        timestamp = doc.get('timestamp') or 0
+        # get the aps data from controller data
+        if mac is None:
+            mac = doc.get('msgBody').get('controller').get('mac')
+        if 'aps' in doc.get('msgBody').get('controller'):
+            aps_list = doc.get('msgBody').get('controller').get('aps')
+        
+        for ap in aps_list:
+            DB.device_aps.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "aps" : ap})
+        try:
+            doc.get('msgBody').get('controller')['aps'] = []
+        except KeyError as e:
+            print "Exception at process_clients"
             print e
         return doc
 

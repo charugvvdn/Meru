@@ -309,6 +309,9 @@ class DeviceApplication(View):
         :param kwargs:
         :return:
         """
+	memory_report = self.memory_usage()
+        print "Memory Report"
+        print memory_report
 	try:    
         	post_data = json.loads(request.body)
 	except ValueError as e:
@@ -491,7 +494,8 @@ class DeviceApplication(View):
                     DB.device_alarms.update({ "mac" : mac}, { "$push" : { "alarms" : alarm}})
         else:
     	    if len(new_alarms_list):
-                	DB.device_alarms.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "alarms" : new_alarms_list})
+                	DB.device_alarms.insert({ "controller_mac" : mac, "timestamp":timestamp, \
+			"lower_snum":lower_snum, "alarms" : new_alarms_list})
         try:
             pass
             doc.get('msgBody').get('controller')['alarms'] = []
@@ -541,6 +545,22 @@ class DeviceApplication(View):
             print "Exception at process_clients"
             print e
         return doc
+
+    def memory_usage(self):
+        """Memory usage of the current process in kilobytes."""
+        status = None
+        result = {'peak': 0, 'rss': 0}
+        try:
+            status = open('/proc/self/status')
+            for line in status:
+                parts = line.split()
+                key = parts[0][2:-1].lower()
+                if key in result:
+                    result[key] = int(parts[1])
+        finally:
+            if status is not None:
+                status.close()
+        return result
 
 
 def client_throughput(request):

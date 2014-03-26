@@ -107,16 +107,19 @@ def insert_alarm_data(alarm_list):
 
 def find_ap(ap_mac):
     cursor = db.cursor()
+    print ap_mac
     if ap_mac:
         query = "SELECT COUNT(*)  \
                  FROM `meru_ap`  \
-                 WHERE `ap_mac` =' %s' LIMIT 1" % ap_mac
+                 WHERE `ap_mac` ='%s' LIMIT 1" % ap_mac
 
         cursor.execute(query)
         result = cursor.fetchone()
         cursor.close()
         if result[0]:
+	    print "ap_mac was found in db\n"
             return True
+	print "ap_mac was not found in db\n"
         return False
 
 def make_ready_ap(ap_list, update=True):
@@ -142,12 +145,14 @@ def make_ready_ap(ap_list, update=True):
 def update_ap_data(ap_list):
     cursor = db.cursor()
     ap_data = make_ready_ap(ap_list, update=True)
+    print "ap tuple data from update_ap_data"
+    print ap_data
     cursor.executemany(
     """
     UPDATE `meru_ap`
     SET `ap_name`=%s, `ap_cid_fk`=%s, `ap_mac`=%s, `ap_ip`=%s, `ap_model`=%s,
         `ap_rx`=%s, `ap_tx`=%s, `ap_wifiexp`=%s, `ap_wifiexp_desc`=%s,
-        `ap_status`=%s, `controller_mac`=%s
+        `ap_status`=%s, `ap_controller_mac`=%s
     WHERE `ap_mac`=%s
     """, ap_data
     )
@@ -323,6 +328,8 @@ def main():
                 ap['c_mac'] = doc['snum']
                 ap['c_id'] = controller_id[0]
                 ap_info[ap['id']] = ap['mac']
+		print "ap mac to be find"
+		print ap["mac"]
                 if find_ap(ap['mac']):
                     update_ap_list.append(ap)
                 else:

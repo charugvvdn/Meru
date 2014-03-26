@@ -22,7 +22,8 @@ class AnalyticsReport():
         self.type = kwargs['type'] if 'type' in kwargs else None
         self.gt = kwargs['gt'] if 'gt' in kwargs else None
         self.maclist = kwargs['maclist'] if 'maclist' in kwargs else None
-        self.doc_list = []
+        self.ap_doc_list = []
+        self.client_doc_list = []
         self.get_data = {}
         
         if self.lt and self.gt and self.maclist:
@@ -30,18 +31,18 @@ class AnalyticsReport():
                 # call for fetching clients document list
                 self.cursor = DB.device_clients.find({ "lower_snum":mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).sort('timestamp', -1)
                 for doc in self.cursor:
-                    self.doc_list.append(doc)
+                    self.client_doc_list.append(doc)
         elif self.lt and self.gt:
             # call for fetching aps document list
             self.cursor = DB.device_aps.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
                                 sort('timestamp', -1)
             for doc in self.cursor:
-                self.doc_list.append(doc)
+                self.ap_doc_list.append(doc)
             # call for fetching clients document list
             self.cursor = DB.device_clients.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
                                 sort('timestamp', -1)
             for doc in self.cursor:
-                self.doc_list.append(doc)
+                self.client_doc_list.append(doc)
             
         
     def clientDeviceType(self, **kwargs):
@@ -50,16 +51,14 @@ class AnalyticsReport():
         device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
         unique_clients = {}
         
-        for doc in self.doc_list:
-            if 'clients' in doc:
-                print doc
-                # get clients
-                clients = doc.get('clients')
-                if clients["mac"] not in unique_clients:
-                    if clients['clientType'].lower() in device_dict['device_type']:
-                        device_dict['device_type'][clients['clientType'].lower()] += 1
-                    
-                    unique_clients[clients["mac"]] = 0
+        for doc in self.client_doc_list:
+            # get clients
+            clients = doc.get('clients')
+            if clients["mac"] not in unique_clients:
+                if clients['clientType'].lower() in device_dict['device_type']:
+                    device_dict['device_type'][clients['clientType'].lower()] += 1
+                
+                unique_clients[clients["mac"]] = 0
                 
         
         return device_dict
@@ -71,18 +70,17 @@ class AnalyticsReport():
         temp_dict = {}
         unique_clients = {}
         
-        for doc in self.doc_list:
-            if 'clients' in doc:
-                # get clients
-                clients = doc.get('clients')
-                if clients["mac"] not in unique_clients:
+        for doc in self.client_doc_list:
+            # get clients
+            clients = doc.get('clients')
+            if clients["mac"] not in unique_clients:
+                usage = clients['rxBytes']+clients['txBytes']
+                unique_clients[clients["mac"]] = usage
+                    
+            else:
+                if clients['rxBytes']+clients['txBytes'] > unique_clients[clients['mac']]:
                     usage = clients['rxBytes']+clients['txBytes']
-                    unique_clients[clients["mac"]] = usage
-                        
-                else:
-                    if clients['rxBytes']+clients['txBytes'] > unique_clients[clients['mac']]:
-                        usage = clients['rxBytes']+clients['txBytes']
-                        unique_clients[clients['mac']] = usage
+                    unique_clients[clients['mac']] = usage
         temp_dict = sorted(unique_clients.values(),reverse=True)[:5] if len(unique_clients)>5 else unique_clients
         for mac in temp_dict:
             result_dict = {}
@@ -93,9 +91,6 @@ class AnalyticsReport():
 
     def report_analytics (self,**kwargs):
         # to count the number of online aps for last 24 hours
-        typeof = 'clients'
-        doc_list = []
-        # create a dictionary for 24 hours
         date_dict ={}
         date_dict=self.time_grouping()
         from_time = self.gt
@@ -127,20 +122,20 @@ class AnalyticsReport():
             unique_client = {}
             unique_ap =  {}
             
-            for doc in self.doc_list:
+            for doc in self.client_doc_list:
                 if doc['timestamp'] >= frm and doc['timestamp'] <= to:
-                    if 'clients' in doc:
-                        clients = doc.get('clients') 
-                        if clients['mac'] not in unique_client:
-                            unique_client[clients['mac']] = 0
-                            result_dict['no_of_clients'][count] += 1
-                    if 'aps' in doc:
-                        aps = doc.get('aps')
-                        if aps['status'].lower() == 'up' and aps['mac'] not in unique_ap:
-                            unique_client[aps['mac']] = 0
-                            result_dict['onlineAPs'][count] += 1
-                            # controller throughput to be revised with real values
-                            result_dict['controller_thru'][count] = randint(20000,100000)
+                    clients = doc.get('clients') 
+                    if clients['mac'] not in unique_client:
+                        unique_client[clients['mac']] = 0
+                        result_dict['no_of_clients'][count] += 1
+            for doc in self.ap_doc_list:
+                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
+                    aps = doc.get('aps')
+                    if aps['status'].lower() == 'up' and aps['mac'] not in unique_ap:
+                        unique_client[aps['mac']] = 0
+                        result_dict['onlineAPs'][count] += 1
+                        # controller throughput to be revised with real values
+                        result_dict['controller_thru'][count] = randint(20000,100000)
             
         return result_dict
         

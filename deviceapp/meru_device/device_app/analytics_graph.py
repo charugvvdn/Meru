@@ -18,6 +18,9 @@ class AnalyticsReport():
 
     '''Common variable used under the class methods'''
     def __init__(self,**kwargs):
+	print "Memory Report"
+	memory_report = self.memory_usage()
+	print memory_report
         self.lt= kwargs['lt'] if 'lt' in kwargs else None
         self.type = kwargs['type'] if 'type' in kwargs else None
         self.gt = kwargs['gt'] if 'gt' in kwargs else None
@@ -43,6 +46,22 @@ class AnalyticsReport():
                                 sort('timestamp', -1)
             for doc in self.cursor:
                 self.client_doc_list.append(doc)
+
+    def memory_usage(self):
+        """Memory usage of the current process in kilobytes."""
+        status = None
+        result = {'peak': 0, 'rss': 0}
+        try:
+            status = open('/proc/self/status')
+            for line in status:
+                parts = line.split()
+                key = parts[0][2:-1].lower()
+                if key in result:
+                    result[key] = int(parts[1])
+        finally:
+            if status is not None:
+                status.close()
+        return result
             
         
     def clientDeviceType(self, **kwargs):

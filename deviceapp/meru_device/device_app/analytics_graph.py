@@ -177,12 +177,12 @@ class AnalyticsReport():
         week = 0
         hours = 0
         days = 0
-        
+
         if secs > 0:
             mins += 1
             
         if self.type == "hours":
-            hours = hrs
+            hours = thistime.days *24 if thistime.days>0 else hrs
             if mins > 0:
                 hours += 1
                 

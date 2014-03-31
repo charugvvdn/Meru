@@ -161,17 +161,18 @@ class AnalyticsReport():
         
         if secs > 0:
             mins += 1
-            secs = 0
+            
         if self.type == "hours":
-            hours = thistime.days * 24
+            hours = hrs
             if mins > 0:
                 hours += 1
-                mins = 0 
+                
         if self.type == "days":
             days = thistime.days
+            if mins > 0:
+                hrs += 1
             if hrs > 0:
                 days += 1
-                hrs = 0
         if self.type == "week":
             week = math.ceil(float(thistime.days)/float(7))if thistime.days >= 7 else 1
         if self.type == "month":

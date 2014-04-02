@@ -137,7 +137,7 @@ class AnalyticsReport():
             result_dict['controller_thru'][count] = 0
             unique_client = {}
             unique_ap =  {}
-            
+            print self.client_doc_list
             for doc in self.client_doc_list:
                 if doc['timestamp'] >= frm and doc['timestamp'] <= to:
                     clients = doc.get('clients') 
@@ -221,7 +221,7 @@ class analytics_api(View):
             
             if 'type' in request_dict and 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the analyitics point graph on the basis of timestamp
-                obj = AnalyticsReport(gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict['type'] if 'type' in request_dict else None)
+                obj = AnalyticsReport(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict['type'] if 'type' in request_dict else None)
                 response_list.append(obj.report_analytics())
                 response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "onlineAPs, no.of clients and controller thoughput"}))
             elif 'time' in request_dict and "mac" in request_dict:

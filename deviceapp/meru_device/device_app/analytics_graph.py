@@ -97,6 +97,7 @@ class AnalyticsReport():
                     usage = clients['rxBytes']+clients['txBytes']
                     unique_clients[clients['mac']] = usage
         temp_dict = sorted(unique_clients.values(),reverse=True)[:5] if len(unique_clients)>5 else unique_clients
+        print temp_dict
         for mac in temp_dict:
             result_dict = {}
             result_dict['mac']= mac
@@ -217,18 +218,19 @@ class analytics_api(View):
         if not response and request_dict['time'][0] > request_dict['time'][1]:
                 response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
         if not response:
-            if 'time' in request_dict and "mac" in request_dict:
+            
+            if 'type' in request_dict and 'time' in request_dict and "mac" in request_dict:
+                # API for gathering info about the analyitics point graph on the basis of timestamp
+                obj = AnalyticsReport(gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict['type'] if 'type' in request_dict else None)
+                response_list.append(obj.report_analytics())
+                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "onlineAPs, no.of clients and controller thoughput"}))
+            elif 'time' in request_dict and "mac" in request_dict:
                 # API for gathering detailed info about the analyitics point graph on timestamp and MAC list basis
                 maclist = request_dict['mac']
                 obj = AnalyticsReport(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1])
                 response_list.append(obj.busiestClients())
                 response_list.append(obj.clientDeviceType())
                 response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "Device type distribution and 5 busiest clients"}))
-            
-            elif 'time' in request_dict:
-                # API for gathering info about the analyitics point graph on the basis of timestamp
-                obj = AnalyticsReport(gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict['type'] if 'type' in request_dict else None)
-                response_list.append(obj.report_analytics())
-                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "onlineAPs, no.of clients and controller thoughput"}))
+
             
         return response

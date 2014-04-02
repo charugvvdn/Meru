@@ -137,7 +137,7 @@ class AnalyticsReport():
             result_dict['controller_thru'][count] = 0
             unique_client = {}
             unique_ap =  {}
-            print self.client_doc_list
+            
             for doc in self.client_doc_list:
                 if doc['timestamp'] >= frm and doc['timestamp'] <= to:
                     clients = doc.get('clients') 

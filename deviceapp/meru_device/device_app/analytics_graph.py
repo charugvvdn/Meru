@@ -35,17 +35,13 @@ class AnalyticsReport():
                 self.cursor = DB.device_clients.find({ "lower_snum":mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).sort('timestamp', -1)
                 for doc in self.cursor:
                     self.client_doc_list.append(doc)
-        elif self.lt and self.gt:
-            # call for fetching aps document list
-            self.cursor = DB.device_aps.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
-                                sort('timestamp', -1)
-            for doc in self.cursor:
-                self.ap_doc_list.append(doc)
-            # call for fetching clients document list
-            self.cursor = DB.device_clients.find({ "timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
-                                sort('timestamp', -1)
-            for doc in self.cursor:
-                self.client_doc_list.append(doc)
+        
+                # call for fetching aps document list
+                self.cursor = DB.device_aps.find({ "lower_snum":mac.lower(),"timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
+                                    sort('timestamp', -1)
+                for doc in self.cursor:
+                    self.ap_doc_list.append(doc)
+           
 
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""

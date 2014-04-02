@@ -96,13 +96,13 @@ class AnalyticsReport():
                 if clients['rxBytes']+clients['txBytes'] > unique_clients[clients['mac']]:
                     usage = clients['rxBytes']+clients['txBytes']
                     unique_clients[clients['mac']] = usage
-        temp_dict = sorted(unique_clients.values(),reverse=True)[:5] if len(unique_clients)>5 else unique_clients
-        print temp_dict
-        for mac in temp_dict:
-            result_dict = {}
-            result_dict['mac']= mac
-            result_dict['usage'] =  temp_dict[mac]
-            busiest_dict['busiest_client'].append(result_dict)
+        
+        if len(unique_clients):
+            for key, value in sorted(unique_clients.iteritems(),reverse = True, key=lambda (k,v): (v,k))[:5]:
+                result_dict = {}
+                result_dict['mac']= key
+                result_dict['usage'] =  value
+                busiest_dict['busiest_client'].append(result_dict)
         return busiest_dict
 
     def report_analytics (self,**kwargs):

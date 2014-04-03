@@ -20,7 +20,7 @@ def ap_aggregation(start_time, end_time):
         ap_tx = doc.get('aps').get('txBytes')
         ap_info = {"ap_mac" : ap_mac, "ap_status" : ap_status, "ap_rx" : ap_rx, "ap_tx" : ap_tx}
         c_info = { "c_mac" : c_mac}
-        ap_doc = {"hour" : h, "date" : datetime_obj, "c_info" : [c_info], "ap_info" : [ap_info]}
+        ap_doc = {"hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "c_info" : [c_info], "ap_info" : [ap_info]}
 
         cur = db.ap_date_count.find({"hour" : h, "date" : datetime_obj})
         if cur.count():
@@ -29,10 +29,10 @@ def ap_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.ap_date_count.update({ "hour" : h, "date" : datetime_obj, "ap_info.ap_mac" : ap_mac}, \
                     {"$set" : {"ap_info.$.ap_tx" : ap_tx, "ap_info.$.ap_rx" : ap_rx,\
-                    "ap_info.$.ap_status" : ap_status}, "$addToSet" : { "c_info" : c_info}})
+                    "ap_info.$.ap_status" : ap_status}, "$addToSet" : { "c_info" : c_info}, "timestamp" : t_stmp})
             else:
                 db.ap_date_count.update({"hour" : h, "date" : datetime_obj}, \
-                    { "$addToSet" : { "ap_info" : ap_info, "c_info" : c_info}})
+                    { "$addToSet" : { "ap_info" : ap_info, "c_info" : c_info}, "timestamp" : t_stmp})
             print "AP doc updated\n"
         else:
             db.ap_date_count.insert(ap_doc)
@@ -60,7 +60,7 @@ def client_aggregation(start_time, end_time):
         client_info = { "client_type" : client_type, "client_rx" : client_rx, "client_tx" : \
                         client_tx, "client_mac" : client_mac}
         c_info = { "c_mac" : c_mac}
-        client_doc = { "hour" : h, "date" : datetime_obj, "client_info" : [client_info], "c_info" : [c_info]}
+        client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : [client_info], "c_info" : [c_info]}
 
         cur = db.client_date_count.find({"hour" : h, "date" : datetime_obj})
         if cur.count():
@@ -69,10 +69,10 @@ def client_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.client_date_count.update({ "hour" : h, "date" : datetime_obj, "client_info.client_mac" : client_mac}, \
                     {"$set" : {"client_info.$.client_tx" : client_tx, "client_info.$.client_rx" : client_rx,\
-                    "client_info.$.client_type" : client_type}, "$addToSet" : { "c_info" : c_info}})
+                    "client_info.$.client_type" : client_type}, "$addToSet" : { "c_info" : c_info}, "timestamp" : t_stmp})
             else:
                 db.client_date_count.update({"hour" : h, "date" : datetime_obj}, \
-                    { "$addToSet" : { "client_info" : client_info, "c_info" : c_info}})
+                    { "$addToSet" : { "client_info" : client_info, "c_info" : c_info}, "timestamp" : t_stmp})
             print "Client doc updated\n"
         else:
             db.client_date_count.insert(client_doc)

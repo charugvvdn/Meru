@@ -114,17 +114,20 @@ class AnalyticsReport():
                 loop_over = date_dict['hours']
                 add_time= 1
         for count in range(0,loop_over):
-            
+            frm = to
+            to = to + add_time * 60 * 60
             result_dict['no_of_clients'][count] =0
             result_dict['onlineAPs'][count] = 0
             result_dict['controller_thru'][count] = 0
-
+            unique_client = {}
+            unique_ap =  {}
+            
             for doc in self.client_doc_list:
-                if doc['date'].day == count:
+                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
                     client_count = len(doc.get('client_info'))
                     result_dict['no_of_clients'][count] = client_count
             for doc in self.ap_doc_list:
-                if doc['date'].day == count:
+                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
                     aps = doc.get('ap_info')
                     for ap in aps:
                         if ap['ap_status'].lower() == 'up':

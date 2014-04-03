@@ -38,10 +38,8 @@ class AnalyticsReport():
                 qry['c_info'] = { "$elemMatch": { "c_mac": mac.lower()}}
                 print qry
                 self.cl_cursor = DB.client_date_count.find(qry)
-                print self.cl_cursor.count()
                 self.ap_cursor = DB.ap_date_count.find(qry)
                 for doc in self.cl_cursor:
-                    print doc
                     self.client_doc_list.append(doc)
                 for doc in self.ap_cursor:
                     self.ap_doc_list.append(doc)           
@@ -103,7 +101,6 @@ class AnalyticsReport():
         add_time = 0
         loop_over = 0
         print date_dict
-        print self.client_doc_list
         if date_dict['month'] > 0:
                 loop_over = date_dict['month']
                 add_time = 30*24

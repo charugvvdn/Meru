@@ -28,20 +28,23 @@ class AnalyticsReport():
         self.ap_doc_list = []
         self.client_doc_list = []
         self.get_data = {}
-        
+        qry = {}
         if self.lt and self.gt and self.maclist:
+            lt = datetime.datetime.fromtimestamp(self.lt)
+            gt = datetime.datetime.fromtimestamp(self.gt)
+            
             for mac in self.maclist:
-                # call for fetching clients document list
-                self.cursor = DB.device_clients.find({ "lower_snum":mac.lower(), "timestamp": {"$gt": self.gt, "$lt": self.lt}}).sort('timestamp', -1)
-                for doc in self.cursor:
+                qry["date"] =  {"$gte": gt, "$lte": lt}
+                qry['c_info'] = { "$elemMatch": { "c_mac": mac.lower()}}
+                print qry
+                self.cl_cursor = DB.client_date_count.find(qry)
+                print self.cl_cursor.count()
+                self.ap_cursor = DB.ap_date_count.find(qry)
+                for doc in self.cl_cursor:
+                    print doc
                     self.client_doc_list.append(doc)
-        
-                # call for fetching aps document list
-                self.cursor = DB.device_aps.find({ "lower_snum":mac.lower(),"timestamp": {"$gt": self.gt, "$lt": self.lt}}).\
-                                    sort('timestamp', -1)
-                for doc in self.cursor:
-                    self.ap_doc_list.append(doc)
-           
+                for doc in self.ap_cursor:
+                    self.ap_doc_list.append(doc)           
 
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""
@@ -64,39 +67,24 @@ class AnalyticsReport():
 
         '''Calculating device type of clients '''
         device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
-        unique_clients = {}
-        
         for doc in self.client_doc_list:
-            # get clients
-            clients = doc.get('clients')
-            if clients["mac"] not in unique_clients:
-                if clients['clientType'].lower() in device_dict['device_type']:
-                    device_dict['device_type'][clients['clientType'].lower()] += 1
-                
-                unique_clients[clients["mac"]] = 0
-                
+            clients = doc.get('client_info')
+            for client in clients:
+                if client['client_type'].lower() in device_dict['device_type']:
+                    device_dict['device_type'][client['client_type'].lower()] += 1
         
         return device_dict
 
     def busiestClients(self, **kwargs ):
         '''Calculating top 5 busiest clients '''
         busiest_dict = {"busiest_client":[]}
-        result_list = []
-        temp_dict = {}
         unique_clients = {}
-        
+
         for doc in self.client_doc_list:
-            # get clients
-            clients = doc.get('clients')
-            if clients["mac"] not in unique_clients:
-                usage = clients['rxBytes']+clients['txBytes']
-                unique_clients[clients["mac"]] = usage
-                    
-            else:
-                if clients['rxBytes']+clients['txBytes'] > unique_clients[clients['mac']]:
-                    usage = clients['rxBytes']+clients['txBytes']
-                    unique_clients[clients['mac']] = usage
-        
+            clients = doc.get('client_info')
+            for client in clients:
+                usage = client['client_rx']+client['client_tx']
+                unique_clients[client["client_mac"]] = usage
         if len(unique_clients):
             for key, value in sorted(unique_clients.iteritems(),reverse = True, key=lambda (k,v): (v,k))[:5]:
                 result_dict = {}
@@ -109,14 +97,13 @@ class AnalyticsReport():
         # to count the number of online aps for last 24 hours
         date_dict ={}
         date_dict=self.time_grouping()
-        from_time = self.gt
-        to_time = self.lt
         result_dict = {"no_of_clients":{},"onlineAPs":{},"controller_thru":{}}
-        to = from_time
-        frm = from_time
+        to = self.gt
+        frm = self.gt
         add_time = 0
         loop_over = 0
         print date_dict
+        print self.client_doc_list
         if date_dict['month'] > 0:
                 loop_over = date_dict['month']
                 add_time = 30*24
@@ -130,28 +117,23 @@ class AnalyticsReport():
                 loop_over = date_dict['hours']
                 add_time= 1
         for count in range(0,loop_over):
-            frm = to
-            to = to + add_time * 60 * 60
+            
             result_dict['no_of_clients'][count] =0
             result_dict['onlineAPs'][count] = 0
             result_dict['controller_thru'][count] = 0
-            unique_client = {}
-            unique_ap =  {}
-            
+
             for doc in self.client_doc_list:
-                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
-                    clients = doc.get('clients') 
-                    if clients['mac'] not in unique_client:
-                        unique_client[clients['mac']] = 0
-                        result_dict['no_of_clients'][count] += 1
+                if doc['date'].day == count:
+                    client_count = len(doc.get('client_info'))
+                    result_dict['no_of_clients'][count] = client_count
             for doc in self.ap_doc_list:
-                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
-                    aps = doc.get('aps')
-                    if aps['status'].lower() == 'up' and aps['mac'] not in unique_ap:
-                        unique_client[aps['mac']] = 0
-                        result_dict['onlineAPs'][count] += 1
+                if doc['date'].day == count:
+                    aps = doc.get('ap_info')
+                    for ap in aps:
+                        if ap['ap_status'].lower() == 'up':
+                            result_dict['onlineAPs'][count] += 1
                         # controller throughput to be revised with real values
-                        result_dict['controller_thru'][count] = randint(20000,100000)
+                        result_dict['controller_thru'][count] = randint(2000,10000)
             
         return result_dict
         
@@ -220,13 +202,13 @@ class analytics_api(View):
         if not response:
             
             if 'type' in request_dict and 'time' in request_dict and "mac" in request_dict:
-                # API for gathering info about the analyitics point graph on the basis of timestamp
+                # API for gathering info about the analyitics point graph on the basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = AnalyticsReport(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict['type'] if 'type' in request_dict else None)
                 response_list.append(obj.report_analytics())
                 response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "onlineAPs, no.of clients and controller thoughput"}))
             elif 'time' in request_dict and "mac" in request_dict:
-                # API for gathering detailed info about the analyitics point graph on timestamp and MAC list basis
+                # API for gathering detailed info about the analyitics bar graph and pie chart on timestamp and MAC basis
                 maclist = request_dict['mac']
                 obj = AnalyticsReport(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1])
                 response_list.append(obj.busiestClients())

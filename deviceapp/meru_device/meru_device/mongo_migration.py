@@ -18,21 +18,25 @@ def ap_aggregation(start_time, end_time):
         ap_status = doc.get('aps').get('status')
         ap_rx = doc.get('aps').get('rxBytes')
         ap_tx = doc.get('aps').get('txBytes')
-        ap_info = {"ap_mac" : ap_mac, "ap_status" : ap_status, "ap_rx" : ap_rx, "ap_tx" : ap_tx}
+        ap_info = {"ap_mac" : ap_mac, "ap_status" : ap_status, "ap_rx" : ap_rx, "ap_tx" :\
+                     ap_tx}
         c_info = { "c_mac" : c_mac}
-        ap_doc = {"hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "c_info" : [c_info], "ap_info" : [ap_info]}
+        ap_doc = {"hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "c_info" : \
+                    [c_info], "ap_info" : [ap_info]}
 
         cur = db.ap_date_count.find({"hour" : h, "date" : datetime_obj})
         if cur.count():
             update_cursor = db.ap_date_count.find({"hour" : h, "date" : datetime_obj, \
                             "ap_info.ap_mac" : ap_mac})
             if update_cursor.count():
-                db.ap_date_count.update({ "hour" : h, "date" : datetime_obj, "ap_info.ap_mac" : ap_mac}, \
-                    {"$set" : {"ap_info.$.ap_tx" : ap_tx, "ap_info.$.ap_rx" : ap_rx,\
-                    "ap_info.$.ap_status" : ap_status}, "$addToSet" : { "c_info" : c_info}, "timestamp" : t_stmp})
+                db.ap_date_count.update({ "hour" : h, "date" : datetime_obj, "ap_info.ap_mac" : \
+                    ap_mac}, {"$set" : {"ap_info.$.ap_tx" : ap_tx, "ap_info.$.ap_rx" : ap_rx,\
+                    "ap_info.$.ap_status" : ap_status, "timestamp" : t_stmp}, "$addToSet" : \
+                    { "c_info" : c_info}})
             else:
                 db.ap_date_count.update({"hour" : h, "date" : datetime_obj}, \
-                    { "$addToSet" : { "ap_info" : ap_info, "c_info" : c_info}, "timestamp" : t_stmp})
+                    { "$addToSet" : { "ap_info" : ap_info, "c_info" : c_info}, "$set" : \
+                    { "timestamp" : t_stmp}})
             print "AP doc updated\n"
         else:
             db.ap_date_count.insert(ap_doc)
@@ -60,19 +64,22 @@ def client_aggregation(start_time, end_time):
         client_info = { "client_type" : client_type, "client_rx" : client_rx, "client_tx" : \
                         client_tx, "client_mac" : client_mac}
         c_info = { "c_mac" : c_mac}
-        client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : [client_info], "c_info" : [c_info]}
+        client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : \
+                    [client_info], "c_info" : [c_info]}
 
         cur = db.client_date_count.find({"hour" : h, "date" : datetime_obj})
         if cur.count():
             update_cursor = db.client_date_count.find({"hour" : h, "date" : datetime_obj, \
                             "client_info.client_mac" : client_mac})
             if update_cursor.count():
-                db.client_date_count.update({ "hour" : h, "date" : datetime_obj, "client_info.client_mac" : client_mac}, \
-                    {"$set" : {"client_info.$.client_tx" : client_tx, "client_info.$.client_rx" : client_rx,\
-                    "client_info.$.client_type" : client_type}, "$addToSet" : { "c_info" : c_info}, "timestamp" : t_stmp})
+                db.client_date_count.update({ "hour" : h, "date" : datetime_obj, \
+                "client_info.client_mac" : client_mac}, {"$set" : {"client_info.$.client_tx" : \
+                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_type" : \
+                client_type, "timestamp" : t_stmp}, "$addToSet" : { "c_info" : c_info}})
             else:
                 db.client_date_count.update({"hour" : h, "date" : datetime_obj}, \
-                    { "$addToSet" : { "client_info" : client_info, "c_info" : c_info}, "timestamp" : t_stmp})
+                    { "$addToSet" : { "client_info" : client_info, "c_info" : c_info}, \
+                    "$set" : { "timestamp" : t_stmp}})
             print "Client doc updated\n"
         else:
             db.client_date_count.insert(client_doc)
@@ -85,7 +92,8 @@ def main():
 
     offset  = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
     start_time = int((offset - datetime.datetime(1970, 1, 1)).total_seconds())
-    end_time  = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).total_seconds())
+    end_time  = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).\
+                total_seconds())
 
     ap_aggregation(start_time, end_time)
     client_aggregation(start_time, end_time)

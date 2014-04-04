@@ -100,6 +100,7 @@ class AnalyticsReport():
         frm = self.gt
         add_time = 0
         loop_over = 0
+        print self.client_doc_list
         print date_dict
         if date_dict['month'] > 0:
                 loop_over = date_dict['month']

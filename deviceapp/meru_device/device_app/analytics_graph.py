@@ -37,8 +37,8 @@ class AnalyticsReport():
                 qry["date"] =  {"$gte": gt, "$lte": lt}
                 qry['c_info'] = { "$elemMatch": { "c_mac": mac.lower()}}
                 print qry
-                self.cl_cursor = DB.client_date_count.find(qry)
-                self.ap_cursor = DB.ap_date_count.find(qry)
+                self.cl_cursor = DB.client_date_count.distinct('client_info.client_mac',qry)
+                self.ap_cursor = DB.ap_date_count.distinct('ap_info.ap_mac',qry)
                 for doc in self.cl_cursor:
                     self.client_doc_list.append(doc)
                 for doc in self.ap_cursor:

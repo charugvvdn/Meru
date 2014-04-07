@@ -312,6 +312,7 @@ class DeviceApplication(View):
 	memory_report = self.memory_usage()
         print "Memory Report"
         print memory_report
+	mac = ""
 	try:    
         	post_data = json.loads(request.body)
 	except ValueError as e:
@@ -319,11 +320,16 @@ class DeviceApplication(View):
 		print e
 		return HttpResponse(json.dumps({"status" : "false", "mac" : \
 		"No JSON object decoded"}))
-        if 'snum' in post_data.keys():
+
+        if 'snum' in post_data and post_data.get('snum'):
             mac = post_data.get('snum')
-        else:
-            mac = post_data.get('controller')
+        elif 'mac' in post_data.get('msgBody').get('controller') and post_data.get('msgBody').get('controller').get('mac'):
+            mac = post_data.get('msgBody').get('controller').get('mac')
 	print mac
+
+	if isinstance(mac, str) and len(mac) is 0:
+		return HttpResponse(json.dumps({ "status" : "false", "mac" : \
+			"No mac data from controller"}))
         no_mac = {"status": "false", "mac": mac}
 
 	print "mysql access in post"

@@ -323,7 +323,7 @@ class DeviceApplication(View):
             mac = post_data.get('snum')
         else:
             mac = post_data.get('controller')
-
+	print mac
         no_mac = {"status": "false", "mac": mac}
 
 	print "mysql access in post"

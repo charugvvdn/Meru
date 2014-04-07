@@ -289,6 +289,9 @@ def main():
     controller_list = []
 
     for doc in reversed(mon_data):
+	print "The controller doc"
+	print doc
+	print "---------------------------"
         alarms = []
         aps = []
         clients = []

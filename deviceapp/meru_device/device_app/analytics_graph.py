@@ -37,7 +37,7 @@ class AnalyticsReport():
             #for mac in self.maclist:
             self.maclist = map(str.lower,self.maclist)
             qry["date"] =  {"$gte": gt, "$lte": lt}
-            qry['c_info'] = { "$elemMatch": {"c_mac" : mac.lower()}}
+            qry['c_info.c_mac'] = { "$in": self.maclist}
             print qry
             self.cl_cursor = DB.client_date_count.find(qry)
             self.ap_cursor = DB.ap_date_count.find(qry)
@@ -123,7 +123,7 @@ class AnalyticsReport():
             result_dict['no_of_clients'][count] =0
             result_dict['onlineAPs'][count] = 0
             result_dict['controller_thru'][count] = 0
-            unique_client = {}
+            unique_clients = {}
             unique_ap =  {}
             
             for doc in self.client_doc_list:

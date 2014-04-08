@@ -249,7 +249,19 @@ class Raw_Model():
             response = []
 	cursor.close()
         return response
-
+	
+    def deactivateCommand(self, command_id):
+        """
+        Deactivate command 
+        """
+	try:
+		query = """ UPDATE meru_command SET command_status = 2 WHERE \
+				command_id = '%s'""" % command_id
+		cursor = connections['meru_cnms_dev'].cursor()
+		cursor.execute(query)
+		cursor.close()
+	except Exception as error:
+		print error	
 
 class DeviceApplication(View):
 
@@ -318,7 +330,7 @@ class DeviceApplication(View):
 	except ValueError as e:
 		print "Malformed json data from cntlr"
 		print e
-		return HttpResponse(json.dumps({"status" : "false", "mac" : \
+		return HttpResponse(json.dumps({"status" : "false", "mac-address" : \
 		"No JSON object decoded"}))
 
         if 'snum' in post_data and post_data.get('snum'):
@@ -328,9 +340,9 @@ class DeviceApplication(View):
 	print mac
 
 	if isinstance(mac, str) and len(mac) is 0:
-		return HttpResponse(json.dumps({ "status" : "false", "mac" : \
+		return HttpResponse(json.dumps({ "status" : "false", "mac-address" : \
 			"No mac data from controller"}))
-        no_mac = {"status": "false", "mac": mac}
+        no_mac = {"status": "false", "mac-address": mac}
 
 	print "mysql access in post"
 	print datetime.datetime.now()
@@ -376,7 +388,7 @@ class DeviceApplication(View):
             print e
         try:
             
-            command_id = int(post_data.get('command-id')) if post_data.get('command-id') else 0
+            command_id = int(post_data.get('current-command-id')) if post_data.get('current-command-id') else 0
             if command_id is 0:
                 # php api call
 	    	url = "http://54.186.33.61/command/controller/create"
@@ -387,6 +399,10 @@ class DeviceApplication(View):
             else:
                 raw_model = Raw_Model()  # Raw model class to access the sql
                 config_data = raw_model.isConfigData(post_data.get('snum'),command_id)
+		command_status = int(post_data.get('command-status'))
+		#check command-status. If equals -1 then change status of current-command-id to 2 i.e inactive
+		if command_status is -1:
+			raw_model.deactivateCommand(command_id)
 
 
         except ValueError as error:

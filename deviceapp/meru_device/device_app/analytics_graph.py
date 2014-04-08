@@ -29,20 +29,20 @@ class AnalyticsReport():
         self.client_doc_list = []
         self.get_data = {}
         qry = {}
+	self.maclist = map(str.lower, self.maclist)
         if self.lt and self.gt and self.maclist:
             lt = datetime.datetime.utcfromtimestamp(self.lt)
             gt = datetime.datetime.utcfromtimestamp(self.gt)
             
-            for mac in self.maclist:
-                qry["date"] =  {"$gte": gt, "$lte": lt}
-                qry['c_info'] = { "$elemMatch": { "c_mac": mac.lower()}}
-                print qry
-                self.cl_cursor = DB.client_date_count.distinct('client_info.client_mac',qry)
-                self.ap_cursor = DB.ap_date_count.distinct('ap_info.ap_mac',qry)
-                for doc in self.cl_cursor:
-                    self.client_doc_list.append(doc)
-                for doc in self.ap_cursor:
-                    self.ap_doc_list.append(doc)           
+	    qry["date"] =  {"$gte": gt, "$lte": lt}
+            qry['c_info.c_mac'] = { "$in" : self.maclist}
+            print qry
+            self.cl_cursor = DB.client_date_count.find(qry)
+            self.ap_cursor = DB.ap_date_count.find(qry)
+            for doc in self.cl_cursor:
+            	self.client_doc_list.append(doc)
+            for doc in self.ap_cursor:
+            	self.ap_doc_list.append(doc)           
 
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""
@@ -60,7 +60,6 @@ class AnalyticsReport():
                 status.close()
         return result
             
-        
     def clientDeviceType(self, **kwargs):
 
         '''Calculating device type of clients '''
@@ -101,6 +100,8 @@ class AnalyticsReport():
         add_time = 0
         loop_over = 0
         print date_dict
+	print len(self.ap_doc_list)
+	print "-------------------"
         if date_dict['month'] > 0:
                 loop_over = date_dict['month']
                 add_time = 30*24

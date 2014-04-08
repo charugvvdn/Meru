@@ -33,16 +33,17 @@ class AnalyticsReport():
             lt = datetime.datetime.utcfromtimestamp(self.lt)
             gt = datetime.datetime.utcfromtimestamp(self.gt)
             
-            for mac in self.maclist:
-                qry["date"] =  {"$gte": gt, "$lte": lt}
-                qry['c_info'] = { "$elemMatch": { "c_mac": mac.lower()}}
-                print qry
-                self.cl_cursor = DB.client_date_count.distinct('client_info.client_mac',qry)
-                self.ap_cursor = DB.ap_date_count.distinct('ap_info.ap_mac',qry)
-                for doc in self.cl_cursor:
-                    self.client_doc_list.append(doc)
-                for doc in self.ap_cursor:
-                    self.ap_doc_list.append(doc)           
+            #for mac in self.maclist:
+            self.maclist = map(str.lower,self.maclist)
+            qry["date"] =  {"$gte": gt, "$lte": lt}
+            qry['c_info.c_mac'] = { "$in": self.maclist}
+            print qry
+            self.cl_cursor = DB.client_date_count.find(qry)
+            self.ap_cursor = DB.ap_date_count.find(qry)
+            for doc in self.cl_cursor:
+                self.client_doc_list.append(doc)
+            for doc in self.ap_cursor:
+                self.ap_doc_list.append(doc)           
 
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""
@@ -113,6 +114,7 @@ class AnalyticsReport():
         elif date_dict['hours'] > 0:
                 loop_over = date_dict['hours']
                 add_time= 1
+	print self.client_doc_list
         for count in range(0,loop_over):
             frm = to
             to = to + add_time * 60 * 60
@@ -124,14 +126,19 @@ class AnalyticsReport():
             
             for doc in self.client_doc_list:
                 if doc['timestamp'] >= frm and doc['timestamp'] <= to:
-                    client_count = len(doc.get('client_info'))
-                    result_dict['no_of_clients'][count] = client_count
+                    clients  = doc.get('client_info')
+                    for cl in clients:
+                        if cl['client_mac'] not in unique_clients:
+                            unique_clients[cl['client_mac']] = 1
+                    result_dict['no_of_clients'][count] = len(unique_clients)
             for doc in self.ap_doc_list:
                 if doc['timestamp'] >= frm and doc['timestamp'] <= to:
                     aps = doc.get('ap_info')
                     for ap in aps:
-                        if ap['ap_status'].lower() == 'up':
-                            result_dict['onlineAPs'][count] += 1
+                        if ap['ap_mac'] not in unique_ap:
+                            unique_ap[ap['ap_mac']] = 1
+                            if ap['ap_status'].lower() == 'up':
+                                result_dict['onlineAPs'][count] += 1
                         # controller throughput to be revised with real values
                         result_dict['controller_thru'][count] = randint(2000,10000)
             

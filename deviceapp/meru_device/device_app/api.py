@@ -239,7 +239,7 @@ class HomeStats():
         for doc in kwargs['doc_list']:
             mac=doc['snum']
             # if secState == 1 , consider it as site security changed
-            if doc['secState'] == 1 and mac not in mac_list:
+            if 'secState' in doc and doc['secState'] == 1 and mac not in mac_list:
                 mac_list.append(mac)
 
         self.result_dict["change_security"] = {}

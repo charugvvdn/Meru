@@ -84,7 +84,7 @@ class DashboardStats():
 
         result_dict = {}
 
-        for doc in kwargs['doc_list']:
+        '''for doc in kwargs['doc_list']:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     clients = doc.get('msgBody').get('controller').get(typeof)
@@ -95,9 +95,9 @@ class DashboardStats():
                     aps = doc.get('msgBody').get('controller').get('aps')
                     for ap in aps:
                         wifi_client += ap['wifiExp']
-                        count += 1
+                        count += 1'''
         result_dict['label'] = 'Wifi experience'
-        result_dict['data'] = [wifi_client / count] if count > 0 else [0]
+        result_dict['data'] = 0 #[wifi_client / count] if count > 0 else [0]
         return result_dict
 
     def number_aps(self, **kwargs ):

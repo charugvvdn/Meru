@@ -13,6 +13,7 @@ import datetime
 import itertools
 from collections import Counter, OrderedDict
 import ast
+import re
 import json
 import requests
 from device_app.models import controller, command, alarm, dashboard_info, \
@@ -333,13 +334,13 @@ class DeviceApplication(View):
 		return HttpResponse(json.dumps({"status" : "false", "mac-address" : \
 		"No JSON object decoded"}))
 
-        if 'snum' in post_data and post_data.get('snum'):
+        if 'snum' in post_data and re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', post_data.get('snum')):
             mac = post_data.get('snum')
-        elif 'mac' in post_data.get('msgBody').get('controller') and post_data.get('msgBody').get('controller').get('mac'):
+        elif 'mac' in post_data.get('msgBody').get('controller'):
             mac = post_data.get('msgBody').get('controller').get('mac')
-	print mac
+	print str(mac)
 
-	if isinstance(mac, str) and len(mac) is 0:
+	if isinstance(mac, str) and len(mac) is 0 or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
 		return HttpResponse(json.dumps({ "status" : "false", "mac-address" : \
 			"No mac data from controller"}))
         no_mac = {"status": "false", "mac-address": mac}
@@ -530,16 +531,17 @@ class DeviceApplication(View):
         # splitting devices collection to new clients collection
         clients_list = []
         mac = doc.get('snum')
-        lower_snum = mac.lower()
         timestamp = doc.get('timestamp') or 0
         # get the clients data from controller data
-        if mac is None:
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
             mac = doc.get('msgBody').get('controller').get('mac')
+	lower_snum = mac.lower()
         if 'clients' in doc.get('msgBody').get('controller'):
             clients_list = doc.get('msgBody').get('controller').get('clients')
         
         for client in clients_list:
-            DB.device_clients.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "clients" : client})
+	    if re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', client.get('mac')):
+            	DB.device_clients.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "clients" : client})
         try:
             doc.get('msgBody').get('controller')['clients'] = []
         except KeyError as e:
@@ -551,16 +553,17 @@ class DeviceApplication(View):
         # splitting devices collection to new aps collection
         aps_list = []
         mac = doc.get('snum')
-        lower_snum = mac.lower()
         timestamp = doc.get('timestamp') or 0
         # get the aps data from controller data
-        if mac is None:
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
             mac = doc.get('msgBody').get('controller').get('mac')
+	lower_snum = mac.lower()
         if 'aps' in doc.get('msgBody').get('controller'):
             aps_list = doc.get('msgBody').get('controller').get('aps')
         
         for ap in aps_list:
-            DB.device_aps.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "aps" : ap})
+		if re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', ap.get('mac')):
+			DB.device_aps.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "aps" : ap})
         try:
             doc.get('msgBody').get('controller')['aps'] = []
         except KeyError as e:

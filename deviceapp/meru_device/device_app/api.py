@@ -238,9 +238,11 @@ class HomeStats():
         count = 0
         for doc in kwargs['doc_list']:
             mac=doc['snum']
-            # if secState == 1 , consider it as site security changed
-            if 'secState' in doc and doc['secState'] == 1 and mac not in mac_list:
-                mac_list.append(mac)
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+                if 'secState' in doc['msgBody'].get('controller'):
+                    security_state  = doc['msgBody'].get('controller').get('secState')
+                    if int(security_state) == 1 and mac not in mac_list:
+                        mac_list.append(mac)
 
         self.result_dict["change_security"] = {}
         self.result_dict["change_security"]['message'] = \
@@ -323,13 +325,16 @@ class HomeStats():
         result_dict = {}
 
         for doc in kwargs['doc_list']:
-            if 'controllerUtil' in doc:
-                if int(doc['controllerUtil']) < 50:
-                    lt_50_count = int(doc['controllerUtil'])
-                elif int(doc['controllerUtil']) > 50 and int(doc['controllerUtil']) <= 75:
-                    _50_75_count = int(doc['controllerUtil'])
-                else:
-                    lt_75_count = int(doc['controllerUtil'])
+            if 'msgBody' in doc and 'controller' in doc['msgBody']:
+
+                if 'controllerUtil' in doc['msgBody'].get('controller'):
+                    controller_util = doc.get('msgBody').get('controller').get('controllerUtil')
+                    if int(controller_util) < 50:
+                        lt_50_count = int(controller_util)
+                    elif int(controller_util) > 50 and int(controller_util) <= 75:
+                        _50_75_count = int(controller_util)
+                    else:
+                        lt_75_count = int(controller_util)
 
         result_dict['label'] = 'Controller Utilization'
         result_dict['data'] = [lt_50_count, _50_75_count, lt_75_count]

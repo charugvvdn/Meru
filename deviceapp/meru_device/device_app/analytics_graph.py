@@ -112,8 +112,6 @@ class AnalyticsReport():
         add_time = 0
         loop_over = 0
         print date_dict
-	print len(self.ap_doc_list)
-	print "-------------------"
         if date_dict['month'] > 0:
                 loop_over = date_dict['month']
                 add_time = 30*24
@@ -126,7 +124,6 @@ class AnalyticsReport():
         elif date_dict['hours'] > 0:
                 loop_over = date_dict['hours']
                 add_time= 1
-	print self.client_doc_list
         for count in range(0,loop_over):
             frm = to
             to = to + add_time * 60 * 60

@@ -212,15 +212,7 @@ class HomeStats():
     def access_pt_util(self, **kwargs):
         '''b. SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
         mac_list = []
-        typeof = "aps"
-        threshhold_max = 0
-        if 'threshhold' in kwargs['p_data']:
-            threshhold = kwargs['p_data']['threshhold']
-            threshhold_max = threshhold[1]
-
-        else:
-            threshhold_max = int(78799)
-
+        typeof = "clients"
         for doc in kwargs['doc_list']:
             mac = doc['snum']
             flag = 0
@@ -228,14 +220,8 @@ class HomeStats():
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
                 if typeof in doc['msgBody'].get('controller'):
                     # get the aps
-                    aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap_elem in aps:
-                        # sum of rx + tx bytes
-                        rx_tx = ap_elem['rxBytes'] + ap_elem['txBytes']
-                        # mark the mac where sum of rx+tx bytes is > threshold
-                        if rx_tx > threshhold_max:
-                            flag = 1
-                    if flag and mac not in mac_list:
+                    clients = doc.get('msgBody').get('controller').get(typeof)
+                    if len(clients) > 30 and mac not in mac_list:
                         mac_list.append(mac)
         self.result_dict["access_pt"] = {}
         self.result_dict["access_pt"]['message'] = \
@@ -331,9 +317,9 @@ class HomeStats():
     def controller_util(self, **kwargs ):
         '''API calculating controller utilization count'''
         typeof = 'controller'
-        lt_50_count = 10
-        _50_75_count = 20
-        lt_75_count = 33
+        lt_50_count = 0
+        _50_75_count = 0
+        lt_75_count = 0
         result_dict = {}
 
         for doc in kwargs['doc_list']:

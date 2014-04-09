@@ -399,7 +399,7 @@ class DeviceApplication(View):
         	return HttpResponse(r.text)
             else:
                 raw_model = Raw_Model()  # Raw model class to access the sql
-                config_data = raw_model.isConfigData(post_data.get('snum'),command_id)
+                config_data = raw_model.isConfigData(mac, command_id)
 		command_status = int(post_data.get('command-status'))
 		#check command-status. If equals -1 then change status of current-command-id to 2 i.e inactive
 		if command_status is -1:

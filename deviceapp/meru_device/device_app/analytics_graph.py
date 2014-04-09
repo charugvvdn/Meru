@@ -65,13 +65,23 @@ class AnalyticsReport():
     def clientDeviceType(self, **kwargs):
 
         '''Calculating device type of clients '''
-        device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
+        device_dict = {'device_list':[]}
         for doc in self.client_doc_list:
             clients = doc.get('client_info')
             for client in clients:
-                if client['client_type'].lower() in device_dict['device_type']:
-                    device_dict['device_type'][client['client_type'].lower()] += 1
-        
+                if len(device_dict['device_list']) == 0:
+                    new_dict = {}
+                    new_dict['type'] = client['client_type'].lower()
+                    new_dict['value'] = 0
+                    device_dict['device_list'].append(new_dict)
+                for val in device_dict['device_list']:
+                    if val['type'] == client['client_type'].lower():
+                        val['value'] += 1
+                    else:
+                        new_dict = {}
+                        new_dict['type'] = client['client_type'].lower()
+                        new_dict['value'] = 1
+                        device_dict['device_list'].append(new_dict)
         return device_dict
 
     def busiestClients(self, **kwargs ):

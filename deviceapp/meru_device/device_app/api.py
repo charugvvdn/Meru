@@ -249,13 +249,17 @@ class HomeStats():
     def change_security(self, **kwargs):
         ''' API Calculating change in security # '''
         mac_list = []
-        
-        ''' logic to be implemented'''
+        count = 0
+        for doc in kwargs['doc_list']:
+            mac=doc['snum']
+            # if secState == 1 , consider it as site security changed
+            if doc['secState'] == 1 and mac not in mac_list:
+                mac_list.append(mac)
 
         self.result_dict["change_security"] = {}
         self.result_dict["change_security"]['message'] = \
             "SITES WITH CHANGE IN SECURITY"
-        self.result_dict["change_security"]['count'] = 1
+        self.result_dict["change_security"]['count'] = len(mac_list)
         self.result_dict["change_security"]['status'] = True
         if kwargs['getlist'] == 1 :
             self.result_dict["change_security"]['mac'] = mac_list
@@ -264,24 +268,12 @@ class HomeStats():
     def sites_critical_health(self, **kwargs):
         '''SITES WITH CRITICAL HEALTH'''
         mac_list = []
-        typeof = "aps"
-        for doc in kwargs['doc_list']:
-            mac = doc['snum']
-            flag = 0
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    # get the access points
-                    aps = doc.get('msgBody').get('controller').get(typeof)
-                    for ap_elem in aps:
-                        # mark the mac where ap is down
-                        if ap_elem['status'].lower() == 'down':
-                            flag = 1
-                    if flag and mac not in mac_list:
-                        mac_list.append(mac)
+        # logic to be implemneted
+
         self.result_dict["sites_critcal_health"] = {}
         self.result_dict["sites_critcal_health"]['message'] = \
             "SITES WITH CRITICAL HEALTH"
-        self.result_dict["sites_critcal_health"]['count'] = len(mac_list)
+        self.result_dict["sites_critcal_health"]['count'] = 0
         self.result_dict["sites_critcal_health"]['status'] = True
         if kwargs['getlist'] == 1:
             self.result_dict["sites_critcal_health"]['mac'] = mac_list
@@ -339,19 +331,22 @@ class HomeStats():
     def controller_util(self, **kwargs ):
         '''API calculating controller utilization count'''
         typeof = 'controller'
-        gt_50_count = 10
+        lt_50_count = 10
         _50_75_count = 20
         lt_75_count = 33
         result_dict = {}
 
         for doc in kwargs['doc_list']:
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if typeof in doc['msgBody'].get('controller'):
-                    '''controllers = doc.get('msgBody').get('controller')\
-                    .get(typeof)
-                    # logic to be implemented'''
+            if 'controllerUtil' in doc:
+                if int(doc['controllerUtil']) < 50:
+                    lt_50_count = int(doc['controllerUtil'])
+                elif int(doc['controllerUtil']) > 50 and int(doc['controllerUtil']) <= 75:
+                    _50_75_count = int(doc['controllerUtil'])
+                else:
+                    lt_75_count = int(doc['controllerUtil'])
+
         result_dict['label'] = 'Controller Utilization'
-        result_dict['data'] = [gt_50_count, _50_75_count, lt_75_count]
+        result_dict['data'] = [lt_50_count, _50_75_count, lt_75_count]
         return result_dict
 
     def alarms(self, **kwargs ):
@@ -500,7 +495,7 @@ class HomeStats():
 
     def wireless_stats(self, **kwargs):
         '''SITES WITH DECREASE IN WIRELESS EXPERIENCES'''
-        wifiexp_ap_sum = 0
+        '''wifiexp_ap_sum = 0
         typeof = "aps"
         aps_count = len_controller_list = 0
         avg_doc_wifiexp = 0
@@ -563,15 +558,15 @@ class HomeStats():
                 len_controller_list += 1
 
             if kwargs['getlist'] == 1:
-                controller_list.append(doc_list[0]['snum'])
+                controller_list.append(doc_list[0]['snum'])'''
 
         self.result_dict["wifi_exp"] = {}
         self.result_dict["wifi_exp"]['message'] = \
             "SITES WITH DECREASE IN WIRELESS EXPERIENCES"
-        self.result_dict["wifi_exp"]['count'] = len_controller_list
+        self.result_dict["wifi_exp"]['count'] = 0 #len_controller_list
         self.result_dict["wifi_exp"]['status'] = True
         if kwargs['getlist'] == 1:
-            self.result_dict["wifi_exp"]['mac'] = controller_list
+            self.result_dict["wifi_exp"]['mac'] = [] #controller_list
         return self.result_dict['wifi_exp']
 
 

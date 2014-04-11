@@ -2,6 +2,7 @@ from pymongo import MongoClient
 import datetime
 from views import Common
 import pymongo
+from collections import Counter
 
 # Connection with mongoDB client
 try:
@@ -221,8 +222,13 @@ class HomeStats():
                 if typeof in doc['msgBody'].get('controller'):
                     # get the aps
                     clients = doc.get('msgBody').get('controller').get(typeof)
-                    if len(clients) > 30 and mac not in mac_list:
-                        mac_list.append(mac)
+                    apid_list = [client['apId'] for client in clients]
+                    print "apid_list", apid_list
+                    count_apid = Counter(apid_list)
+                    print "counting aps", count_apid
+                    for count in count_apid.values():
+                        if count > 30 and mac not in mac_list:
+                            mac_list.append(mac)
         self.result_dict["access_pt"] = {}
         self.result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"

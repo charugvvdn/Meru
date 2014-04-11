@@ -23,7 +23,7 @@ DATABASES = {
 	'ENGINE' : 'django.db.backends.mysql',
 	'NAME' : 'meru_cnms',
 	'USER' : 'root',
-	'PASSWORD' : 'zaqwsxCDE',
+	'PASSWORD' : 'admin',
 	'HOST' : '',
 	'PORT' : '',
 	},

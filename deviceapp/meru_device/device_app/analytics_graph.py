@@ -6,6 +6,7 @@ from django.views.generic.base import View
 import ast
 import csv, json
 import random
+from collections import Counter
 from random import randint
 # Connection with mongoDB client
 CLIENT = MongoClient()
@@ -64,13 +65,19 @@ class AnalyticsReport():
     def clientDeviceType(self, **kwargs):
 
         '''Calculating device type of clients '''
-        device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
+        client_types = []
+        device_dict = {"device_type":[]}
         for doc in self.client_doc_list:
             clients = doc.get('client_info')
             for client in clients:
-                if client['client_type'].lower() in device_dict['device_type']:
-                    device_dict['device_type'][client['client_type'].lower()] += 1
-        
+                client_types.append(client['client_type'])
+        count_devices = Counter(client_types)
+        for device,count in count_devices.iteritems():
+            new_dict={}
+            new_dict['type'] = device
+            new_dict['value'] = count
+            device_dict['device_type'].append(new_dict)
+            
         return device_dict
             
     def busiestClients(self, **kwargs ):

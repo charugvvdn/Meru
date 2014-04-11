@@ -61,29 +61,18 @@ class AnalyticsReport():
             if status is not None:
                 status.close()
         return result
-            
     def clientDeviceType(self, **kwargs):
 
         '''Calculating device type of clients '''
-        device_dict = {'device_list':[]}
+        device_dict = {"device_type":{"mac":0,"iphone":0,"ubuntu":0,"windows":0,"android":0}}
         for doc in self.client_doc_list:
             clients = doc.get('client_info')
             for client in clients:
-                if len(device_dict['device_list']) == 0:
-                    new_dict = {}
-                    new_dict['type'] = client['client_type'].lower()
-                    new_dict['value'] = 0
-                    device_dict['device_list'].append(new_dict)
-                for val in device_dict['device_list']:
-                    if val['type'] == client['client_type'].lower():
-                        val['value'] += 1
-                    else:
-                        new_dict = {}
-                        new_dict['type'] = client['client_type'].lower()
-                        new_dict['value'] = 1
-                        device_dict['device_list'].append(new_dict)
+                if client['client_type'].lower() in device_dict['device_type']:
+                    device_dict['device_type'][client['client_type'].lower()] += 1
+        
         return device_dict
-
+            
     def busiestClients(self, **kwargs ):
         '''Calculating top 5 busiest clients '''
         busiest_dict = {"busiest_client":[]}

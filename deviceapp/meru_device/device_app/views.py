@@ -125,7 +125,7 @@ class Common():
                 if not DB.devices.find({"lower_snum": mac.lower()}).count():
                     continue
                 cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
-                    : {"$gt": start_time, "$lt": end_time}})
+                    : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
                 
 
                 for doc in cursor:

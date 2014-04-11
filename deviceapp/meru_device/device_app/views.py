@@ -496,15 +496,15 @@ class DeviceApplication(View):
         new_alarms_list = []
         alarm_row = []
         mac = doc.get('snum')
-        lower_snum = mac.lower()
         timestamp = doc.get('timestamp') or 0
-        if mac is None:
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
             mac = doc.get('msgBody').get('controller').get('mac')
+	lower_snum = mac.lower()
         if 'alarms' in doc.get('msgBody').get('controller'):
             new_alarms_list = doc.get('msgBody').get('controller').get('alarms')
         
         try:
-            cursor = DB.device_alarms.find({ "mac" : mac}, { "alarms" : { "$slice" : -1}})
+            cursor = DB.device_alarms.find({ "controller_mac" : mac}, { "alarms" : { "$slice" : -1}})
         except Exception as error:
             print "mongoDB error in process_alarms"
             print error
@@ -514,7 +514,7 @@ class DeviceApplication(View):
             last_alarm = alarm_row[0].get('alarms')[0]
             for alarm in new_alarms_list:
                 if alarm["timeStamp"] > last_alarm["timeStamp"]:
-                    DB.device_alarms.update({ "mac" : mac}, { "$push" : { "alarms" : alarm}})
+                    DB.device_alarms.update({ "controller_mac" : mac}, { "$push" : { "alarms" : alarm}})
         else:
     	    if len(new_alarms_list):
                 	DB.device_alarms.insert({ "controller_mac" : mac, "timestamp":timestamp, \

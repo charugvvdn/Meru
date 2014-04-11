@@ -235,14 +235,19 @@ class HomeStats():
     def change_security(self, **kwargs):
         ''' API Calculating change in security # '''
         mac_list = []
+	unique_mac = {}
         count = 0
         for doc in kwargs['doc_list']:
             mac=doc['snum']
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if 'secState' in doc['msgBody'].get('controller'):
-                    security_state  = doc['msgBody'].get('controller').get('secState')
-                    if int(security_state) == 1 and mac not in mac_list:
-                        mac_list.append(mac)
+		if mac in unique_mac:
+		    pass
+		else:
+		    unique_mac[mac] = 0	
+                    if 'secState' in doc['msgBody'].get('controller'):
+                        security_state  = doc['msgBody'].get('controller').get('secState')
+                        if int(security_state) == 1 and mac not in mac_list:
+                            mac_list.append(mac)
 
         self.result_dict["change_security"] = {}
         self.result_dict["change_security"]['message'] = \
@@ -323,18 +328,22 @@ class HomeStats():
         _50_75_count = 0
         lt_75_count = 0
         result_dict = {}
-
+	unique_mac = {}
         for doc in kwargs['doc_list']:
             if 'msgBody' in doc and 'controller' in doc['msgBody']:
-
-                if 'controllerUtil' in doc['msgBody'].get('controller'):
-                    controller_util = doc.get('msgBody').get('controller').get('controllerUtil')
-                    if int(controller_util) < 50:
-                        lt_50_count = int(controller_util)
-                    elif int(controller_util) > 50 and int(controller_util) <= 75:
-                        _50_75_count = int(controller_util)
-                    else:
-                        lt_75_count = int(controller_util)
+		snum = doc.get('msgBody').get('snum');
+		if snum in unique_mac:
+		    pass
+		else:
+		    unique_mac[snum] = 0
+                    if 'controllerUtil' in doc['msgBody'].get('controller'):
+                        controller_util = doc.get('msgBody').get('controller').get('controllerUtil')
+                        if int(controller_util) < 50:
+                            lt_50_count += 1
+                        elif int(controller_util) > 50 and int(controller_util) <= 75:
+                            _50_75_count += 1
+                        else:
+                            lt_75_count += 1
 
         result_dict['label'] = 'Controller Utilization'
         result_dict['data'] = [lt_50_count, _50_75_count, lt_75_count]

@@ -145,8 +145,6 @@ def make_ready_ap(ap_list, update=True):
 def update_ap_data(ap_list):
     cursor = db.cursor()
     ap_data = make_ready_ap(ap_list, update=True)
-    print "ap tuple data from update_ap_data"
-    print ap_data
     cursor.executemany(
     """
     UPDATE `meru_ap`
@@ -194,14 +192,14 @@ def make_ready_client(client_list, update):
     client_data = []
     if update:
         for client in client_list:
-            t = (client['mac'], client['ap_mac'], client['ip'], client['clientType'],
+            t = (client['mac'], client.get('ap_mac'), client['ip'], client['clientType'],
                 client['rfBand'], client['ssid'], client['rxBytes'], client['txBytes'],
                 client['wifiExp'], client['wifiExpDescr'], client['mac'])
             client_data.append(t)
             t = ()
     else:
         for client in client_list:
-            t = (client['mac'], client['ap_mac'], client['ip'], client['clientType'],
+            t = (client['mac'], client.get('ap_mac'), client['ip'], client['clientType'],
                 client['rfBand'], client['ssid'], client['rxBytes'], client['txBytes'],
                 client['wifiExp'], client['wifiExpDescr'])
             client_data.append(t)
@@ -343,7 +341,11 @@ def main():
 
         for client in clients:
             if client['mac'] not in unique_clients:
-                client['ap_mac'] = ap_info[client['apId']]
+		try:
+                	client['ap_mac'] = ap_info[client['apId']]
+		except KeyError as error:
+			print "Error at clients apId"
+			print error
                 if find_client(client['mac']):
                     update_client_list.append(client)
                 else:

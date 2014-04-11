@@ -66,7 +66,7 @@ class AnalyticsReport():
 
         '''Calculating device type of clients '''
         client_types = []
-        device_dict = {"device_type":[]}
+        device_dict = {"device_list":[]}
         for doc in self.client_doc_list:
             clients = doc.get('client_info')
             for client in clients:
@@ -76,7 +76,7 @@ class AnalyticsReport():
             new_dict={}
             new_dict['type'] = device
             new_dict['value'] = count
-            device_dict['device_type'].append(new_dict)
+            device_dict['device_list'].append(new_dict)
             
         return device_dict
             

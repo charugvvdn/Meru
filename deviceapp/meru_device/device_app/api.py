@@ -223,9 +223,7 @@ class HomeStats():
                     # get the aps
                     clients = doc.get('msgBody').get('controller').get(typeof)
                     apid_list = [client['apId'] for client in clients]
-                    print "apid_list", apid_list
                     count_apid = Counter(apid_list)
-                    print "counting aps", count_apid
                     for count in count_apid.values():
                         if count > 30 and mac not in mac_list:
                             mac_list.append(mac)
@@ -478,9 +476,7 @@ class HomeStats():
                 mac_dict = {}
                 mac_dict ['list'] = [key for key in unique_clients]
                 mac_dict['count'] = count
-                print mac_dict
                 result_maclist.append(mac_dict)
-        print result_maclist
         # count of clients currently (near or at last timestamp)
         current = result_list[0] if result_list else 0
         # max count of clients among count of clients at every timestamp

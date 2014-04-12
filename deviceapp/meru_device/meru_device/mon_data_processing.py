@@ -123,6 +123,7 @@ def find_ap(ap_mac):
         return False
 
 def make_ready_ap(ap_list, update=True):
+    timestamp = int(time.time())
     ap_data = []
     if update:
         for ap in ap_list:
@@ -136,7 +137,7 @@ def make_ready_ap(ap_list, update=True):
         for ap in ap_list:
              status = 1 if ap['status'].lower() == "up" else 0
              t = (ap["name"], ap["c_id"], ap["mac"], ap["ip"], ap["model"], ap["rxBytes"], ap["txBytes"],
-                ap['wifiExp'], ap["wifiExpDescr"], status, ap["c_mac"])
+                ap['wifiExp'], ap["wifiExpDescr"], status, ap["c_mac"], timestamp)
 
              ap_data.append(t)
              t = ()
@@ -167,8 +168,8 @@ def insert_ap_data(ap_list):
     INSERT INTO `meru_ap`
     (`ap_name`, `ap_cid_fk`, `ap_mac`, 
     `ap_ip`, `ap_model`, `ap_rx`, `ap_tx`, `ap_wifiexp`, 
-    `ap_wifiexp_desc`, `ap_status`, `ap_controller_mac`)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    `ap_wifiexp_desc`, `ap_status`, `ap_controller_mac`, `ap_createdon`)
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """,ap_data
         )
     db.commit()

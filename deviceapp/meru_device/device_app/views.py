@@ -520,7 +520,6 @@ class DeviceApplication(View):
                 	DB.device_alarms.insert({ "controller_mac" : mac, "timestamp":timestamp, \
 			"lower_snum":lower_snum, "alarms" : new_alarms_list})
         try:
-            pass
             doc.get('msgBody').get('controller')['alarms'] = []
         except KeyError as e:
             print "Exception at process_alarms"

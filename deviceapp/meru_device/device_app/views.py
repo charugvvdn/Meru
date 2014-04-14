@@ -392,7 +392,8 @@ class DeviceApplication(View):
             command_id = int(post_data.get('current-command-id')) if post_data.get('current-command-id') else 0
             if command_id is 0:
                 # php api call
-	    	url = "http://54.186.33.61/command/controller/create"
+		host_ip = request.get_host().split(':')[0]
+	    	url = "http://" + str(host_ip) + "/command/controller/create"
         	data = json.dumps({"mac" : mac})
         	headers = {'Content-Type': 'application/json'}
         	r = requests.post(url, data=data, headers=headers)

@@ -56,11 +56,9 @@ def make_ready_controller(controller_list, update=True):
         for controller in controller_list:
 		if controller['operStat'].lower().strip() == "enabled" or controller['operStat'].lower().strip() == "up":
 			status = 1
-             #status = 1 #hardcoding this for now
-    	t = (status, controller["mac"])
-
-        controller_data.append(t)
-        t = ()
+    		t = (status, controller["mac"])
+		controller_data.append(t)
+		t = ()
     return controller_data
 
 def update_controller(controller_list):
@@ -78,7 +76,7 @@ def update_controller(controller_list):
     cursor.close()
 
     print "Updated Controller Data\n", controller_data
-    print "Success from Controller Data Update"
+    print "Success from update controller data\n"
 
 def make_ready_alarm(alarm_list):
     alarm_data = []
@@ -103,7 +101,7 @@ def insert_alarm_data(alarm_list):
     db.commit()
     cursor.close()
     print "insert_alarm_data\n", alarm_data
-    print "Succ from insert alarm_data"
+    print "Succ from insert alarm_data\n"
 
 def find_ap(ap_mac):
     cursor = db.cursor()
@@ -158,7 +156,7 @@ def update_ap_data(ap_list):
     db.commit()
     cursor.close()
     print "update_ap_data\n", ap_data
-    print "Succ from update ap_data"
+    print "Succ from update ap_data\n"
 
 def insert_ap_data(ap_list):
     cursor = db.cursor()
@@ -175,7 +173,7 @@ def insert_ap_data(ap_list):
     db.commit()
     cursor.close()
     print "insert_ap_data\n", ap_data
-    print "Succ from insert ap_data"
+    print "Succ from insert ap_data\n"
 
 def find_client(client_mac):
     cursor = db.cursor()
@@ -222,7 +220,7 @@ def update_client_data(client_list):
     db.commit()
     cursor.close()
     print "update_client_data\n", client_data
-    print "Succ from update client_data"
+    print "Succ from update client_data\n"
 
 def insert_client_data(client_list):
     cursor = db.cursor()
@@ -239,7 +237,7 @@ def insert_client_data(client_list):
     db.commit()
     cursor.close()
     print "insert_client_data\n", client_data
-    print "Succ from insert client_data"
+    print "Succ from insert client_data\n"
 
 def traverse(obj, l):
     if hasattr(obj, '__iter__'):
@@ -315,8 +313,6 @@ def main():
         controller["countrySettings"] = controllers["countrySettings"]
         controller["mac"] = controllers["mac"]
         controller_list.append(controller)
-	print "The Controller list\n"
-	print controller_list
 
         unique_aps = {}
 
@@ -352,6 +348,8 @@ def main():
                 else:
                     insert_client_list.append(client)
 
+    print "Final controller list"
+    print controller_list
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
 
     if len(controller_list):
@@ -361,11 +359,9 @@ def main():
         insert_alarm_data(alarm_mon_data)
 
     if len(update_client_list):
-        print "client_update_data\n", update_client_list
         update_client_data(update_client_list)
 
     if len(insert_client_list):
-        print "client_insert_data\n", insert_client_list
         insert_client_data(insert_client_list)
 
     if len(update_ap_list):

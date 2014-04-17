@@ -283,7 +283,6 @@ class HomeStats():
         result_dict = {}
         mac_list = []
         typeof = "aps"
-        print self.ap_doc_list
         for doc in self.ap_doc_list:
             if doc.get('lower_snum') and doc.get('status'):
                 mac = doc['lower_snum']
@@ -324,12 +323,10 @@ class HomeStats():
         lt_75_count = 0
         result_dict = {}
         unique_mac = {}
-        print self.controller_doc_list
         for doc in self.controller_doc_list:
             if doc.get('lower_snum') and doc.get('controllerUtil'):
                 mac = doc['lower_snum']
                 controller_util = int(doc['controllerUtil'])
-                print "controller_util",controller_util
                 if mac not in unique_mac:
                     unique_mac[mac] = 0
                     if controller_util < 50:

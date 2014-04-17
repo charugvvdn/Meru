@@ -376,6 +376,7 @@ class DeviceApplication(View):
             post_data = self.process_clients(post_data)
             #splitting data to save in device_aps
             post_data = self.process_aps(post_data)
+	    process_con = self.process_controller(post_data)
             print "db access in post:"
             print datetime.datetime.now()
             #DB.devices.insert(post_data)
@@ -530,7 +531,11 @@ class DeviceApplication(View):
     def process_clients(self, doc):
         # splitting devices collection to new clients collection
         clients_list = []
+	ap_info = {}
         mac = doc.get('snum')
+	ap_list = doc.get('msgBody').get('controller').get('aps')
+	for ap in ap_list:
+		ap_info[ap.get('id')] = ap.get('mac')
         timestamp = doc.get('timestamp') or 0
         # get the clients data from controller data
         if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
@@ -540,8 +545,16 @@ class DeviceApplication(View):
             clients_list = doc.get('msgBody').get('controller').get('clients')
         
         for client in clients_list:
-	    if re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', client.get('mac')):
-            	DB.device_clients.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "clients" : client})
+	    ap_id = client.get('apId')
+	    if re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', client.get('mac')) and ap_id in ap_info:
+	    	ap_mac = ap_info.get(ap_id)
+		try:
+	    		DB.device_clients.insert({ "controller_mac" : mac, "ap_mac" : \
+			ap_mac, "timestamp":timestamp, "lower_snum":lower_snum, \
+			"clients" : client})
+		except Exception as error:
+			print "Mongodb error in process_clients"
+			print error	
         try:
             doc.get('msgBody').get('controller')['clients'] = []
         except KeyError as e:
@@ -563,13 +576,35 @@ class DeviceApplication(View):
         
         for ap in aps_list:
 		if re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', ap.get('mac')):
-			DB.device_aps.insert({ "controller_mac" : mac, "timestamp":timestamp, "lower_snum":lower_snum, "aps" : ap})
+			try:
+				DB.device_aps.insert({ "controller_mac" : mac, "timestamp":timestamp, \
+				"lower_snum":lower_snum, "aps" : ap})
+			except Exception as error:
+				print "Mongodb error in process_aps"
+				print error
         try:
             doc.get('msgBody').get('controller')['aps'] = []
         except KeyError as e:
             print "Exception at process_clients"
             print e
         return doc
+
+    def process_controller(self, doc):
+	mac = doc.get('snum')
+	timestamp = doc.get('timestamp') or 0
+	if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
+		mac = doc.get('msgBody').get('controller').get('mac')
+	lower_snum = mac.lower()
+	opstatus = doc.get('msgBody').get('controller').get('operState')
+	util = doc.get('msgBody').get('controller').get('controllerUtil')
+	sec_state = doc.get('msgBody').get('controller').get('secState')
+	try:
+		DB.device_controllers.insert({ "lower_snum" : lower_snum, "timestamp" : timestamp, "operState" : opstatus,\
+					"controllerUtil" : util, "secState" : sec_state})
+	except Exception as error:
+		print "Mongodb error in process_controller"
+		print error
+	return True
 
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""

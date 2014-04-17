@@ -19,7 +19,7 @@ class DashboardStats():
 
     '''Common variable used under the class methods'''
 
-    def __init__(self):
+    def __init__(self,**kwargs):
         print "Memory Report"
         memory_report = self.memory_usage()
         print memory_report
@@ -35,18 +35,14 @@ class DashboardStats():
         qry = {}
         self.maclist = map(str.lower, self.maclist)
         if self.lt and self.gt and self.maclist:
-        lt = datetime.datetime.utcfromtimestamp(self.lt)
-        gt = datetime.datetime.utcfromtimestamp(self.gt)
-
-        #for mac in self.maclist:
-        self.maclist = map(str.lower,self.maclist)
-        qry["timestamp"] =  {"$gte": gt, "$lte": lt}
-        qry['lower_snum'] = { "$in": self.maclist}
-        
-        self.controller_cursor = DB.controller_stats.find(qry)
-        self.cl_cursor = DB.client_stats.find(qry)
-        self.ap_cursor = DB.ap_stats.find(qry)
-        self.alarm_cursor = DB.alarm_stats.find(qry)
+            #for mac in self.maclist:
+            self.maclist = map(str.lower,self.maclist)
+            qry["timestamp"] =  {"$gte": self.gt, "$lte": self.lt}
+            qry['lower_snum'] = { "$in": self.maclist}
+            self.controller_cursor = DB.controller_stats.find(qry)
+            self.cl_cursor = DB.client_stats.find(qry)
+            self.ap_cursor = DB.ap_stats.find(qry)
+            self.alarm_cursor = DB.alarm_stats.find(qry)
         for doc in self.controller_cursor:
             self.controller_doc_list.append(doc)
         for doc in self.cl_cursor:
@@ -78,6 +74,7 @@ class DashboardStats():
         online_clients = []
         critical_clients = []
         unique_clients = {}
+
         for doc in self.client_doc_list:
             if doc.get('client_mac') and doc.get('state'):
                 client_mac = doc['client_mac']
@@ -106,7 +103,7 @@ class DashboardStats():
                     unique_mac[mac] = 0
         result_dict['label'] = 'Number of controllers'
         result_dict['data'] = len(unique_mac)
-        if kwargs['getlist'] == 1:
+        if self.reporttype == 1:
             result_dict['maclist'] = [maclist]
         return result_dict
 
@@ -137,7 +134,7 @@ class DashboardStats():
                         offline_aplist.append(ap_mac)
         result_dict['label'] = 'Number of online offline aps'
         result_dict['data'] = [len(online_aplist), len(offline_aplist)]
-        if kwargs['getlist'] == 1:
+        if self.reporttype == 1:
             result_dict['aplist'] = [online_aplist, offline_aplist]
         return result_dict
 
@@ -170,7 +167,7 @@ class HomeStats():
 
     '''Common variable used under the class methods'''
 
-    def __init__(self):
+    def __init__(self,**kwargs):
         print "Memory Report"
         memory_report = self.memory_usage()
         print memory_report
@@ -186,18 +183,14 @@ class HomeStats():
         qry = {}
         self.maclist = map(str.lower, self.maclist)
         if self.lt and self.gt and self.maclist:
-        lt = datetime.datetime.utcfromtimestamp(self.lt)
-        gt = datetime.datetime.utcfromtimestamp(self.gt)
-
-        #for mac in self.maclist:
-        self.maclist = map(str.lower,self.maclist)
-        qry["timestamp"] =  {"$gte": gt, "$lte": lt}
-        qry['lower_snum'] = { "$in": self.maclist}
-        
-        self.controller_cursor = DB.controller_stats.find(qry)
-        self.cl_cursor = DB.client_stats.find(qry)
-        self.ap_cursor = DB.ap_stats.find(qry)
-        self.alarm_cursor = DB.alarm_stats.find(qry)
+            #for mac in self.maclist:
+            self.maclist = map(str.lower,self.maclist)
+            qry["timestamp"] =  {"$gte": self.gt, "$lte": self.lt}
+            qry['lower_snum'] = { "$in": self.maclist}
+            self.controller_cursor = DB.controller_stats.find(qry)
+            self.cl_cursor = DB.client_stats.find(qry)
+            self.ap_cursor = DB.ap_stats.find(qry)
+            self.alarm_cursor = DB.alarm_stats.find(qry)
         for doc in self.controller_cursor:
             self.controller_doc_list.append(doc)
         for doc in self.cl_cursor:
@@ -206,7 +199,7 @@ class HomeStats():
             self.ap_doc_list.append(doc)
         for doc in self.alarm_cursor:
             self.alarm_doc_list.append(doc)           
-
+        
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""
         status = None
@@ -226,7 +219,9 @@ class HomeStats():
     def access_pt_util(self, **kwargs):
         '''b. SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
         mac_list = []
+        result_dict = {}
         sites_count = 0
+        apid_list = []
         for doc in self.client_doc_list:
             if doc.get('lower_snum') and doc.get('ap_id'):
                 mac = doc['lower_snum']
@@ -238,17 +233,18 @@ class HomeStats():
         for count in count_apid.values():
             if count > 30:
                 sites_count += 1
-        self.result_dict["access_pt"] = {}
-        self.result_dict["access_pt"]['message'] = \
+        result_dict["access_pt"] = {}
+        result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"
-        self.result_dict["access_pt"]['count'] = sites_count
-        self.result_dict["access_pt"]['status'] = True
+        result_dict["access_pt"]['count'] = sites_count
+        result_dict["access_pt"]['status'] = True
         if self.reporttype == 1:
-            self.result_dict["access_pt"]['mac'] = mac_list
-        return self.result_dict['access_pt']
+            result_dict["access_pt"]['mac'] = mac_list
+        return result_dict['access_pt']
 
     def change_security(self, **kwargs):
         ''' API Calculating change in security # '''
+        result_dict = {}
         mac_list = []
         count = 0
         for doc in self.controller_doc_list:
@@ -258,49 +254,53 @@ class HomeStats():
                 if int(security_state) == 1 and mac not in mac_list:
                     mac_list.append(mac)
 
-        self.result_dict["change_security"] = {}
-        self.result_dict["change_security"]['message'] = \
+        result_dict["change_security"] = {}
+        result_dict["change_security"]['message'] = \
             "SITES WITH CHANGE IN SECURITY"
-        self.result_dict["change_security"]['count'] = len(mac_list)
-        self.result_dict["change_security"]['status'] = True
+        result_dict["change_security"]['count'] = len(mac_list)
+        result_dict["change_security"]['status'] = True
         if self.reporttype == 1 :
-            self.result_dict["change_security"]['mac'] = mac_list
-        return self.result_dict['change_security']
+            result_dict["change_security"]['mac'] = mac_list
+        return result_dict['change_security']
 
     def sites_critical_health(self, **kwargs):
         '''SITES WITH CRITICAL HEALTH'''
+        result_dict = {}
         mac_list = []
         # logic to be implemneted
 
-        self.result_dict["sites_critcal_health"] = {}
-        self.result_dict["sites_critcal_health"]['message'] = \
+        result_dict["sites_critcal_health"] = {}
+        result_dict["sites_critcal_health"]['message'] = \
             "SITES WITH CRITICAL HEALTH"
-        self.result_dict["sites_critcal_health"]['count'] = 0
-        self.result_dict["sites_critcal_health"]['status'] = True
+        result_dict["sites_critcal_health"]['count'] = 0
+        result_dict["sites_critcal_health"]['status'] = True
         if self.reporttype == 1:
-            self.result_dict["sites_critcal_health"]['mac'] = mac_list
-        return self.result_dict["sites_critcal_health"]
+            result_dict["sites_critcal_health"]['mac'] = mac_list
+        return result_dict["sites_critcal_health"]
 
     def sites_down(self, **kwargs):
         '''b. SITES WITH DEVICES DOWN'''
+        result_dict = {}
         mac_list = []
         typeof = "aps"
+        print self.ap_doc_list
         for doc in self.ap_doc_list:
             if doc.get('lower_snum') and doc.get('status'):
                 mac = doc['lower_snum']
                 ap_status = doc['status'].lower()
                 if ap_status == 'down' and mac not in mac_list:
                     mac_list.append(mac)
-        self.result_dict["sites_down"] = {}
-        self.result_dict["sites_down"]['message'] = "SITES WITH DEVICES DOWN"
-        self.result_dict["sites_down"]['count'] = len(mac_list)
-        self.result_dict["sites_down"]['status'] = True
+        result_dict["sites_down"] = {}
+        result_dict["sites_down"]['message'] = "SITES WITH DEVICES DOWN"
+        result_dict["sites_down"]['count'] = len(mac_list)
+        result_dict["sites_down"]['status'] = True
         if self.reporttype == 1 :
-            self.result_dict["sites_down"]['mac'] = mac_list
-        return self.result_dict["sites_down"]
+            result_dict["sites_down"]['mac'] = mac_list
+        return result_dict["sites_down"]
 
     def critical_alarms(self, **kwargs):
         '''SITES WITH CRITICAL ALARMS'''
+        result_dict = {}
         mac_list = []
         for doc in self.alarm_doc_list:
             if doc.get('lower_snum') and doc.get('severity'):
@@ -308,14 +308,14 @@ class HomeStats():
                 alarms_status = doc['severity'].lower()
                 if alarms_status  == 'critical' and mac not in mac_list:
                     mac_list.append(mac)
-        self.result_dict["critical_alarm"] = {}
-        self.result_dict["critical_alarm"]['message'] = \
+        result_dict["critical_alarm"] = {}
+        result_dict["critical_alarm"]['message'] = \
             "SITES WITH CRITICAL ALARMS"
-        self.result_dict["critical_alarm"]['count'] = len(mac_list)
-        self.result_dict["critical_alarm"]['status'] = True
+        result_dict["critical_alarm"]['count'] = len(mac_list)
+        result_dict["critical_alarm"]['status'] = True
         if self.reporttype == 1:
-            self.result_dict["critical_alarm"]['mac'] = mac_list
-        return self.result_dict["critical_alarm"]
+            result_dict["critical_alarm"]['mac'] = mac_list
+        return result_dict["critical_alarm"]
 
     def controller_util(self, **kwargs ):
         '''API calculating controller utilization count'''
@@ -323,13 +323,15 @@ class HomeStats():
         _50_75_count = 0
         lt_75_count = 0
         result_dict = {}
-	    unique_mac = {}
+        unique_mac = {}
+        print self.controller_doc_list
         for doc in self.controller_doc_list:
-            if doc.get('lower_snum') and doc.get('controller_util'):
+            if doc.get('lower_snum') and doc.get('controllerUtil'):
                 mac = doc['lower_snum']
-                controller_util = int(doc['controller_util'])
-        		if mac not in unique_mac:
-        		    unique_mac[mac] = 0
+                controller_util = int(doc['controllerUtil'])
+                print "controller_util",controller_util
+                if mac not in unique_mac:
+                    unique_mac[mac] = 0
                     if controller_util < 50:
                         lt_50_count += 1
                     elif controller_util > 50 and controller_util <= 75:
@@ -395,24 +397,27 @@ class HomeStats():
         peak_maclist = []
         result_dict = {}
         current_clients = []
+        max_client = 0
+        avg_client = 0
         if len(self.client_doc_list) > 0:
-            #current wireless clients count
-            for doc in self.client_doc_list[0]:
-                if  doc.get('lower_snum') and doc.get('client_mac'):
-                    client_mac = doc['client_mac']
-                    if client_mac not in current_clients:
-                        current_clients.append(client_mac)
-            all_clients = [{key,len(list(val))} for key, val in itertools.groupby(self.client_doc_list, lambda v: v['lower_snum'])]
+            doc = self.client_doc_list[0]
+            if  doc.get('lower_snum') and doc.get('client_mac'):
+                client_mac = doc['client_mac']
+                if client_mac not in current_clients:
+                    current_clients.append(client_mac)
+        all_clients = [{key,len(list(val))} for key, val in itertools.groupby(self.client_doc_list, lambda v: v['lower_snum'])]
 
-        for client_dict in all_clients:
-            for key,val in client_dict.iteritems():
-                peak_list.append(val)
-                peak_maclist.append(key)
+        for mac_iter in all_clients:
+            temp_list = list(mac_iter)
+            peak_list.append(temp_list[1])
+            peak_maclist.append(temp_list[0])
 
         result_dict['label'] = 'Wireless Clients'
-        result_dict['data'] = [len(current_clients), max(peak_list), sum(peak_list) / len(peak_list)]
+        if len(peak_list) > 0:
+            max_client = max(peak_list)
+            avg_client = sum(peak_list) / len(peak_list)
+        result_dict['data'] = [len(current_clients), max_client, avg_client ]
         
-
         if self.reporttype:
             result_dict['maclist'] = [{'current':current_clients, \
             'peak':peak_maclist}]
@@ -421,13 +426,14 @@ class HomeStats():
     def wireless_stats(self, **kwargs):
         '''SITES WITH DECREASE IN WIRELESS EXPERIENCES'''
         #logic to be inplemented
-        self.result_dict["wifi_exp"] = {}
-        self.result_dict["wifi_exp"]['message'] = \
+        result_dict = {} 
+        result_dict["wifi_exp"] = {}
+        result_dict["wifi_exp"]['message'] = \
             "SITES WITH DECREASE IN WIRELESS EXPERIENCES"
-        self.result_dict["wifi_exp"]['count'] = 0 
-        self.result_dict["wifi_exp"]['status'] = True
+        result_dict["wifi_exp"]['count'] = 0 
+        result_dict["wifi_exp"]['status'] = True
         if self.reporttype == 1:
-            self.result_dict["wifi_exp"]['mac'] = []
-        return self.result_dict['wifi_exp']
+            result_dict["wifi_exp"]['mac'] = []
+        return result_dict['wifi_exp']
 
 

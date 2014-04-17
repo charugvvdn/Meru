@@ -31,9 +31,9 @@ class HomeApi(View):
         if not response and request_dict['time'][0] > request_dict['time'][1]:
                 response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
         if not response:
-            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request.dict:
+            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request_dict:
                 maclist = request_dict['mac']
-                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request.dict['reportType'])
+                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request_dict['reportType'])
             elif 'time' in request_dict and "mac" in request_dict:
                 # API for gathering detailed info about the home stats 1 on timestamp and MAC basis
                 maclist = request_dict['mac']
@@ -84,9 +84,9 @@ class HomeApi2(View):
         if not response and request_dict['time'][0] > request_dict['time'][1]:
                 response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
         if not response:
-            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request.dict:
+            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request_dict:
                 maclist = request_dict['mac']
-                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request.dict['reportType'])
+                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request_dict['reportType'])
             elif 'time' in request_dict and "mac" in request_dict:
                 # API for gathering detailed info about the home stats 2 on timestamp and MAC basis
                 maclist = request_dict['mac']
@@ -127,9 +127,9 @@ class DashboardApi(View):
         if not response and request_dict['time'][0] > request_dict['time'][1]:
                 response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
         if not response:
-            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request.dict:
+            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request_dict:
                 maclist = request_dict['mac']
-                obj = DashboardStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request.dict['reportType'])
+                obj = DashboardStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request_dict['reportType'])
             elif 'time' in request_dict and "mac" in request_dict:
                 # API for gathering detailed info about the home stats 2 on timestamp and MAC basis
                 maclist = request_dict['mac']

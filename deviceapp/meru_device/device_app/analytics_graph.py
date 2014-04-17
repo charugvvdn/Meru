@@ -28,7 +28,7 @@ class AnalyticsReport():
         self.maclist = kwargs['maclist'] if 'maclist' in kwargs else None
         self.ap_doc_list = []
         self.client_doc_list = []
-        self.get_data = {}
+        
         qry = {}
 	self.maclist = map(str.lower, self.maclist)
         if self.lt and self.gt and self.maclist:

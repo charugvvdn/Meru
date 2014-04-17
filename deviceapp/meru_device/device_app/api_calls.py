@@ -17,181 +17,89 @@ class HomeApi(View):
     def get(self, request):
         ''' API calls initaited for home page'''
         response_list = []
+        request_dict ={}
         response = {}
-        home_stats = HomeStats()
-        getlist = 0
-        reporttype = ''
-        if 'getlist' in request.GET:
-            getlist = int(request.GET.get('getlist'))
-
+        maclist = []
         for key in request.GET:
-            home_stats.post_data[key] = \
-                ast.literal_eval(request.GET.get(key).strip()
+
+            request_dict[key] = ast.literal_eval(request.GET.get(key).strip()
                                  ) if request.GET.get(key) else 0
+        if "time" not in request_dict:
+                response = HttpResponse(json.dumps({"status": "false","message": "No time stamp specified"}))
+        if "mac" not in request_dict:
+                response = HttpResponse(json.dumps({"status": "false","message": "No mac specified"}))
+        if not response and request_dict['time'][0] > request_dict['time'][1]:
+                response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
+        if not response:
+            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request.dict:
+                maclist = request_dict['mac']
+                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request.dict['reportType'])
+            elif 'time' in request_dict and "mac" in request_dict:
+                # API for gathering detailed info about the home stats 1 on timestamp and MAC basis
+                maclist = request_dict['mac']
+                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1])
             
-        if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
-            response = HttpResponse(json.dumps({"status": "false",
-                                                "message": "No MAC data"}))
-        else:
-            # fetch the docs
-            doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
-            if not len(doc_list):
-                response = HttpResponse(json.dumps(\
-                    {"status": "false","message": "No matching MAC data"}\
-                    ))
-        
-
-        ''' spiliting the functions to separate APIs'''
-        if 'reportType' in request.GET and home_stats.post_data['reportType'] and not response:
-
-            reporttype = home_stats.post_data['reportType']
-            res_list = []
-            if reporttype == 'wirelessStats':
-                res_list = home_stats.wireless_stats(p_data = \
-                    home_stats.post_data,getlist = getlist)
-                
-            if reporttype == 'change_security':
-                res_list = home_stats.change_security\
-                (doc_list = doc_list,getlist = getlist)
-            if reporttype == "access_pt_util":
-                res_list = home_stats.access_pt_util\
-                (doc_list = doc_list,p_data = \
-                    home_stats.post_data,getlist = getlist)
-            if reporttype == "sites_down":
-                res_list = home_stats.sites_down \
-                (doc_list = doc_list,getlist = getlist)
-            if reporttype == "sites_critical_health":
-                res_list = home_stats.sites_critical_health\
-                (doc_list = doc_list,getlist = getlist)
-            if reporttype == "sites_critical_alarms":
-                res_list = home_stats.critical_alarms\
-                (doc_list = doc_list,getlist = getlist)
-
-            response = HttpResponse(json.dumps(\
-                    {"status": "true","values":res_list,"message": reporttype}\
-                    ))
-
-
-        if not reporttype and not response:
             # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
-            response_list.append(
-                home_stats.wireless_stats(p_data = \
-                    home_stats.post_data,getlist = getlist))
+            response_list.append(obj.wireless_stats())
             #------------------------
             # SITES WITH CHANGE IN SECURITY#
-            response_list.append(home_stats.change_security\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.change_security())
             #------------------------
             # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
-            response_list.append(home_stats.access_pt_util\
-                (doc_list = doc_list,p_data = \
-                    home_stats.post_data,getlist = getlist))
+            response_list.append(obj.access_pt_util())
             #-------------------------
             # SITES WITH DEVICES DOWN#
-            response_list.append(home_stats.sites_down\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.sites_down())
             #--------------------------
             # SITES WITH CRITICAL HEALTH
-            response_list.append(home_stats.sites_critical_health\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.sites_critical_health())
             #--------------------------
             # SITES WITH CRITICAL ALARMS#
-            response_list.append(home_stats.critical_alarms\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.critical_alarms())
             #----------------------------
             
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list,\
              "message": "Home page API for pannel 1 stats"}))
         return response
-
-
+        
 class HomeApi2(View):
 
     ''' Home page API'''
 
     def get(self, request):
         ''' API calls initaited for home page'''
-        home_stats = HomeStats()
         response_list = []
-        doc_list = []
+        request_dict ={}
         response = {}
-        start_time = 0
-        end_time = 0
-        getlist = 0
-        reporttype = ''
-        if 'getlist' in request.GET:
-            getlist = int(request.GET.get('getlist'))
+        maclist = []
         for key in request.GET:
-            home_stats.post_data[key] = \
-                ast.literal_eval(request.GET.get(key).strip()
+
+            request_dict[key] = ast.literal_eval(request.GET.get(key).strip()
                                  ) if request.GET.get(key) else 0
-
-        if 'mac' not in home_stats.post_data or not home_stats.post_data['mac']:
-            response = HttpResponse(json.dumps({"status": "false",
-                                                "message": "No MAC data"}))
-        else:
-            # fetch the docs
-            doc_list = home_stats.common.let_the_docs_out(home_stats.post_data)
-            if not len(doc_list):
-                response = HttpResponse(json.dumps(\
-                    {"status": "false","message": "No matching MAC data"}\
-                    ))
-        ''' if timestamp not mentioned in query string,
-             it takes last 30 minutes data'''
-        time_frame = home_stats.post_data['time'] if 'time' \
-        in home_stats.post_data else None
-        start_time = time_frame[0] if time_frame else \
-        int((OFFSET - UTC_1970).total_seconds())
-        end_time = time_frame[1] if time_frame else \
-        int((UTC_NOW - UTC_1970).total_seconds())
-        
-        ''' spiliting the functions to separate APIs'''
-        if 'reportType' in request.GET and home_stats.post_data['reportType'] and not response:
-
-            reporttype = home_stats.post_data['reportType']
-            print reporttype
-            res_list = []
-            if reporttype == 'wireless_clients':
-                res_list = home_stats.wireless_clients(mac_list = \
-                    home_stats.post_data['mac']\
-                    ,start_time = start_time, end_time = \
-                    end_time, getlist = getlist )
-                
-            if reporttype == 'access_points':
-                res_list = home_stats.access_points\
-                (mac_list = home_stats.\
-                post_data['mac'],start_time = start_time, \
-                end_time = end_time,getlist = getlist)
-            if reporttype == "alarms":
-                res_list = home_stats.alarms\
-                (doc_list = doc_list,getlist = getlist)
-            if reporttype == "controller_util":
-                res_list = home_stats.controller_util\
-                (doc_list = doc_list)
+        if "time" not in request_dict:
+                response = HttpResponse(json.dumps({"status": "false","message": "No time stamp specified"}))
+        if "mac" not in request_dict:
+                response = HttpResponse(json.dumps({"status": "false","message": "No mac specified"}))
+        if not response and request_dict['time'][0] > request_dict['time'][1]:
+                response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
+        if not response:
+            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request.dict:
+                maclist = request_dict['mac']
+                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request.dict['reportType'])
+            elif 'time' in request_dict and "mac" in request_dict:
+                # API for gathering detailed info about the home stats 2 on timestamp and MAC basis
+                maclist = request_dict['mac']
+                obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1])
             
-
-            response = HttpResponse(json.dumps(\
-                    {"status": "true","values":res_list,"message": reporttype}\
-                    ))
-        if not reporttype and not response:
             # WIRELESS CLIENTS
-            response_list.append(
-                home_stats.wireless_clients(mac_list = \
-                    home_stats.post_data['mac']\
-                    ,start_time = start_time, end_time = \
-                    end_time, getlist = getlist ))
+            response_list.append(obj.wireless_clients())
             # ACCESS POINTS
-            response_list.append(home_stats.access_points\
-                (mac_list = home_stats.\
-                post_data['mac'],start_time = start_time, \
-                end_time = end_time,getlist = getlist))
+            response_list.append(obj.access_points())
             # ALARMS
-            response_list.append(home_stats.alarms\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.alarms())
             # CONTROLLER UTILIZATION
-            response_list.append(home_stats.controller_util\
-                (doc_list = doc_list))
+            response_list.append(obj.controller_util())
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \
              "message": "Home page API for pannel 2 stats"}))
@@ -205,92 +113,42 @@ class DashboardApi(View):
     def get(self, request):
         ''' API calls initaited for Dashboard Stats'''
         response_list = []
-        doc_list = []
+        request_dict ={}
         response = {}
-        reporttype = ''
-        dash_stats = DashboardStats()
-        getlist = 0
-        if 'getlist' in request.GET:
-            getlist = int(request.GET.get('getlist'))
+        maclist = []
         for key in request.GET:
-            dash_stats.post_data[key] = \
-                ast.literal_eval(request.GET.get(key).strip()
+
+            request_dict[key] = ast.literal_eval(request.GET.get(key).strip()
                                  ) if request.GET.get(key) else 0
-        if 'mac' not in dash_stats.post_data or not dash_stats.post_data['mac']:
-            response = HttpResponse(json.dumps({"status": "false",
-                                                "message": "No MAC data"}))
-        
-        mac_list = dash_stats.post_data['mac'] if not response else []
-        # get all the documents with the matching mac irrespective of timestamp
-        try:
-            for mac in mac_list:
-                cursor = DB.devices.find({"lower_snum":mac.lower() })\
-                .sort('timestamp', -1).limit(1)
-                for doc in cursor:
-                    doc_list.append(doc)
-        except Exception, e:
-            print e
-
-        ''' spiliting the functions to separate APIs'''
-        if 'reportType' in request.GET and dash_stats.post_data['reportType'] and not response:
-
-            reporttype = dash_stats.post_data['reportType']
-            print reporttype
-            res_list = []
-            if reporttype == 'number_controllers':
-                res_list = dash_stats.number_controllers\
-                (doc_list = doc_list,getlist = getlist)
-                
-            if reporttype == 'number_stations':
-                res_list = dash_stats.number_stations\
-                (doc_list = doc_list,getlist = getlist)
-            if reporttype == "wifi_exp":
-                res_list = dash_stats.wifi_exp\
-                (doc_list = doc_list)
-            if reporttype == "number_aps":
-                res_list = dash_stats.number_aps\
-                (doc_list = doc_list,getlist = getlist)
-            if reporttype == "online_offline_aps":
-                res_list = dash_stats.online_offline_aps\
-                (doc_list = doc_list,getlist = getlist)
-            if reporttype == "status_last_login":
-                res_list = dash_stats.status_last_login\
-                (doc_list = doc_list,getlist = getlist)
+        if "time" not in request_dict:
+                response = HttpResponse(json.dumps({"status": "false","message": "No time stamp specified"}))
+        if "mac" not in request_dict:
+                response = HttpResponse(json.dumps({"status": "false","message": "No mac specified"}))
+        if not response and request_dict['time'][0] > request_dict['time'][1]:
+                response = HttpResponse(json.dumps({"status": "false","message": "Wrong time range"}))
+        if not response:
+            if 'time' in request_dict and "mac" in request_dict and 'reportType' in request.dict:
+                maclist = request_dict['mac']
+                obj = DashboardStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1],reportType = request.dict['reportType'])
+            elif 'time' in request_dict and "mac" in request_dict:
+                # API for gathering detailed info about the home stats 2 on timestamp and MAC basis
+                maclist = request_dict['mac']
+                obj = DashboardStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1])
             
-
-            response = HttpResponse(json.dumps(\
-                    {"status": "true","values":res_list,"message": reporttype}\
-                    ))
-        
-        if not len(doc_list) and not response:
-            response = HttpResponse(json.dumps(\
-                    {"status": "false","message": "No matching MAC data"}\
-                    ))
-        if not reporttype and not response:
-
             # NUMBER OF CONTROLLERS #
-            response_list.append(dash_stats.number_controllers\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.number_controllers())
 
             # NUMBER OF STATIONS #
-            response_list.append(dash_stats.number_stations\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.number_stations())
 
             # WI-FI EXPERIENCE #
-            response_list.append(dash_stats.wifi_exp\
-                (doc_list = doc_list))
-
-            # NUMBER OF APS #
-            response_list.append(dash_stats.number_aps\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.wifi_exp())
 
             # NUMBER OF ONLINE OFFLINE APS #
-            response_list.append(dash_stats.online_offline_aps\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.online_offline_aps())
 
             # Status Since Last Login #
-            response_list.append(dash_stats.status_last_login\
-                (doc_list = doc_list,getlist = getlist))
+            response_list.append(obj.alarms_count())
                     
             response = HttpResponse(json.dumps({"status": "true", \
              "values": response_list , \

@@ -406,9 +406,10 @@ class HomeStats():
         all_clients = [{key,len(list(val))} for key, val in itertools.groupby(self.client_doc_list, lambda v: v['lower_snum'])]
         for mac_iter in all_clients:
             temp_list = list(mac_iter)
-            peak_list.append(temp_list[0])
-            peak_maclist.append(temp_list[1])
+            peak_list.append(temp_list[1])
+            peak_maclist.append(temp_list[0])
         result_dict['label'] = 'Wireless Clients'
+        print "peak list",peak_list
         if len(peak_list) > 0:
             max_client = max(peak_list)
             avg_client = sum(peak_list) / len(peak_list)

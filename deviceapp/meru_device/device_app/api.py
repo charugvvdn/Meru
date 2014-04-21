@@ -397,12 +397,17 @@ class HomeStats():
         current_clients = []
         max_client = 0
         avg_client = 0
+        # getting the number of clients in controller which are added last in the db (latest timestamp)
         if len(self.client_doc_list) > 0:
             doc = self.client_doc_list[0]
-            if  doc.get('lower_snum') and doc.get('client_mac'):
-                client_mac = doc['client_mac']
-                if client_mac not in current_clients:
-                    current_clients.append(client_mac)
+            current_time = doc.get('timestamp')
+            for doc in self.client_doc_list:
+                if  doc.get('lower_snum') and doc.get('client_mac'):
+                    client_mac = doc['client_mac']
+                    time = doc['timestamp']
+                    if time == current_time and client_mac not in current_clients:
+                        current_clients.append(client_mac)
+        # getting the highest number of clients against the controller added between the given time range
         all_clients = [{key,len(list(val))} for key, val in itertools.groupby(self.client_doc_list, lambda v: v['lower_snum'])]
         for mac_iter in all_clients:
             temp_list = list(mac_iter)

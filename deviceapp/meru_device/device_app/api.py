@@ -104,7 +104,7 @@ class DashboardStats():
         result_dict['label'] = 'Number of controllers'
         result_dict['data'] = len(unique_mac)
         if self.reporttype == 1:
-            result_dict['maclist'] = [maclist]
+            result_dict['maclist'] = [unique_mac.keys()]
         return result_dict
 
     def wifi_exp(self, **kwargs):
@@ -227,12 +227,13 @@ class HomeStats():
                 mac = doc['lower_snum']
                 client_apid = doc['ap_id']
                 if mac not in mac_list:
-                    mac_list.append(mac)
                     apid_list.append(client_apid)
-        count_apid = Counter(apid_list)
-        for count in count_apid.values():
-            if count > 30:
-                sites_count += 1
+                count_apid = Counter(apid_list)
+                for key,count in count_apid.iteritems():
+                    if count > 30:
+                        sites_count += 1
+                        if doc['ap_id'] ==  key:
+                            mac_list.append(mac)
         result_dict["access_pt"] = {}
         result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"
@@ -403,12 +404,10 @@ class HomeStats():
                 if client_mac not in current_clients:
                     current_clients.append(client_mac)
         all_clients = [{key,len(list(val))} for key, val in itertools.groupby(self.client_doc_list, lambda v: v['lower_snum'])]
-
         for mac_iter in all_clients:
             temp_list = list(mac_iter)
-            peak_list.append(temp_list[1])
-            peak_maclist.append(temp_list[0])
-
+            peak_list.append(temp_list[0])
+            peak_maclist.append(temp_list[1])
         result_dict['label'] = 'Wireless Clients'
         if len(peak_list) > 0:
             max_client = max(peak_list)

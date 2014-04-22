@@ -378,9 +378,9 @@ class HomeStats():
                 if ap_mac not in unique_ap:
                     unique_ap[ap_mac] = 0
                     if ap_status == 'down':
-                        offline_maclist.append(mac)
+                        offline_maclist.append(ap_mac)
                     else:
-                        online_maclist.append(mac)
+                        online_maclist.append(ap_mac)
 
         result_dict['label'] = 'Access point'
         result_dict['data'] = [len(online_maclist), len(offline_maclist), 0]

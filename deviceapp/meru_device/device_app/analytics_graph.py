@@ -66,11 +66,14 @@ class AnalyticsReport():
 
         '''Calculating device type of clients '''
         client_types = []
+        unique_clients = []
         device_dict = {"device_list":[]}
         for doc in self.client_doc_list:
             clients = doc.get('client_info')
             for client in clients:
-                client_types.append(client['client_type'])
+                if client["client_mac"] not in unique_clients:
+                    unique_clients.append(client["client_mac"])
+                    client_types.append(client['client_type'])
         count_devices = Counter(client_types)
         for device,count in count_devices.iteritems():
             new_dict={}
@@ -89,7 +92,11 @@ class AnalyticsReport():
             clients = doc.get('client_info')
             for client in clients:
                 usage = client['client_rx']+client['client_tx']
-                unique_clients[client["client_mac"]] = usage
+                if client["client_mac"] not in unique_clients:
+                    unique_clients[client["client_mac"]] = usage
+                else:
+                    if unique_clients[client["client_mac"]] < usage:
+                        unique_clients[client["client_mac"]] = usage
         if len(unique_clients):
             for key, value in sorted(unique_clients.iteritems(),reverse = True, key=lambda (k,v): (v,k))[:5]:
                 result_dict = {}

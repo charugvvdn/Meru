@@ -370,13 +370,13 @@ class HomeStats():
         unique_ap = {}
         offline_maclist = []
         online_maclist = []
-    
+
         for doc in self.ap_doc_list:
-            if doc.get('lower_snum') and doc.get('status'):
+            if doc.get('ap_mac') and doc.get('status'):
                 ap_status = doc['status'].lower()
-                mac = doc['lower_snum']
-                if mac not in unique_ap:
-                    unique_ap[mac] = 0
+                ap_mac = doc['ap_mac']
+                if ap_mac not in unique_ap:
+                    unique_ap[ap_mac] = 0
                     if ap_status == 'down':
                         offline_maclist.append(mac)
                     else:

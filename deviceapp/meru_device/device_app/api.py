@@ -308,7 +308,7 @@ class HomeStats():
                 mac = doc['lower_snum']
                 for alarm in doc.get('alarms'):
                     alarm_status = alarm.get('severity').lower()
-                    if alarms_status  == 'critical' and mac not in mac_list:
+                    if alarm_status  == 'critical' and mac not in mac_list:
                         mac_list.append(mac)
         result_dict["critical_alarm"] = {}
         result_dict["critical_alarm"]['message'] = \

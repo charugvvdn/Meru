@@ -41,7 +41,7 @@ class DashboardStats():
             qry['lower_snum'] = { "$in": self.maclist}
             self.controller_cursor = DB.controller_stats.find(qry)
             self.cl_cursor = DB.client_stats.find(qry)
-            self.ap_cursor = DB.ap_stats.find(qry)
+            self.ap_cursor = DB.device_alarms.find(qry)
             self.alarm_cursor = DB.alarm_stats.find(qry)
         for doc in self.controller_cursor:
             self.controller_doc_list.append(doc)
@@ -146,9 +146,9 @@ class DashboardStats():
         critical_alarm = []
         minor_alarm  = []
         for doc in self.alarm_doc_list:
-            if  doc.get('lower_snum') and doc.get('severity'):
+            if  doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
-                alarm_status = doc['severity'].lower()
+                alarm_status = doc.get('alarms').get('severity').lower()
                 if alarm_status == 'high':
                     high_alarm.append(mac)
                 elif alarm_status == 'critical':
@@ -303,9 +303,9 @@ class HomeStats():
         result_dict = {}
         mac_list = []
         for doc in self.alarm_doc_list:
-            if doc.get('lower_snum') and doc.get('severity'):
+            if doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
-                alarms_status = doc['severity'].lower()
+                alarms_status = doc.get('alarms').get('severity').lower()
                 if alarms_status  == 'critical' and mac not in mac_list:
                     mac_list.append(mac)
         result_dict["critical_alarm"] = {}
@@ -348,9 +348,9 @@ class HomeStats():
         critical_alarm = []
         minor_alarm  = []
         for doc in self.alarm_doc_list:
-            if doc.get('lower_snum') and doc.get('severity'):
+            if doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
-                alarm_status = doc['severity'].lower()
+                alarm_status = doc.get('alarms').get('severity').lower()
                 if alarm_status == 'high':
                     high_alarm.append(mac)
                 elif alarm_status == 'critical':

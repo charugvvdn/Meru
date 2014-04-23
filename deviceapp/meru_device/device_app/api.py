@@ -414,10 +414,12 @@ class HomeStats():
                         current_clients.append(client_mac)
         # getting the highest number of clients against the controller added between the given time range
         all_clients = [{key,len(list(val))} for key, val in itertools.groupby(self.client_doc_list, lambda v: v['lower_snum'])]
+	all_clients = dict(sorted(x,key=lambda k:isinstance(k,int),reverse=True) for x in all_clients)
+	print "---all clients--"
+	print all_clients
         for mac_iter in all_clients:
-            temp_list = list(mac_iter)
-            peak_list.append(temp_list[1])
-            peak_maclist.append(temp_list[0])
+            peak_list.append(mac_iter)
+            peak_maclist.append(all_clients[mac_iter])
         result_dict['label'] = 'Wireless Clients'
         print "peak list",peak_list
         if len(peak_list) > 0:

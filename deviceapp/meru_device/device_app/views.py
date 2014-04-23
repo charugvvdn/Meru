@@ -504,7 +504,6 @@ class DeviceApplication(View):
 	lower_snum = mac.lower()
         if 'alarms' in doc.get('msgBody').get('controller'):
             new_alarms_list = doc.get('msgBody').get('controller').get('alarms')
-        
         try:
             cursor = DB.device_alarms.find({ "controller_mac" : mac}, { "alarms" : { "$slice" : -1}})
         except Exception as error:
@@ -516,7 +515,8 @@ class DeviceApplication(View):
             last_alarm = alarm_row[0].get('alarms')[0]
             for alarm in new_alarms_list:
                 if alarm["timeStamp"] > last_alarm["timeStamp"]:
-                    DB.device_alarms.update({ "controller_mac" : mac}, { "$push" : { "alarms" : alarm}})
+                    DB.device_alarms.update({ "controller_mac" : mac}, { "$push" : \
+			{ "alarms" : alarm}, "$set" : { "timestamp" : timestamp}})
         else:
     	    if len(new_alarms_list):
                 	DB.device_alarms.insert({ "controller_mac" : mac, "timestamp":timestamp, \

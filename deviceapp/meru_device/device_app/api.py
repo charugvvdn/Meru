@@ -225,23 +225,25 @@ class HomeStats():
         apid_list = []
         for doc in self.client_doc_list:
             if doc.get('lower_snum') and doc.get('ap_id'):
-                mac = doc['lower_snum']
-                client_apid = doc['ap_id']
-                if mac not in mac_list:
+                if mac not in controller_dict:
+                    mac = doc['lower_snum']
+                    client_apid = doc['ap_id']
                     apid_list.append(client_apid)
-                count_apid = Counter(apid_list)
-                for key,count in count_apid.iteritems():
-                    if count > 30:
-                        sites_count += 1
-                        if doc['ap_id'] ==  key:
-                            mac_list.append(mac)
+                    controller_dict[mac] = apid_list
+        for mac in controller_dict:
+            count_apid = Counter(controller_dict[mac])
+            for key,count in count_apid.iteritems():
+                if count > 30:
+                    break
+            sites_count += 1
+
         result_dict["access_pt"] = {}
         result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"
         result_dict["access_pt"]['count'] = sites_count
         result_dict["access_pt"]['status'] = True
         if self.reporttype == 1:
-            result_dict["access_pt"]['mac'] = mac_list
+            result_dict["access_pt"]['mac'] = controller_dict.keys()
         return result_dict['access_pt']
 
     def change_security(self, **kwargs):

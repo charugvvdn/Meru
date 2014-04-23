@@ -148,13 +148,14 @@ class DashboardStats():
         for doc in self.alarm_doc_list:
             if  doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
-                alarm_status = doc.get('alarms').get('severity').lower()
-                if alarm_status == 'high':
-                    high_alarm.append(mac)
-                elif alarm_status == 'critical':
-                    critical_alarm.append(mac)
-                elif alarm_status == 'low':
-                    minor_alarm.append(mac)
+                for alarm in doc.get('alarms'):
+                    alarms_status = alarm.get('severity').lower()
+                    if alarm_status == 'high':
+                        high_alarm.append(mac)
+                    elif alarm_status == 'critical':
+                        critical_alarm.append(mac)
+                    elif alarm_status == 'low':
+                        minor_alarm.append(mac)
         result_dict['label'] = 'Alarms'
         result_dict['data'] = [len(critical_alarm), len(high_alarm), len(minor_alarm)]
         if self.reporttype == 1:
@@ -189,7 +190,7 @@ class HomeStats():
             qry['lower_snum'] = { "$in": self.maclist}
             self.controller_cursor = DB.controller_stats.find(qry)
             self.cl_cursor = DB.client_stats.find(qry)
-            self.ap_cursor = DB.ap_stats.find(qry)
+            self.ap_cursor = DB.device_alarms.find(qry)
             self.alarm_cursor = DB.alarm_stats.find(qry)
         for doc in self.controller_cursor:
             self.controller_doc_list.append(doc)
@@ -305,9 +306,10 @@ class HomeStats():
         for doc in self.alarm_doc_list:
             if doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
-                alarms_status = doc.get('alarms').get('severity').lower()
-                if alarms_status  == 'critical' and mac not in mac_list:
-                    mac_list.append(mac)
+                for alarm in doc.get('alarms'):
+                    alarms_status = alarm.get('severity').lower()
+                    if alarms_status  == 'critical' and mac not in mac_list:
+                        mac_list.append(mac)
         result_dict["critical_alarm"] = {}
         result_dict["critical_alarm"]['message'] = \
             "SITES WITH CRITICAL ALARMS"
@@ -350,13 +352,14 @@ class HomeStats():
         for doc in self.alarm_doc_list:
             if doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
-                alarm_status = doc.get('alarms').get('severity').lower()
-                if alarm_status == 'high':
-                    high_alarm.append(mac)
-                elif alarm_status == 'critical':
-                    critical_alarm.append(mac)
-                elif alarm_status == 'low':
-                    minor_alarm.append(mac)
+                for alarm in doc.get('alarms'):
+                    alarms_status = alarm.get('severity').lower()
+                    if alarm_status == 'high':
+                        high_alarm.append(mac)
+                    elif alarm_status == 'critical':
+                        critical_alarm.append(mac)
+                    elif alarm_status == 'low':
+                        minor_alarm.append(mac)
         result_dict['label'] = 'Alarms'
         result_dict['data'] = [len(critical_alarm), len(high_alarm), len(minor_alarm)]
         if self.reporttype == 1:

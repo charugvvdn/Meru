@@ -41,8 +41,8 @@ class DashboardStats():
             qry['lower_snum'] = { "$in": self.maclist}
             self.controller_cursor = DB.controller_stats.find(qry)
             self.cl_cursor = DB.client_stats.find(qry)
-            self.ap_cursor = DB.device_alarms.find(qry)
-            self.alarm_cursor = DB.alarm_stats.find(qry)
+            self.ap_cursor = DB.ap_stats.find(qry)
+            self.alarm_cursor = DB.device_alarms.find(qry)
             for doc in self.controller_cursor:
                 self.controller_doc_list.append(doc)
             for doc in self.cl_cursor:
@@ -190,8 +190,8 @@ class HomeStats():
             qry['lower_snum'] = { "$in": self.maclist}
             self.controller_cursor = DB.controller_stats.find(qry)
             self.cl_cursor = DB.client_stats.find(qry)
-            self.ap_cursor = DB.device_alarms.find(qry)
-            self.alarm_cursor = DB.alarm_stats.find(qry)
+            self.ap_cursor = DB.ap_stats.find(qry)
+            self.alarm_cursor = DB.device_alarms.find(qry)
             for doc in self.controller_cursor:
                 self.controller_doc_list.append(doc)
             for doc in self.cl_cursor:

@@ -43,14 +43,14 @@ class DashboardStats():
             self.cl_cursor = DB.client_stats.find(qry)
             self.ap_cursor = DB.device_alarms.find(qry)
             self.alarm_cursor = DB.alarm_stats.find(qry)
-        for doc in self.controller_cursor:
-            self.controller_doc_list.append(doc)
-        for doc in self.cl_cursor:
-            self.client_doc_list.append(doc)
-        for doc in self.ap_cursor:
-            self.ap_doc_list.append(doc)
-        for doc in self.alarm_cursor:
-            self.alarm_doc_list.append(doc)           
+            for doc in self.controller_cursor:
+                self.controller_doc_list.append(doc)
+            for doc in self.cl_cursor:
+                self.client_doc_list.append(doc)
+            for doc in self.ap_cursor:
+                self.ap_doc_list.append(doc)
+            for doc in self.alarm_cursor:
+                self.alarm_doc_list.append(doc)           
 
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""
@@ -149,7 +149,7 @@ class DashboardStats():
             if  doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
                 for alarm in doc.get('alarms'):
-                    alarms_status = alarm.get('severity').lower()
+                    alarm_status = alarm.get('severity').lower()
                     if alarm_status == 'high':
                         high_alarm.append(mac)
                     elif alarm_status == 'critical':
@@ -192,14 +192,14 @@ class HomeStats():
             self.cl_cursor = DB.client_stats.find(qry)
             self.ap_cursor = DB.device_alarms.find(qry)
             self.alarm_cursor = DB.alarm_stats.find(qry)
-        for doc in self.controller_cursor:
-            self.controller_doc_list.append(doc)
-        for doc in self.cl_cursor:
-            self.client_doc_list.append(doc)
-        for doc in self.ap_cursor:
-            self.ap_doc_list.append(doc)
-        for doc in self.alarm_cursor:
-            self.alarm_doc_list.append(doc)           
+            for doc in self.controller_cursor:
+                self.controller_doc_list.append(doc)
+            for doc in self.cl_cursor:
+                self.client_doc_list.append(doc)
+            for doc in self.ap_cursor:
+                self.ap_doc_list.append(doc)
+            for doc in self.alarm_cursor:
+                self.alarm_doc_list.append(doc)           
         
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""
@@ -307,7 +307,7 @@ class HomeStats():
             if doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
                 for alarm in doc.get('alarms'):
-                    alarms_status = alarm.get('severity').lower()
+                    alarm_status = alarm.get('severity').lower()
                     if alarms_status  == 'critical' and mac not in mac_list:
                         mac_list.append(mac)
         result_dict["critical_alarm"] = {}
@@ -353,7 +353,7 @@ class HomeStats():
             if doc.get('lower_snum') and doc.get('alarms'):
                 mac = doc['lower_snum']
                 for alarm in doc.get('alarms'):
-                    alarms_status = alarm.get('severity').lower()
+                    alarm_status = alarm.get('severity').lower()
                     if alarm_status == 'high':
                         high_alarm.append(mac)
                     elif alarm_status == 'critical':

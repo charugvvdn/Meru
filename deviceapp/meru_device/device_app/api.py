@@ -39,10 +39,10 @@ class DashboardStats():
             self.maclist = map(str.lower,self.maclist)
             qry["timestamp"] =  {"$gte": self.gt, "$lte": self.lt}
             qry['lower_snum'] = { "$in": self.maclist}
-            self.controller_cursor = DB.controller_stats.find(qry)
-            self.cl_cursor = DB.client_stats.find(qry)
-            self.ap_cursor = DB.ap_stats.find(qry)
-            self.alarm_cursor = DB.device_alarms.find(qry)
+            self.controller_cursor = DB.controller_stats.find(qry).sort('_id',-1)
+            self.cl_cursor = DB.client_stats.find(qry).sort('_id',-1)
+            self.ap_cursor = DB.ap_stats.find(qry).sort('_id',-1)
+            self.alarm_cursor = DB.device_alarms.find(qry).sort('_id',-1)
             for doc in self.controller_cursor:
                 self.controller_doc_list.append(doc)
             for doc in self.cl_cursor:
@@ -188,10 +188,10 @@ class HomeStats():
             self.maclist = map(str.lower,self.maclist)
             qry["timestamp"] =  {"$gte": self.gt, "$lte": self.lt}
             qry['lower_snum'] = { "$in": self.maclist}
-            self.controller_cursor = DB.controller_stats.find(qry)
-            self.cl_cursor = DB.client_stats.find(qry)
-            self.ap_cursor = DB.ap_stats.find(qry)
-            self.alarm_cursor = DB.device_alarms.find(qry)
+            self.controller_cursor = DB.controller_stats.find(qry).sort('_id',-1)
+            self.cl_cursor = DB.client_stats.find(qry).sort('_id',-1)
+            self.ap_cursor = DB.ap_stats.find(qry).sort('_id',-1)
+            self.alarm_cursor = DB.device_alarms.find(qry).sort('_id',-1)
             for doc in self.controller_cursor:
                 self.controller_doc_list.append(doc)
             for doc in self.cl_cursor:

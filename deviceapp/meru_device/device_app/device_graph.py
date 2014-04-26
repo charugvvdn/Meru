@@ -332,7 +332,7 @@ class Stats():
             values['name'] = key
             values['value'] = count
             ApModel.append(values)
-        return {"ApModel":ApModel}
+        return ApModel
 
     def ClientAPid(self):
         '''Calculating on the basis of Clients APids '''
@@ -362,7 +362,7 @@ class Stats():
                 data2[">75"].append(key)
         Client['data1'] = data1
         Client['data2'] = data2
-        return {"Client_ApId":Client}
+        return Client
             
 
 def parse_request(GET):
@@ -443,8 +443,7 @@ class ApModel_graph(View):
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
-                response_list.append(obj.ApModel())
-                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "ApModel"}))
+                response = HttpResponse(json.dumps({"status": "true","data":obj.ApModel(),"message": "ApModel"}))
         return response
 class ClientAPid_graph(View):
 
@@ -457,7 +456,6 @@ class ClientAPid_graph(View):
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
-                response_list.append(obj.ClientAPid())
-                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "ClientAPid"}))
+                response = HttpResponse(json.dumps({"status": "true","data":obj.ClientAPid(),"message": "ClientAPid"}))
                 
         return response

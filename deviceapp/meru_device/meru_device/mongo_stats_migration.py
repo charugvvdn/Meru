@@ -18,15 +18,16 @@ def ap_quantification(start_time, end_time):
             tx = doc.get('aps').get('txBytes')
             wifi = doc.get('aps').get('wifiExp')
             ap_id = doc.get('aps').get('id')
+            model = doc.get('aps').get('model')
             ap_docs = db.ap_stats.find({ "ap_mac" : ap_mac}).count()
             if ap_docs:
                 db.ap_stats.update({ "ap_mac" : ap_mac}, { "$set" : { "lower_snum" : lower_snum,\
                     "status" : status, "txBytes" : tx, "rxBytes" : rx, "wifiExp" : wifi,\
-                    "id" : ap_id, "timestamp" : timestamp}})
+                    "id" : ap_id, "model" : model, "timestamp" : timestamp}})
                 print "Ap doc updated - Mac : " + str(ap_mac)
             else:
                 db.ap_stats.insert({ "lower_snum" : lower_snum, "ap_mac" : ap_mac, "status" : status,\
-                    "txBytes" : tx, "rxBytes" : rx, "wifiExp" : wifi, "id" : ap_id, "timestamp" : timestamp})
+                    "txBytes" : tx, "rxBytes" : rx, "wifiExp" : wifi, "id" : ap_id, "model" : model, "timestamp" : timestamp})
                 print "Ap doc inserted - Mac : " + str(ap_mac)
 
 def client_quantification(start_time, end_time):

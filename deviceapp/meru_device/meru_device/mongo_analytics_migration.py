@@ -8,7 +8,7 @@ def ap_aggregation(start_time, end_time):
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)
@@ -49,7 +49,7 @@ def client_aggregation(start_time, end_time):
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)
@@ -61,8 +61,10 @@ def client_aggregation(start_time, end_time):
         client_mac = doc.get('clients').get('mac')
         client_rx = doc.get('clients').get('rxBytes')
         client_tx = doc.get('clients').get('txBytes')
+        client_band = doc.get('clients').get('rfBand')
+        client_ssid = doc.get('clients').get('ssid')
         client_info = { "client_type" : client_type, "client_rx" : client_rx, "client_tx" : \
-                        client_tx, "client_mac" : client_mac}
+                        client_tx, "client_band": client_band, "client_ssid" : client_ssid, "client_mac" : client_mac}
         c_info = { "c_mac" : c_mac}
         client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : \
                     [client_info], "c_info" : [c_info]}
@@ -74,7 +76,8 @@ def client_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.client_date_count.update({ "hour" : h, "date" : datetime_obj, \
                 "client_info.client_mac" : client_mac}, {"$set" : {"client_info.$.client_tx" : \
-                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_type" : \
+                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_band" : \
+                client_band, "client_info.$.client_ssid" : client_ssid, "client_info.$.client_type" : \
                 client_type, "timestamp" : t_stmp}, "$addToSet" : { "c_info" : c_info}})
             else:
                 db.client_date_count.update({"hour" : h, "date" : datetime_obj}, \

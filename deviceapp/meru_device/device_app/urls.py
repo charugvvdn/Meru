@@ -5,6 +5,7 @@ from device_app import pdfgen
 from device_app.pdfgen import ApiBaseClass as pdf_api
 from device_app.api_calls import HomeApi, HomeApi2, DashboardApi, AlarmsApi
 from device_app.analytics_graph import analytics_api
+from device_app.device_graph import SSID_graph,rfBand_graph,ApState_graph,Throughput_graph,ApModel_graph,ClientAPid_graph
 deviceapp = dav()
 
 urlpatterns = patterns('',
@@ -17,15 +18,21 @@ urlpatterns = patterns('',
                        url(r'^api/auth/hello/(?P<mac>([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2}))/$',
                            dav.as_view()),
                        # url(r'^api/auth/hello/([0-9A-F]{2}[:-]){5}([0-9A-F]{2})/$', views.uHello, name='uHello'),
-                       url(r'^reports/stationThroughput/$',
-                           views.client_throughput),
-                       url(r'^reports/APThroughput/$', views.ap_throughput),
-                       url(r'^reports/wifi_experience/$',
-                           views.wifi_experience),
-                       url(r'^reports/overall_throughput/$',
-                           views.overall_throughput),
-                       url(r'^reports/devicedist/$', views.devicetype),
-                       url(r'^reports/ap_clients/$', views.ap_clients),
+                       #url(r'^reports/stationThroughput/$',views.client_throughput),
+                       #url(r'^reports/APThroughput/$', views.ap_throughput),
+                       #url(r'^reports/wifi_experience/$',views.wifi_experience),
+                       #url(r'^reports/overall_throughput/$',views.overall_throughput),
+                       url(r'^report/ssid/$', SSID_graph.as_view()),
+                       url(r'^report/rfband/$', rfBand_graph.as_view()),
+                       url(r'^report/apState/$', ApState_graph.as_view()),
+                       url(r'^report/throughput/$', Throughput_graph.as_view()),
+
+                       url(r'^report/apModel/$', ApModel_graph.as_view()),
+                       url(r'^report/clientApId/$', ClientAPid_graph.as_view()),
+
+
+                       #url(r'^reports/devicedist/$', views.devicetype),
+                       #url(r'^reports/ap_clients/$', views.ap_clients),
                        url(r'^home/api/$', HomeApi.as_view()),
                        url(r'^home/api2/$', HomeApi2.as_view()),
                        url(r'^dashboard/api/$', DashboardApi.as_view()),

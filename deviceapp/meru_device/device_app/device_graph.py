@@ -392,7 +392,7 @@ class SSID_graph(View):
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
                 response_list.append(obj.SSID())
-                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "SSID_graph"}))
+                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "SSID"}))
         return response
 class rfBand_graph(View):
 
@@ -406,7 +406,7 @@ class rfBand_graph(View):
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
                 response_list.append(obj.rfBand())
-                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "rfBand_graph"}))
+                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "rfBand"}))
         return response
 class Throughput_graph(View):
 
@@ -420,7 +420,7 @@ class Throughput_graph(View):
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
                 response_list.append(obj.clientThroughput())
-                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "Throughput_graph"}))
+                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "Throughput"}))
         return response
 class ApState_graph(View):
 
@@ -434,7 +434,7 @@ class ApState_graph(View):
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
                 response_list.append(obj.ApState())
-                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "ApState_graph"}))
+                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "ApState"}))
         return response
 class ApModel_graph(View):
 
@@ -448,7 +448,7 @@ class ApModel_graph(View):
                 maclist = request_dict['mac']
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
                 response_list.append(obj.ApModel())
-                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "ApModel_graph"}))
+                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "ApModel"}))
         return response
 class ClientAPid_graph(View):
 
@@ -462,6 +462,6 @@ class ClientAPid_graph(View):
                 maclist = request_dict['mac']
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
                 response_list.append(obj.ClientAPid())
-                response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "ClientAPid_graph"}))
+                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "ClientAPid"}))
                 
         return response

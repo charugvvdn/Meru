@@ -189,16 +189,16 @@ class Hourly_Graph():
                 else:
                     tx_tempdict[doc['hour']] += client['client_tx']
 
-        result_rxbyte = {"values":{count:0 for count in range(0,loop_over)}}
+        result_rxbyte = {count:0 for count in range(0,loop_over)}
         for hour in rx_tempdict:
-            if hour in result_rxbyte['values']:
-                result_rxbyte['values'][hour] = rx_tempdict[hour]
+            if hour in result_rxbyte:
+                result_rxbyte[hour] = rx_tempdict[hour]
         Throughput_rx.append(result_rxbyte)
 
-        result_txbyte = {"values":{count:0 for count in range(0,loop_over)}}
+        result_txbyte = {count:0 for count in range(0,loop_over)}
         for hour in tx_tempdict:
-            if hour in result_txbyte['values']:
-                result_txbyte['values'][hour] = tx_tempdict[hour]
+            if hour in result_txbyte:
+                result_txbyte[hour] = tx_tempdict[hour]
         Throughput_tx.append(result_txbyte)
 
         Throughput['rx'] = Throughput_rx
@@ -229,16 +229,16 @@ class Hourly_Graph():
                     else:
                         offline_tempdict[doc['hour']] += 1
 
-        result_onlineAP  = {"values":{count:0 for count in range(0,loop_over)}}
+        result_onlineAP  = {count:0 for count in range(0,loop_over)}
         for hour in online_tempdict:
-            if hour in result_onlineAP['values']:
-                result_onlineAP ['values'][hour] = online_tempdict[hour]
+            if hour in result_onlineAP:
+                result_onlineAP[hour] = online_tempdict[hour]
         ApState_online.append(result_onlineAP)
 
-        result_offlineAP = {"values":{count:0 for count in range(0,loop_over)}}
+        result_offlineAP = {count:0 for count in range(0,loop_over)}
         for hour in offline_tempdict:
-            if hour in result_offlineAP['values']:
-                result_offlineAP['values'][hour] = offline_tempdict[hour]
+            if hour in result_offlineAP:
+                result_offlineAP[hour] = offline_tempdict[hour]
         ApState_offline.append(result_offlineAP)
         ApState['onlineAP'] = ApState_online   
         ApState['offlineAP'] = ApState_offline   

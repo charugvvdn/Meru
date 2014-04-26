@@ -114,7 +114,7 @@ class Hourly_Graph():
             SSID.append(result_ssid)
             print "result_ssid--",result_ssid
             
-        return {"ssid":SSID}
+        return SSID
 
     def rfBand(self, **kwargs):
 
@@ -203,7 +203,7 @@ class Hourly_Graph():
 
         Throughput['rx'] = Throughput_rx
         Throughput['tx'] = Throughput_tx
-        return {"throughput":Throughput}
+        return Throughput
     def ApState(self, **kwargs):
 
         '''Calculating on the basis of client's rfband '''
@@ -242,7 +242,7 @@ class Hourly_Graph():
         ApState_offline.append(result_offlineAP)
         ApState['onlineAP'] = ApState_online   
         ApState['offlineAP'] = ApState_offline   
-        return {"ApState":ApState}
+        return ApState
 
 
         
@@ -391,8 +391,7 @@ class SSID_graph(View):
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response_list.append(obj.SSID())
-                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "SSID"}))
+                response = HttpResponse(json.dumps({"status": "true","data":obj.SSID(),"message": "SSID"}))
         return response
 class rfBand_graph(View):
 
@@ -418,8 +417,7 @@ class Throughput_graph(View):
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response_list.append(obj.clientThroughput())
-                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "Throughput"}))
+                response = HttpResponse(json.dumps({"status": "true","data":obj.clientThroughput(),"message": "Throughput"}))
         return response
 class ApState_graph(View):
 
@@ -432,8 +430,7 @@ class ApState_graph(View):
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response_list.append(obj.ApState())
-                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "ApState"}))
+                response = HttpResponse(json.dumps({"status": "true","data":obj.ApState(),"message": "ApState"}))
         return response
 class ApModel_graph(View):
 

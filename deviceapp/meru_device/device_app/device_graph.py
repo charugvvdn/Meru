@@ -169,8 +169,6 @@ class Hourly_Graph():
 
     def clientThroughput(self, **kwargs): 
         '''Calculating on the basis of client's rx and tx bytes '''
-        Throughput_rx = []
-        Throughput_tx = []
         Throughput = {}
         rx_tempdict = {}
         tx_tempdict = {}
@@ -193,16 +191,15 @@ class Hourly_Graph():
         for hour in rx_tempdict:
             if hour in result_rxbyte:
                 result_rxbyte[hour] = rx_tempdict[hour]
-        Throughput_rx.append(result_rxbyte)
+        
 
         result_txbyte = {count:0 for count in range(0,loop_over)}
         for hour in tx_tempdict:
             if hour in result_txbyte:
                 result_txbyte[hour] = tx_tempdict[hour]
-        Throughput_tx.append(result_txbyte)
 
-        Throughput['rx'] = Throughput_rx
-        Throughput['tx'] = Throughput_tx
+        Throughput['rx'] = result_rxbyte
+        Throughput['tx'] = result_txbyte
         return Throughput
     def ApState(self, **kwargs):
 

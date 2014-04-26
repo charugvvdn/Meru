@@ -119,8 +119,6 @@ class Hourly_Graph():
     def rfBand(self, **kwargs):
 
         '''Calculating on the basis of client's rfband '''
-        rfBand = []
-        rfBand2 = []
         RFBand_result = {'rfband1':0,'rfband2':0}
         rfband_tempdict = {}
         rfband_dict = {}
@@ -151,8 +149,6 @@ class Hourly_Graph():
             for hour in rfband_tempdict[rfband]:
                 if hour in result_rfband['values']:
                     result_rfband['values'][hour] = rfband_tempdict[rfband][hour]
-            rfBand.append(result_rfband)
-
         for ssid in rfband_dict:
             ssid_dict = {'ssid_name':'','rfband':[]}
             ssid_dict['ssid_name'] = ssid
@@ -162,9 +158,8 @@ class Hourly_Graph():
                 tmp_dict['value'] = rfband_dict[ssid][rfband]
                 ssid_dict['rfband'].append(tmp_dict)
                 
-            rfBand2.append(ssid_dict)
-        RFBand_result['rfband1'] = rfBand
-        RFBand_result['rfband2'] = rfBand2
+        RFBand_result['rfband1'] = result_rfband
+        RFBand_result['rfband2'] = ssid_dict
         return RFBand_result
 
     def clientThroughput(self, **kwargs): 

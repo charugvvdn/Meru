@@ -220,23 +220,29 @@ class HomeStats():
     def access_pt_util(self, **kwargs):
         '''b. SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
         mac_list = []
-	controller_dict = {}
+        controller_dict = {}
         result_dict = {}
         sites_count = 0
         apid_list = []
+
         for doc in self.client_doc_list:
             if doc.get('lower_snum') and doc.get('ap_id'):
-		mac = doc['lower_snum']
+                mac = doc['lower_snum']
                 if mac not in controller_dict:
-                    client_apid = doc['ap_id']
-                    apid_list.append(client_apid)
-                    controller_dict[mac] = apid_list
+                    controller_dict[mac] = []
+                client_apid = doc['ap_id']
+                controller_dict[mac].append(client_apid)
+                
+
+        print controller_dict
         for mac in controller_dict:
             count_apid = Counter(controller_dict[mac])
-            for key,count in count_apid.iteritems():
-                if count > 30:
-                    break
-            sites_count += 1
+        print count_apid
+        for key,count in count_apid.iteritems():
+            if count > 30:
+                sites_count += 1
+                break
+        
 
         result_dict["access_pt"] = {}
         result_dict["access_pt"]['message'] = \

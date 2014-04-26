@@ -114,7 +114,7 @@ class Hourly_Graph():
             SSID.append(result_ssid)
             print "result_ssid--",result_ssid
             
-        return {"SSID graph":SSID}
+        return {"ssid":SSID}
 
     def rfBand(self, **kwargs):
 
@@ -165,7 +165,7 @@ class Hourly_Graph():
             rfBand2.append(ssid_dict)
         RFBand_result['data1'] = rfBand
         RFBand_result['data2'] = rfBand2
-        return {"rfBand graph":RFBand_result}
+        return {"rfBand":RFBand_result}
 
     def clientThroughput(self, **kwargs): 
         '''Calculating on the basis of client's rx and tx bytes '''
@@ -203,7 +203,7 @@ class Hourly_Graph():
 
         Throughput['rx'] = Throughput_rx
         Throughput['tx'] = Throughput_tx
-        return {"Throughput graph":Throughput}
+        return {"throughput":Throughput}
     def ApState(self, **kwargs):
 
         '''Calculating on the basis of client's rfband '''

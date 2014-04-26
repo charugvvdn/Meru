@@ -119,6 +119,8 @@ class Hourly_Graph():
     def rfBand(self, **kwargs):
 
         '''Calculating on the basis of client's rfband '''
+        rfBand = []
+        rfBand2 = []
         RFBand_result = {'rfband1':0,'rfband2':0}
         rfband_tempdict = {}
         rfband_dict = {}
@@ -149,6 +151,8 @@ class Hourly_Graph():
             for hour in rfband_tempdict[rfband]:
                 if hour in result_rfband['values']:
                     result_rfband['values'][hour] = rfband_tempdict[rfband][hour]
+            rfBand.append(result_rfband)
+
         for ssid in rfband_dict:
             ssid_dict = {'ssid_name':'','rfband':[]}
             ssid_dict['ssid_name'] = ssid
@@ -158,8 +162,9 @@ class Hourly_Graph():
                 tmp_dict['value'] = rfband_dict[ssid][rfband]
                 ssid_dict['rfband'].append(tmp_dict)
                 
-        RFBand_result['rfband1'] = result_rfband
-        RFBand_result['rfband2'] = ssid_dict
+            rfBand2.append(ssid_dict)
+        RFBand_result['rfband1'] = rfBand
+        RFBand_result['rfband2'] = rfBand2
         return RFBand_result
 
     def clientThroughput(self, **kwargs): 
@@ -199,8 +204,6 @@ class Hourly_Graph():
     def ApState(self, **kwargs):
 
         '''Calculating on the basis of client's rfband '''
-        ApState_online = []
-        ApState_offline = []
         ApState = {}
         online_tempdict = {}
         offline_tempdict = {}
@@ -225,15 +228,13 @@ class Hourly_Graph():
         for hour in online_tempdict:
             if hour in result_onlineAP:
                 result_onlineAP[hour] = online_tempdict[hour]
-        ApState_online.append(result_onlineAP)
 
         result_offlineAP = {count:0 for count in range(0,loop_over)}
         for hour in offline_tempdict:
             if hour in result_offlineAP:
                 result_offlineAP[hour] = offline_tempdict[hour]
-        ApState_offline.append(result_offlineAP)
-        ApState['onlineAP'] = ApState_online   
-        ApState['offlineAP'] = ApState_offline   
+        ApState['onlineAP'] = result_onlineAP   
+        ApState['offlineAP'] = result_offlineAP
         return ApState
 
 

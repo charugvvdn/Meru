@@ -24,11 +24,11 @@ urlpatterns = patterns('',
                        #url(r'^reports/overall_throughput/$',views.overall_throughput),
                        url(r'^report/ssid/$', SSID_graph.as_view()),
                        url(r'^report/rfband/$', rfBand_graph.as_view()),
-                       url(r'^report/apState/$', ApState_graph.as_view()),
+                       url(r'^report/apstate/$', ApState_graph.as_view()),
                        url(r'^report/throughput/$', Throughput_graph.as_view()),
 
-                       url(r'^report/apModel/$', ApModel_graph.as_view()),
-                       url(r'^report/clientApId/$', ClientAPid_graph.as_view()),
+                       url(r'^report/apmodel/$', ApModel_graph.as_view()),
+                       url(r'^report/wc_ap/$', ClientAPid_graph.as_view()),
 
 
                        #url(r'^reports/devicedist/$', views.devicetype),

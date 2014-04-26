@@ -121,7 +121,7 @@ class Hourly_Graph():
         '''Calculating on the basis of client's rfband '''
         rfBand = []
         rfBand2 = []
-        RFBand_result = {'data1':0,'data2':0}
+        RFBand_result = {'rfband1':0,'rfband2':0}
         rfband_tempdict = {}
         rfband_dict = {}
         loop_over,add_time = self.report_analytics()
@@ -163,9 +163,9 @@ class Hourly_Graph():
                 ssid_dict['rfband'].append(tmp_dict)
                 
             rfBand2.append(ssid_dict)
-        RFBand_result['data1'] = rfBand
-        RFBand_result['data2'] = rfBand2
-        return {"rfBand":RFBand_result}
+        RFBand_result['rfband1'] = rfBand
+        RFBand_result['rfband2'] = rfBand2
+        return RFBand_result
 
     def clientThroughput(self, **kwargs): 
         '''Calculating on the basis of client's rx and tx bytes '''

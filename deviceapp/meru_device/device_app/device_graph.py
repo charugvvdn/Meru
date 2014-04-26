@@ -165,7 +165,7 @@ class Hourly_Graph():
             rfBand2.append(ssid_dict)
         RFBand_result['data1'] = rfBand
         RFBand_result['data2'] = rfBand2
-        return rfBand,rfBand2
+        return {"rfBand":RFBand_result}
 
     def clientThroughput(self, **kwargs): 
         '''Calculating on the basis of client's rx and tx bytes '''
@@ -405,8 +405,7 @@ class rfBand_graph(View):
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response_list.append(obj.rfBand())
-                response = HttpResponse(json.dumps({"status": "true","data":response_list,"message": "rfBand"}))
+                response = HttpResponse(json.dumps({"status": "true","data":obj.rfBand(),"message": "rfBand"}))
         return response
 class Throughput_graph(View):
 

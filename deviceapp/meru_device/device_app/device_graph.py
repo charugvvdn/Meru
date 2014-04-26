@@ -129,7 +129,7 @@ class Hourly_Graph():
                 clients = doc.get('client_info')
                 for client in clients:
                     # separate calculation for grouping rfband
-                    if client['client_band'] not in rfband_tempdict:
+                    if client.get('client_band') and  client.get('client_band') not in rfband_tempdict:
                         rfband_tempdict[client['client_band']] = {}
                     if doc['hour'] not in rfband_tempdict[client['client_band']]:
                         rfband_tempdict[client['client_band']][doc['hour']] = 1
@@ -137,7 +137,7 @@ class Hourly_Graph():
                         rfband_tempdict[client['client_band']][doc['hour']] += 1
 
                     #grouping rfBand
-                    if client['client_ssid'] not in rfband_dict:
+                    if client.get('client_ssid') and client.get('client_ssid') not in rfband_dict:
                         rfband_dict[client['client_ssid']] = {}
                     if client['client_band'] not in rfband_dict[client['client_ssid']]:
                         rfband_dict[client['client_ssid']][client['client_band']] = 1

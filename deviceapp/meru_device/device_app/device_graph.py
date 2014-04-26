@@ -165,7 +165,7 @@ class Hourly_Graph():
             rfBand2.append(ssid_dict)
         RFBand_result['data1'] = rfBand
         RFBand_result['data2'] = rfBand2
-        return {"rfBand":RFBand_result}
+        return rfBand,rfBand2
 
     def clientThroughput(self, **kwargs): 
         '''Calculating on the basis of client's rx and tx bytes '''

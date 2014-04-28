@@ -203,11 +203,12 @@ class Hourly_Graph():
         return Throughput
     def ApState(self, **kwargs):
 
-        '''Calculating on the basis of client's rfband '''
+        '''Calculating on the basis of ap's status '''
         ApState = {}
         online_tempdict = {}
         offline_tempdict = {}
-
+        total_online = 0
+        total_offline = 0
         loop_over,add_time = self.report_analytics()
         for doc in self.ap_doc_list:
             aps = doc.get('ap_info')
@@ -218,11 +219,13 @@ class Hourly_Graph():
                         online_tempdict[doc['hour']] = 1
                     else:
                         online_tempdict[doc['hour']] += 1
+                    total_online += online_tempdict[doc['hour']]
                 else:
                     if doc['hour'] not in offline_tempdict:
                         offline_tempdict[doc['hour']] = 1
                     else:
                         offline_tempdict[doc['hour']] += 1
+                    total_offline += offline_tempdict[doc['hour']]
 
         result_onlineAP  = {count:0 for count in range(0,loop_over)}
         for hour in online_tempdict:
@@ -235,6 +238,8 @@ class Hourly_Graph():
                 result_offlineAP[hour] = offline_tempdict[hour]
         ApState['onlineAP'] = result_onlineAP   
         ApState['offlineAP'] = result_offlineAP
+        ApState['totalOffline'] = total_offline
+        ApState['totalOnline'] = total_online
         return ApState
 
 

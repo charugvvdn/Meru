@@ -224,7 +224,7 @@ class HomeStats():
         result_dict = {}
         sites_count = 0
         apid_list = []
-
+        count_apid = {}
         for doc in self.client_doc_list:
             if doc.get('lower_snum') and doc.get('ap_id'):
                 mac = doc['lower_snum']
@@ -237,7 +237,7 @@ class HomeStats():
         print controller_dict
         for mac in controller_dict:
             count_apid = Counter(controller_dict[mac])
-        
+        print count_apid
         for key,count in count_apid.iteritems():
             if count > 30:
                 sites_count += 1

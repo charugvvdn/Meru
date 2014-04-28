@@ -237,7 +237,7 @@ class HomeStats():
         print controller_dict
         for mac in controller_dict:
             count_apid = Counter(controller_dict[mac])
-        print count_apid
+        
         for key,count in count_apid.iteritems():
             if count > 30:
                 sites_count += 1

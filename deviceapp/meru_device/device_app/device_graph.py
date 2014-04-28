@@ -220,7 +220,7 @@ class Hourly_Graph():
                     else:
                         online_tempdict[doc['hour']] += 1
                     total_online += online_tempdict[doc['hour']]
-                elif ap['ap_status'].lower() == 'down:
+                elif ap['ap_status'].lower() == 'down':
                     if doc['hour'] not in offline_tempdict:
                         offline_tempdict[doc['hour']] = 1
                     else:

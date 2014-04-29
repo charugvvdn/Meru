@@ -402,9 +402,9 @@ class SSID_graph(View):
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
                 if not obj.client_doc_list:
-                    response = {"status": "false","data":obj.SSID(),"message": "No data found"}
+                    response = {"status": "false","data":[],"message": "No data found"}
                 else:
-                    response = {"status": "true","data":[],"message": "SSID"}
+                    response = {"status": "true","data":obj.SSID(),"message": "SSID"}
                 
         return HttpResponse(json.dumps(response))
 class rfBand_graph(View):

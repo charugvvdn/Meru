@@ -92,8 +92,6 @@ class Hourly_Graph():
         sorted_ssid_list = []
         ssid_tempdict = {}
         loop_over,add_time = self.report_analytics()
-        if not self.client_doc_list:
-            return [{'name':'','value':{count:0 for count in range(0,loop_over)},'total_count':0}]
         for doc in self.client_doc_list:
                 clients = doc.get('client_info')
                 for client in clients:
@@ -386,6 +384,8 @@ def parse_request(GET):
                              ) if GET.get(key) else 0
     if "time" not in request_dict:
             response = {"status": "false","message": "No time stamp specified"}
+    if "mac" not in request_dict:
+            response = {"status": "false","message": "No MAC specified"}
     if not response and request_dict['time'][0] > request_dict['time'][1]:
             response = {"status": "false","message": "Wrong time range"}
     return request_dict,response
@@ -395,77 +395,96 @@ class SSID_graph(View):
     def get(self, request):
         response_list = []
         maclist = []
+        message = 'SSID'
         request_dict,response = parse_request(request.GET)
         if not response:
             if 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response = HttpResponse(json.dumps({"status": "true","data":obj.SSID(),"message": "SSID"}))
+                if not len(obj.SSID()):
+                    message = "No data found"
+                response = HttpResponse(json.dumps({"status": "true","data":obj.SSID(),"message": message}))
+                
         return response
 class rfBand_graph(View):
 
     def get(self, request):
         response_list = []
         maclist = []
+        message = 'rfBand'
         request_dict,response = parse_request(request.GET)
         if not response:
             if 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response = HttpResponse(json.dumps({"status": "true","data":obj.rfBand(),"message": "rfBand"}))
+                if not len(obj.rfBand()):
+                    message = 'No data found'
+                response = HttpResponse(json.dumps({"status": "true","data":obj.rfBand(),"message": message}))
         return response
 class Throughput_graph(View):
 
     def get(self, request):
         response_list = []
         maclist = []
+        message = "Thrpughput"
         request_dict,response = parse_request(request.GET)
         if not response:
             if 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response = HttpResponse(json.dumps({"status": "true","data":obj.clientThroughput(),"message": "Throughput"}))
+                if not len(obj.clientThroughput()):
+                    message = "No data found"
+                response = HttpResponse(json.dumps({"status": "true","data":obj.clientThroughput(),"message": message}))
         return response
 class ApState_graph(View):
 
     def get(self, request):
         response_list = []
         maclist = []
+        message = "ApState"
         request_dict,response = parse_request(request.GET)
         if not response:
             if 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                response = HttpResponse(json.dumps({"status": "true","data":obj.ApState(),"message": "ApState"}))
+                if not len(obj.ApState()):
+                    message = "No data found"
+                response = HttpResponse(json.dumps({"status": "true","data":obj.ApState(),"message": message}))
         return response
 class ApModel_graph(View):
 
     def get(self, request):
         response_list = []
         maclist = []
+        message = "ApModel"
         request_dict,response = parse_request(request.GET)
         if not response:
             if 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
-                response = HttpResponse(json.dumps({"status": "true","data":obj.ApModel(),"message": "ApModel"}))
+                if not len(obj.ApModel()):
+                    message = "No data found"
+                response = HttpResponse(json.dumps({"status": "true","data":obj.ApModel(),"message": message}))
         return response
 class ClientAPid_graph(View):
 
     def get(self, request):
         response_list = []
         maclist = []
+        message = "ClientApid"
         request_dict,response = parse_request(request.GET)
         if not response:
             if 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
-                response = HttpResponse(json.dumps({"status": "true","data":obj.ClientAPid(),"message": "ClientAPid"}))
+                if not len(obj.ClientAPid()):
+                    message = "No data found"
+                response = HttpResponse(json.dumps({"status": "true","data":obj.ClientAPid(),"message": message}))
                 
         return response

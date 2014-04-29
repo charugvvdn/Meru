@@ -87,6 +87,9 @@ class Hourly_Graph():
 
         '''Calculating on the basis of client's ssid '''
         SSID = []
+        top_ssid = []
+        toal_ssid_list = []
+        sorted_ssid_list = []
         ssid_tempdict = {}
         loop_over,add_time = self.report_analytics()
         for doc in self.client_doc_list:
@@ -112,9 +115,15 @@ class Hourly_Graph():
                     result_ssid['values'][hour] = ssid_tempdict[ssid][hour]
                 result_ssid['total_count'] += ssid_tempdict[ssid][hour]
             SSID.append(result_ssid)
-            print "result_ssid--",result_ssid
+        for ssid in SSID:
+            toal_ssid_list.append(ssid['total'])
+        sorted_ssid_list = sorted(toal_ssid_list,reverse = True)[:5]
+        for item in SSID:
+            if item['total'] in sorted_ssid_list:
+                top_ssid.append(item)
+
             
-        return SSID
+        return top_ssid
 
     def rfBand(self, **kwargs):
 

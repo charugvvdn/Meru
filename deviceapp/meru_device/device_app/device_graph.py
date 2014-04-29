@@ -92,6 +92,8 @@ class Hourly_Graph():
         sorted_ssid_list = []
         ssid_tempdict = {}
         loop_over,add_time = self.report_analytics()
+        if not self.client_doc_list:
+            return [{'name':'','value':{count:0 for count in range(0,loop_over)},'total_count':0}]
         for doc in self.client_doc_list:
                 clients = doc.get('client_info')
                 for client in clients:
@@ -349,6 +351,7 @@ class Stats():
         temp_list = []
         client_apid_list = []
         result_list =  []
+        apid_count = {}
         for doc in self.client_doc_list:
                 # separate calculation for grouping Apid of clients
                 if doc.get('ap_id'):

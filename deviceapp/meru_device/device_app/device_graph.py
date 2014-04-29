@@ -395,16 +395,16 @@ class SSID_graph(View):
     def get(self, request):
         response_list = []
         maclist = []
-        message = 'SSID'
         request_dict,response = parse_request(request.GET)
         if not response:
             if 'time' in request_dict and "mac" in request_dict:
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                if not len(obj.SSID()):
-                    message = "No data found"
-                response = {"status": "true","data":obj.SSID(),"message": message}
+                if not obj.client_doc_list:
+                    response = {"status": "false","data":obj.SSID(),"message": "No data found"}
+                else:
+                    response = {"status": "true","data":[],"message": "SSID"}
                 
         return HttpResponse(json.dumps(response))
 class rfBand_graph(View):
@@ -419,10 +419,11 @@ class rfBand_graph(View):
                 # API for gathering info about the device graphs on <hourly> basis of timestamp and MAC
                 maclist = request_dict['mac']
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
-                if not len(obj.rfBand()):
+                if not obj.client_doc_list:
                     message = 'No data found'
-                response = HttpResponse(json.dumps({"status": "true","data":obj.rfBand(),"message": message}))
-        return response
+
+                response = {"status": "true","data":obj.rfBand(),"message": message}
+        return HttpResponse(json.dumps(response))
 class Throughput_graph(View):
 
     def get(self, request):
@@ -437,8 +438,8 @@ class Throughput_graph(View):
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
                 if not len(obj.clientThroughput()):
                     message = "No data found"
-                response = HttpResponse(json.dumps({"status": "true","data":obj.clientThroughput(),"message": message}))
-        return response
+                response = {"status": "true","data":obj.clientThroughput(),"message": message}))
+        return HttpResponse(json.dumps(response))
 class ApState_graph(View):
 
     def get(self, request):
@@ -453,8 +454,8 @@ class ApState_graph(View):
                 obj = Hourly_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict.get('type') or 'hours')
                 if not len(obj.ApState()):
                     message = "No data found"
-                response = HttpResponse(json.dumps({"status": "true","data":obj.ApState(),"message": message}))
-        return response
+                response = {"status": "true","data":obj.ApState(),"message": message}
+        return  HttpResponse(json.dumps(response))
 class ApModel_graph(View):
 
     def get(self, request):
@@ -469,8 +470,8 @@ class ApModel_graph(View):
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
                 if not len(obj.ApModel()):
                     message = "No data found"
-                response = HttpResponse(json.dumps({"status": "true","data":obj.ApModel(),"message": message}))
-        return response
+                response = {"status": "true","data":obj.ApModel(),"message": message}
+        return HttpResponse(json.dumps(response))
 class ClientAPid_graph(View):
 
     def get(self, request):
@@ -485,6 +486,6 @@ class ClientAPid_graph(View):
                 obj = Stats(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1])
                 if not len(obj.ClientAPid()):
                     message = "No data found"
-                response = HttpResponse(json.dumps({"status": "true","data":obj.ClientAPid(),"message": message}))
+                response = {"status": "true","data":obj.ClientAPid(),"message": message}
                 
-        return response
+        return HttpResponse(json.dumps(response))

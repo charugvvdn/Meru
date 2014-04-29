@@ -116,10 +116,10 @@ class Hourly_Graph():
                 result_ssid['total_count'] += ssid_tempdict[ssid][hour]
             SSID.append(result_ssid)
         for ssid in SSID:
-            toal_ssid_list.append(ssid['total'])
+            toal_ssid_list.append(ssid['total_count'])
         sorted_ssid_list = sorted(toal_ssid_list,reverse = True)[:5]
         for item in SSID:
-            if item['total'] in sorted_ssid_list:
+            if item['total_count'] in sorted_ssid_list:
                 top_ssid.append(item)
 
             

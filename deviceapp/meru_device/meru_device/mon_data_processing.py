@@ -42,8 +42,8 @@ def dictValuePad(key):
 def find_controller(controller_mac=None):
     cursor = db.cursor()
     if controller_mac:
-        query = "SELECT `controller_id`, `controller_mac` FROM `meru_controller` \
-			WHERE `controller_mac` = '%s' LIMIT 1" % controller_mac
+        query = "SELECT `device_id`, `device_mac` FROM `meru_device` \
+			WHERE `device_mac` = '%s' LIMIT 1" % controller_mac
         
         cursor.execute(query)
         result = cursor.fetchone()

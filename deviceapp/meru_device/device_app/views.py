@@ -297,7 +297,7 @@ class DeviceApplication(View):
         self.false_response["mac"] = mac
 
         query = "SELECT COUNT(1) FROM meru_device WHERE \
-        `controller_mac` = '%s'" % mac
+        `device_mac` = '%s'" % mac
 	print "mysql access in get"
 	print datetime.datetime.now()
         cursor = connections['meru_cnms_sitegroup'].cursor()
@@ -348,7 +348,7 @@ class DeviceApplication(View):
 	print "mysql access in post"
 	print datetime.datetime.now()
         query = "SELECT COUNT(1) FROM meru_device WHERE \
-        `controller_mac` = '%s'" % mac
+        `device_mac` = '%s'" % mac
         cursor = connections['meru_cnms_sitegroup'].cursor()
         cursor.execute(query)
 	print "process complete"
@@ -435,7 +435,7 @@ class DeviceApplication(View):
                 self.true_response["mac"] = mac
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_device WHERE \
-                `controller_mac` = '%s'" % mac
+                `device_mac` = '%s'" % mac
                 cursor = connections['meru_cnms_sitegroup'].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()

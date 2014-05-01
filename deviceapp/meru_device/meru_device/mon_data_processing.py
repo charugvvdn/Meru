@@ -7,7 +7,7 @@ import time
     Standalone script to process mongodb data for mysql.
 '''
 try:
-    db = mydb.connect(host='localhost', user='root', db='meru_cnms_dev', passwd='root')
+    db = mydb.connect(host='localhost', user='root', db='meru_cnms_sitegroup', passwd='root')
 except mydb.Error, e:
     print e
 #cursor = db.cursor()

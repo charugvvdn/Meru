@@ -66,10 +66,10 @@ def update_controller(controller_list):
     controller_data = make_ready_controller(controller_list, update=True)
     cursor.executemany(
         """
-        UPDATE `meru_controller` 
+        UPDATE `meru_device` 
         SET 
         `controller_opstatus`=%s 
-        WHERE `controller_mac`=%s
+        WHERE `device_mac`=%s
         """, controller_data
     )
     db.commit()

@@ -43,7 +43,7 @@ def find_controller(controller_mac=None):
     cursor = db.cursor()
     if controller_mac:
         query = "SELECT `device_id`, `device_mac` FROM `meru_device` \
-			WHERE `device_mac` = '%s' LIMIT 1" % controller_mac
+            WHERE `device_mac` = '%s' LIMIT 1" % controller_mac
         
         cursor.execute(query)
         result = cursor.fetchone()
@@ -54,11 +54,12 @@ def make_ready_controller(controller_list, update=True):
     controller_data = []
     if update:
         for controller in controller_list:
-		if controller['operStat'].lower().strip() == "enabled" or controller['operStat'].lower().strip() == "up":
-			status = 1
-    		t = (status, controller["mac"])
-		controller_data.append(t)
-		t = ()
+            print controller['swVersion'].lower().strip()
+            if controller['operStat'].lower().strip() == "enabled" or controller['operStat'].lower().strip() == "up":
+                status = 1
+                t = (status, controller['swVersion'].lower().strip(), controller["mac"])
+                controller_data.append(t)
+                t = ()
     return controller_data
 
 def update_controller(controller_list):
@@ -68,7 +69,7 @@ def update_controller(controller_list):
         """
         UPDATE `meru_device` 
         SET 
-        `device_opstatus`=%s 
+        `device_opstatus`=%s, `device_swversion`=%s 
         WHERE `device_mac`=%s
         """, controller_data
     )
@@ -81,8 +82,8 @@ def update_controller(controller_list):
 def make_ready_alarm(alarm_list):
     alarm_data = []
     for alarm in alarm_list:
-        t = (alarm['c_mac'], alarm['alarmType'], alarm['severity'],
-                alarm['timeStamp'], alarm['content'], 0)
+        t = (alarm['c_mac'], alarm['alarm-type'], alarm['severity'],
+                alarm['time-stamp'], alarm['content'], 0)
         alarm_data.append(t)
         t = ()
     return alarm_data
@@ -103,78 +104,6 @@ def insert_alarm_data(alarm_list):
     print "insert_alarm_data\n", alarm_data
     print "Succ from insert alarm_data\n"
 
-def find_ap(ap_mac):
-    cursor = db.cursor()
-    print ap_mac
-    if ap_mac:
-        query = "SELECT COUNT(*)  \
-                 FROM `meru_ap`  \
-                 WHERE `ap_mac` ='%s' LIMIT 1" % ap_mac
-
-        cursor.execute(query)
-        result = cursor.fetchone()
-        cursor.close()
-        if result[0]:
-	    print "ap_mac was found in db\n"
-            return True
-	print "ap_mac was not found in db\n"
-        return False
-
-def make_ready_ap(ap_list, update=True):
-    timestamp = int(time.time())
-    ap_data = []
-    if update:
-        for ap in ap_list:
-             status = 1 if ap['status'].lower() == "up" else 0
-             t = (ap["name"], ap["c_id"], ap["mac"], ap["ip"], ap["model"], ap["rxBytes"], ap["txBytes"],
-                ap['wifiExp'], ap["wifiExpDescr"], status, ap["c_mac"], ap["mac"])
-
-             ap_data.append(t)
-             t = ()
-    else:
-        for ap in ap_list:
-             status = 1 if ap['status'].lower() == "up" else 0
-             t = (ap["name"], ap["c_id"], ap["mac"], ap["ip"], ap["model"], ap["rxBytes"], ap["txBytes"],
-                ap['wifiExp'], ap["wifiExpDescr"], status, ap["c_mac"], timestamp)
-
-             ap_data.append(t)
-             t = ()
-    return ap_data
-
-def update_ap_data(ap_list):
-    cursor = db.cursor()
-    ap_data = make_ready_ap(ap_list, update=True)
-    cursor.executemany(
-    """
-    UPDATE `meru_ap`
-    SET `ap_name`=%s, `ap_cid_fk`=%s, `ap_mac`=%s, `ap_ip`=%s, `ap_model`=%s,
-        `ap_rx`=%s, `ap_tx`=%s, `ap_wifiexp`=%s, `ap_wifiexp_desc`=%s,
-        `ap_status`=%s, `ap_controller_mac`=%s
-    WHERE `ap_mac`=%s
-    """, ap_data
-    )
-    db.commit()
-    cursor.close()
-    print "update_ap_data\n", ap_data
-    print "Succ from update ap_data\n"
-
-def insert_ap_data(ap_list):
-    cursor = db.cursor()
-    ap_data = make_ready_ap(ap_list, update=False)
-    cursor.executemany(
-    """
-    INSERT INTO `meru_ap`
-    (`ap_name`, `ap_cid_fk`, `ap_mac`, 
-    `ap_ip`, `ap_model`, `ap_rx`, `ap_tx`, `ap_wifiexp`, 
-    `ap_wifiexp_desc`, `ap_status`, `ap_controller_mac`, `ap_createdon`)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """,ap_data
-        )
-    db.commit()
-    cursor.close()
-    print "insert_ap_data\n", ap_data
-    print "Succ from insert ap_data\n"
-
 def find_client(client_mac):
     cursor = db.cursor()
     if client_mac:
@@ -191,16 +120,12 @@ def make_ready_client(client_list, update):
     client_data = []
     if update:
         for client in client_list:
-            t = (client['mac'], client.get('ap_mac'), client['ip'], client['clientType'],
-                client['rfBand'], client['ssid'], client['rxBytes'], client['txBytes'],
-                client['wifiExp'], client['wifiExpDescr'], client['mac'])
+            t = (client['mac'], client['rxBytes'], client['txBytes'],client['mac'])
             client_data.append(t)
             t = ()
     else:
         for client in client_list:
-            t = (client['mac'], client.get('ap_mac'), client['ip'], client['clientType'],
-                client['rfBand'], client['ssid'], client['rxBytes'], client['txBytes'],
-                client['wifiExp'], client['wifiExpDescr'])
+            t = (client['mac'],client['rxBytes'], client['txBytes'])
             client_data.append(t)
             t = ()
     return client_data
@@ -211,9 +136,7 @@ def update_client_data(client_list):
     cursor.executemany(
     """
     UPDATE `meru_client`
-    SET `client_mac` = %s, `client_apmac` = %s, `client_ip` = %s, `client_type` = %s, 
-    `client_rfband` = %s, `client_ssid` = %s, `client_rx` = %s, `client_tx` = %s, 
-    `client_wifiexp` = %s, `client_wifiexpdescr` = %s
+    SET `client_mac` = %s, `client_rx` = %s, `client_tx` = %s
     WHERE `client_mac`=%s
     """, client_data
     )
@@ -228,10 +151,8 @@ def insert_client_data(client_list):
     cursor.executemany(
     """
     INSERT INTO `meru_client`
-    (`client_mac`, `client_apmac`, `client_ip`, 
-    `client_type`, `client_rfband`, `client_ssid`, `client_rx`, `client_tx`, 
-    `client_wifiexp`, `client_wifiexpdescr`)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    (`client_mac`,`client_rx`, `client_tx`)
+    VALUES (%s,%s,%s)
     """,client_data
         )
     db.commit()
@@ -266,7 +187,7 @@ def main():
     end_time  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
 
     #Doc query to fetch last 1 minute's monitoring data
-    c = db.devices.find({ "msgBody.controller":{"$exists":1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}}).\
+    c = db.devices.find({"msgBody.msolo":{"$exists":1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}}).\
             sort("timestamp", -1)
 
     for doc in c:
@@ -287,16 +208,14 @@ def main():
 
     for doc in reversed(mon_data):
         alarms = []
-        aps = []
         clients = []
-        controllers = []
+        msolo = []
 
         t_stmp = doc.get('timestamp')
         
-        aps = doc.get('msgBody').get('controller').get('aps')
-        alarms = doc.get('msgBody').get('controller').get('alarms')
-        clients = doc.get('msgBody').get('controller').get('clients')
-        controllers = doc.get('msgBody').get('controller')
+        alarms = doc.get('msgBody').get('msolo').get('alarms')
+        clients = doc.get('msgBody').get('msolo').get('clients')
+        controllers = doc.get('msgBody').get('msolo')
 
         #search for the controller id
         controller_id = find_controller(doc['snum'])
@@ -308,28 +227,12 @@ def main():
         controller["location"] = controllers["location"]
         controller["contact"] = controllers["contact"]
         controller["operStat"] = controllers["operState"]
-        controller["model"] = controllers["model"]
         controller["swVersion"] = controllers["swVersion"]
         controller["countrySettings"] = controllers["countrySettings"]
         controller["mac"] = controllers["mac"]
         controller_list.append(controller)
 
-        unique_aps = {}
-
-        for ap in aps:
-            if ap['mac'] not in unique_aps:
-#            print ap
-                unique_aps[ap['mac']] = True
-                ap['c_mac'] = doc['snum']
-                ap['c_id'] = controller_id[0]
-                ap_info[ap['id']] = ap['mac']
-		print "ap mac to be find"
-		print ap["mac"]
-                if find_ap(ap['mac']):
-                    update_ap_list.append(ap)
-                else:
-                    insert_ap_list.append(ap)
-
+        
         for alarm in alarms:
             alarm['c_mac'] = controller_id[1]
             alarm_list.append(alarms)
@@ -338,11 +241,8 @@ def main():
 
         for client in clients:
             if client['mac'] not in unique_clients:
-		try:
-                	client['ap_mac'] = ap_info[client['apId']]
-		except KeyError as error:
-			print "Error at clients apId"
-			print error
+
+                unique_clients[client['mac']] = True
                 if find_client(client['mac']):
                     update_client_list.append(client)
                 else:
@@ -364,13 +264,6 @@ def main():
     if len(insert_client_list):
         insert_client_data(insert_client_list)
 
-    if len(update_ap_list):
-        #u_ap_mon_data = traverse(update_ap_list, ap_mon_data)
-        update_ap_data(update_ap_list)
-
-    if len(insert_ap_list):
-        #i_ap_mon_data = traverse(insert_ap_list, ap_mon_data)
-        insert_ap_data(insert_ap_list)
 
 if __name__ == "__main__":
         main()

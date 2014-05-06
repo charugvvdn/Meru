@@ -218,7 +218,7 @@ class Raw_Model():
         :param mac:
         """
 
-        cursor = connections['meru_cnms_sitegroup'].cursor()
+        cursor = connections['meru_cnms'].cursor()
 
 
         command_query = """SELECT command_json, command_id FROM meru_command WHERE \
@@ -258,7 +258,7 @@ class Raw_Model():
 	try:
 		query = """ UPDATE meru_command SET command_status = 2 WHERE \
 				command_id = '%s'""" % command_id
-		cursor = connections['meru_cnms_sitegroup'].cursor()
+		cursor = connections['meru_cnms'].cursor()
 		cursor.execute(query)
 		cursor.close()
 	except Exception as error:
@@ -300,7 +300,7 @@ class DeviceApplication(View):
         `device_mac` = '%s'" % mac
 	print "mysql access in get"
 	print datetime.datetime.now()
-        cursor = connections['meru_cnms_sitegroup'].cursor()
+        cursor = connections['meru_cnms'].cursor()
         cursor.execute(query)
 	print "process complete"
 	print datetime.datetime.now()
@@ -349,7 +349,7 @@ class DeviceApplication(View):
 	print datetime.datetime.now()
         query = "SELECT COUNT(1) FROM meru_device WHERE \
         `device_mac` = '%s'" % mac
-        cursor = connections['meru_cnms_sitegroup'].cursor()
+        cursor = connections['meru_cnms'].cursor()
         cursor.execute(query)
 	print "process complete"
 	print datetime.datetime.now()
@@ -363,20 +363,32 @@ class DeviceApplication(View):
 
         post_data['timestamp'] = timestamp
         post_data['lower_snum'] = mac.lower()
-        self.type_casting(post_data)
+        if 'controller' in post_data.get('msgBody'):
+            self.type_casting(post_data)
+        elif 'msolo' in post_data.get('msgBody'):
+            self.msolo_type_casting(post_data)
         
         try:
             '''saving the complete data to db.devices until 
             the whole code is updated with splitting with new db'''
             DB.devices.insert(post_data)
-
-            # spliiting data to save in device_alamrs
-            post_data = self.process_alarms(post_data)
-            #splitting data to save in device_clients
-            post_data = self.process_clients(post_data)
-            #splitting data to save in device_aps
-            post_data = self.process_aps(post_data)
-	    process_con = self.process_controller(post_data)
+            if 'controller' in post_data.get('msgBody'):
+                # spliiting data to save in device_alamrs
+                post_data = self.process_alarms(post_data)
+                #splitting data to save in device_clients
+                post_data = self.process_clients(post_data)
+                #splitting data to save in device_aps
+                post_data = self.process_aps(post_data)
+                process_con = self.process_controller(post_data)
+            elif 'msolo' in post_data.get('msgBody'):
+                # splitting msolo data to save in device_msolo collection
+                process_msolo = self.process_msolo(post_data)
+                # splitting msolo radio params data to save in device_radio_params collection
+                process_msolo_radio_params = self.process_msolo_radio_params(post_data)
+                # splitting msolo alarm data to save in device_alarms collection
+                process_msolo_alarms = self.process_msolo_alarms(post_data)
+                # splitting msolo clients data to save in device_clients collection
+                process_msolo_clients = self.process_msolo_clients(post_data)
             print "db access in post:"
             print datetime.datetime.now()
             #DB.devices.insert(post_data)
@@ -393,9 +405,12 @@ class DeviceApplication(View):
             command_id = int(post_data.get('current-command-id')) if post_data.get('current-command-id') else 0
             if command_id is 0:
                 # php api call
-		host_ip = request.get_host().split(':')[0]
-	    	url = "http://" + str(host_ip) + "/command/controller/create"
-        	data = json.dumps({"mac" : mac})
+                host_ip = request.get_host().split(':')[0]
+                device_type='controller'
+            if 'msolo' in post_data.get('msgBody'):
+                device_type='msolo'
+	    	url = "http://" + str(host_ip) + "/command/device/create"
+        	data = json.dumps({"mac" : mac,"device_type":str(device_type)})
         	headers = {'Content-Type': 'application/json'}
         	r = requests.post(url, data=data, headers=headers)
         	return HttpResponse(r.text)
@@ -436,14 +451,14 @@ class DeviceApplication(View):
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_device WHERE \
                 `device_mac` = '%s'" % mac
-                cursor = connections['meru_cnms_sitegroup'].cursor()
+                cursor = connections['meru_cnms'].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if not result[0][0]:
                     return HttpResponse(json.dumps(self.false_response))
                 if put_data["status"].lower() == "true":
                     try:
-                        db = mydb.connect(host='localhost', user='root', db='meru_cnms_sitegroup', passwd='root')
+                        db = mydb.connect(host='localhost', user='root', db='meru_cnms', passwd='root')
                         query = """ UPDATE meru_command SET command_status = 2 WHERE \
                                 command_mac = '%s'""" % mac
                         cursor = db.cursor()
@@ -462,7 +477,10 @@ class DeviceApplication(View):
         else:
                 return HttpResponse("Method is Not Supported")
 
-
+    ######################################
+    """Controller data Processing in collections - device_controllers, device_aps,\
+     device_alarms, device_clients"""
+    ######################################
     def type_casting(self, doc):
         '''type casting the data received from controller , \
         converting required values to int'''
@@ -570,7 +588,7 @@ class DeviceApplication(View):
         # get the aps data from controller data
         if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
             mac = doc.get('msgBody').get('controller').get('mac')
-	lower_snum = mac.lower()
+        lower_snum = mac.lower()
         if 'aps' in doc.get('msgBody').get('controller'):
             aps_list = doc.get('msgBody').get('controller').get('aps')
         
@@ -590,22 +608,156 @@ class DeviceApplication(View):
         return doc
 
     def process_controller(self, doc):
-	mac = doc.get('snum')
-	timestamp = doc.get('timestamp') or 0
-	if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
-		mac = doc.get('msgBody').get('controller').get('mac')
-	lower_snum = mac.lower()
-	opstatus = doc.get('msgBody').get('controller').get('operState')
-	util = doc.get('msgBody').get('controller').get('controllerUtil')
-	sec_state = doc.get('msgBody').get('controller').get('secState')
-	try:
-		DB.device_controllers.insert({ "lower_snum" : lower_snum, "timestamp" : timestamp, "operState" : opstatus,\
-					"controllerUtil" : util, "secState" : sec_state})
-	except Exception as error:
-		print "Mongodb error in process_controller"
-		print error
-	return True
+    	mac = doc.get('snum')
+    	timestamp = doc.get('timestamp') or 0
+    	if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
+    		mac = doc.get('msgBody').get('controller').get('mac')
+    	lower_snum = mac.lower()
+    	opstatus = doc.get('msgBody').get('controller').get('operState')
+    	util = doc.get('msgBody').get('controller').get('controllerUtil')
+    	sec_state = doc.get('msgBody').get('controller').get('secState')
+    	try:
+    		DB.device_controllers.insert({ "lower_snum" : lower_snum, "timestamp" : timestamp, "operState" : opstatus,\
+    					"controllerUtil" : util, "secState" : sec_state})
+    	except Exception as error:
+    		print "Mongodb error in process_controller"
+    		print error
+    	return True
 
+    ######################################
+    """mSolo Processing in collections - device_msolo, device_radio_params,\
+     device_alarms, device_clients"""
+    ######################################
+    def msolo_type_casting(self, doc):
+        '''type casting the data received from msolo , \
+        converting required values to int'''
+        
+        if 'alarms' in doc.get('msgBody').get('msolo'):
+            for alarm in doc.get('msgBody').get('msolo').get('alarms'):
+                alarm['timeStamp'] = int(alarm['time-stamp'])
+
+        if 'clients' in doc.get('msgBody').get('msolo'):
+            for client in doc.get('msgBody').get('msolo').get('clients'):
+                
+               
+                client['rxBytes'] = int(client['rxBytes']) \
+                if str(client['rxBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) \
+                if str(client['txBytes']).isdigit() else 0
+                client['txBytes'] = int(client['txBytes']) \
+                if str(client['txBytes']).isdigit() else 0
+
+        return doc
+
+    def process_msolo_alarms(self, doc):
+        # splitting msolo collection to clients collection
+        new_alarms_list = []
+        alarm_row = []
+        mac = doc.get('snum')
+        timestamp = doc.get('timestamp') or 0
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
+            mac = doc.get('msgBody').get('msolo').get('mac')
+        lower_snum = mac.lower()
+        if 'alarms' in doc.get('msgBody').get('msolo'):
+            new_alarms_list = doc.get('msgBody').get('msolo').get('alarms')
+        try:
+            cursor = DB.device_alarms.find({ "msolo_mac" : mac}, { "alarms" : { "$slice" : -1}})
+        except Exception as error:
+            print "mongoDB error in process_alarms"
+            print error
+        for c in cursor:
+            alarm_row.append(c)
+        if len(alarm_row):
+            last_alarm = alarm_row[0].get('alarms')[0]
+            for alarm in new_alarms_list:
+                if alarm["time-stamp"] > last_alarm["time-stamp"]:
+                    DB.device_alarms.update({ "msolo_mac" : mac}, { "$push" : \
+            { "alarms" : alarm}, "$set" : { "timestamp" : timestamp}})
+        else:
+            if len(new_alarms_list):
+                    DB.device_alarms.insert({ ",msolo_mac" : mac, "timestamp":timestamp, \
+            "lower_snum":lower_snum, "alarms" : new_alarms_list})
+        try:
+            doc.get('msgBody').get('msolo')['alarms'] = []
+        except KeyError as e:
+            print "Exception at process_alarms"
+            print e
+        return doc
+
+    def process_msolo_clients(self, doc):
+        # splitting devices collection to new clients collection
+        clients_list = []
+        mac = doc.get('snum')
+        timestamp = doc.get('timestamp') or 0
+        # get the clients data from controller data
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
+            mac = doc.get('msgBody').get('msolo').get('mac')
+        lower_snum = mac.lower()
+        if 'clients' in doc.get('msgBody').get('msolo'):
+            clients_list = doc.get('msgBody').get('msolo').get('clients')
+        
+        for client in clients_list:
+        
+        
+            try:
+                DB.device_clients.insert({ "msolo_mac" : mac, \
+                    "timestamp":timestamp, "lower_snum":lower_snum, \
+                "clients" : client})
+            except Exception as error:
+                print "Mongodb error in process_clients"
+                print error 
+        try:
+            doc.get('msgBody').get('msolo')['clients'] = []
+        except KeyError as e:
+            print "Exception at process_clients"
+            print e
+        return doc
+
+    def process_msolo(self, doc):
+        mac = doc.get('snum')
+        timestamp = doc.get('timestamp') or 0
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
+            mac = doc.get('msgBody').get('msolo').get('mac')
+        lower_snum = mac.lower()
+        opstatus = doc.get('msgBody').get('msolo').get('operState')
+        swVersion = doc.get('msgBody').get('msolo').get('swVersion')
+        try:
+            DB.device_msolo.insert({ "lower_snum" : lower_snum, \
+                "timestamp" : timestamp, "operState" : opstatus,\
+                        "swVersion" : swVersion})
+        except Exception as error:
+            print "Mongodb error in process_controller"
+            print error
+        return True
+
+    def process_msolo_radio_params(self, doc):
+        # splitting devices collection to new clients collection
+        radio_params_list = []
+        mac = doc.get('snum')
+        timestamp = doc.get('timestamp') or 0
+        # get the clients data from controller data
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
+            mac = doc.get('msgBody').get('msolo').get('mac')
+        lower_snum = mac.lower()
+        if 'radio-params' in doc.get('msgBody').get('msolo'):
+            radio_params_list = doc.get('msgBody').get('msolo').get('radio-params')
+        
+        for radio_param in radio_params_list:
+        
+        
+            try:
+                DB.device_radio_params.insert({ "msolo_mac" : mac, \
+                    "timestamp":timestamp, "radio_params":radio_param})
+            except Exception as error:
+                print "Mongodb error in process_radio_params"
+                print error 
+        try:
+            doc.get('msgBody').get('msolo')['radio-params'] = []
+        except KeyError as e:
+            print "Exception at process_clients"
+            print e
+        return doc
+    
     def memory_usage(self):
         """Memory usage of the current process in kilobytes."""
         status = None
@@ -623,386 +775,3 @@ class DeviceApplication(View):
         return result
 
 
-def client_throughput(request):
-    '''Module to plot the Station throughput line chart containing rxByte,
-    txByte and throughput plotting of Clients'''
-    clients = []
-    throughput = []
-    rx_list = []
-    tx_list = []
-    response_list = 0
-    common = Common()
-    post_data = common.eval_request(request)
-
-    if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false",
-                                        "message": "No POST data"}))
-
-    if 'mac' in post_data:
-        # fetch the docs
-        doc_list = common.let_the_docs_out(post_data)
-
-        # start the report evaluation
-        # get the clients
-        get_type = "clients"
-        clients = common.calc_type(doc_list, get_type)
-
-        rx_list, tx_list, throughput = common.throughput_calc(clients)
-
-        response_list = [
-                            {"label": "rxBytes", "data": rx_list}, \
-                            {"label": "txBytes", "data": tx_list}, \
-                            {"label": "throughput", "data": throughput}
-                        ]
-        
-        response = HttpResponse(json.dumps({"status": "true", \
-            "values": response_list,\
-            "message": "values for client throughput bar graph"}))
-
-        return response
-
-    else:
-        pass
-    return HttpResponse(json.dumps({"status": "false"}))
-
-
-def ap_throughput(request):
-    """
-    Total throughput of the access points
-    """
-
-    clients = []
-    throughput = []
-    rx_list = []
-    tx_list = []
-    response_list = 0
-    
-
-    common = Common()
-    post_data = common.eval_request(request)
-
-    if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false",
-                                        "message": "No POST data"}))
-
-    if 'mac' in post_data:
-        # fetch the docs
-        doc_list = common.let_the_docs_out(post_data)
-        # start the report evaluation
-        # get the clients
-        get_type = "aps"
-        clients = common.calc_type(doc_list, get_type)
-
-        rx_list, tx_list, throughput = common.throughput_calc(clients)
-
-        response_list = [
-            {"label": "rxBytes", "data": rx_list},
-            {"label": "txBytes", "data": tx_list},
-            {"label": "throughput", "data": throughput}
-        ]
-        response = HttpResponse(json.dumps(
-            {
-                                "status": "true",
-                                "values": response_list,
-                                "message": "values for AP throughput bar graph"
-                            }))
-
-        return response
-    else:
-        return HttpResponse(json.dumps({"status": "false",
-                                        "message": "No mac provided"}))
-
-
-def overall_throughput(request):
-    ''' Module to plot the overall throughput graph (rxBytes for AP + rxbytes
-        for Client, txbyte for Ap+ txByte for Client, and throughput
-        (rxbyte+txbyte)'''
-    throughput = []
-    rx_list = []
-    tx_list = []
-    response_list = 0
-    
-
-    common = Common()
-    post_data = common.eval_request(request)
-
-    if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false",
-                                        "message": "No POST data"}))
-
-    if 'mac' in post_data:
-        # fetch the docs
-        doc_list = common.let_the_docs_out(post_data)
-
-        get_type = "aps"
-        aps = common.calc_type(doc_list, get_type)
-
-        get_type = "clients"
-        clients = common.calc_type(doc_list, get_type)
-
-        out_dict = aps
-        
-        # join both the dicts
-        for times in out_dict:
-            if len(clients):
-                for key,val in clients.iteritems():
-                    if key == times:
-                        out_dict[times].extend(clients[times])
-
-        # get overall result
-        #print "out_dict",out_dict
-        rx_list, tx_list, throughput = common.throughput_calc(out_dict)
-
-        response_list = [{"label": "rxBytes", "data": rx_list}, \
-        {"label": "txBytes", "data": \
-            tx_list}, {"label": "throughput", "data": throughput}]
-        
-        response = HttpResponse(json.dumps({"status": "true", \
-            "values": response_list,\
-             "message": "values for Overall throughput bar graph"}))
-        return response
-
-    return HttpResponse(json.dumps({"status": "false",
-                                    "message": "No mac provided"}))
-
-
-def wifi_experience(request):
-    """ Plotting Graph for Average Wifi Experience
-     for Ap and Client along with the minimum and maximum values
-    :param request:
-     """
-
-    clients = []
-    avg_ap_wifiexp = []
-    avg_cl_wifiexp = []
-    min_aplist = []
-    max_aplist = []
-    min_clist = []
-    max_clist = []
-    aps_count = 0
-    aps = client = []
-    ap_flag = 0
-    cl_flag = 0
-    aps_count = 0
-    wifiexp_ap_sum = 0
-    min_cl = min_ap = 100
-    max_cl = max_ap = 0
-    client_count = 0
-    wifiexp_ap_sum = 0
-    wifiexp_cl_sum = 0
-    response_list = 0
-    unix_timestamp = 0
-    common = Common()
-    post_data = common.eval_request(request)
-
-    if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false",
-                                        "message": "No POST data"}))
-
-    if 'mac' in post_data:
-        # fetch the docs
-        doc_list = common.let_the_docs_out(post_data)
-        # sorting the doc_list dictionary in asc
-        doc_list =  sorted(doc_list, key=lambda x: x['timestamp'])
-        if not len(doc_list):
-            return HttpResponse(json.dumps(\
-                {"status": "false","message": "No filtered data received"}\
-                ))
-        # currentime  = first timestamp of the dict
-        
-        currenttime = doc_list[0]['timestamp'] 
-        # grouping the timeframe
-        torange = currenttime+TIME_INDEX
-        min_cl = min_ap = 100
-        max_cl = max_ap = 0
-        for doc in doc_list:
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                aps = doc.get('msgBody').get('controller').get('aps') or []
-                if 'clients' in doc['msgBody'].get('controller'):
-                    client = doc.get('msgBody').get('controller').\
-                    get('clients')
-
-                if int(doc['timestamp']) not in range(currenttime , torange ):
-                    
-                    avg_ap_wifiexp.append([unix_timestamp , \
-                        wifiexp_ap_sum / aps_count if aps_count > 0 else 0])
-                    min_aplist.append([unix_timestamp , min_ap])
-                    max_aplist.append([unix_timestamp , max_ap])
-
-                    avg_cl_wifiexp.append([unix_timestamp , \
-                        wifiexp_cl_sum / client_count if client_count > 0 \
-                        else 0])
-                    min_clist.append([unix_timestamp , min_cl])
-                    max_clist.append([unix_timestamp , max_cl])
-                    currenttime = doc['timestamp']
-                    torange = currenttime+TIME_INDEX
-                    ap_flag = 0
-                    cl_flag = 0
-                    aps_count = 0
-                    wifiexp_ap_sum = 0
-                    min_cl = min_ap = 100
-                    max_cl = max_ap = 0
-
-            if int(doc['timestamp']) in range(currenttime , torange ):
-
-                for ap_elem in aps:
-                    if 'wifiExp' in ap_elem:
-                        if min_ap > int(ap_elem["wifiExp"]):
-                            min_ap = int(ap_elem["wifiExp"])
-                        if max_ap < int(ap_elem["wifiExp"]):
-                            max_ap = int(ap_elem["wifiExp"])
-                        unix_timestamp = int(doc['timestamp']) * 1000
-                        ap_elem['timestamp'] = unix_timestamp
-                        clients.append(ap_elem)
-                        wifiexp_ap_sum += int(ap_elem['wifiExp'])
-                        aps_count += 1
-                        ap_flag = 1
-
-                for cl_elem in client:
-                    if 'wifiExp' in cl_elem:
-                        if min_cl > int(cl_elem["wifiExp"]):
-                            min_cl = int(cl_elem["wifiExp"])
-                        if max_cl < int(cl_elem["wifiExp"]):
-                            max_cl = int(cl_elem["wifiExp"])
-
-                        unix_timestamp = int(doc['timestamp']) * 1000
-                        cl_elem['timestamp'] = unix_timestamp
-                        clients.append(cl_elem)
-                        wifiexp_cl_sum += int(cl_elem['wifiExp'])
-                        client_count += 1
-                        cl_flag = 1
-
-        if ap_flag == 1:
-            avg_ap_wifiexp.append([unix_timestamp , \
-             wifiexp_ap_sum / aps_count if aps_count > 0 else 0])
-            min_aplist.append([unix_timestamp , min_ap])
-            max_aplist.append([unix_timestamp , max_ap])
-        if cl_flag == 1:
-            avg_cl_wifiexp.append([unix_timestamp , \
-             wifiexp_cl_sum / client_count if client_count > 0 else 0])
-            min_clist.append([unix_timestamp , min_cl])
-            max_clist.append([unix_timestamp , max_cl])
-
-
-        response_list = [
-            {"label": "Maximum-Client-wifiExp", "data": max_clist},
-            {"label": "Minimum-Client-wifiExp", "data": min_clist},
-            {"label": "Maximum-AP-wifiExp", "data": max_aplist},
-            {"label": "Minimum-AP-wifiExp", "data": min_aplist},
-            {"label": "Average-AP-wifiExp", "data": avg_ap_wifiexp},
-            {"label": "Average-client-wifiExp", "data": avg_cl_wifiexp}
-        ]
-        
-        response = HttpResponse(json.dumps({"status": "true", \
-         "values": response_list,\
-         "message": "values for Wifi Experience bar graph"}))
-        return response
-
-    return HttpResponse(json.dumps({"status": "false",
-                                    "message": "No mac provided"}))
-
-
-def ap_clients(request):
-    """ Plotting Graph for "Ap having clients connected to them "bar chart"""
-    
-    doc_list = []
-    ap_dict = {}
-    result = Counter()
-    clients = []
-    response_list = []
-    list_new = []
-    post_data = json.loads(request.body)
-
-    common = Common()
-    if not len(post_data):
-        return HttpResponse(json.dumps({"status": "false",
-                                        "message": "No POST data"}))
-
-    if 'mac' in post_data:
-        doc_list = common.let_the_docs_out(post_data)
-        for doc in doc_list:
-            unix_timestamp = int(doc['timestamp']) * 1000
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if 'aps' in doc['msgBody'].get('controller'):
-                    aps = doc.get('msgBody').get('controller').get('aps')
-                    for ap_elem in aps:
-
-                        if ap_elem['id'] not in ap_dict:
-                            ap_dict[ap_elem['id']] = ap_elem['mac']
-                            ap_dict[str(ap_elem['id']) + "time"] = \
-                            unix_timestamp
-
-                if 'clients' in doc['msgBody'].get('controller'):
-                    client = doc.get('msgBody').get('controller')\
-                    .get('clients')
-                    for cl_elem in client:
-                        client_dict = {}
-                        client_dict['apId'] = int(cl_elem['apId'])
-                        clients.append(client_dict)
-
-        for client in clients:
-
-            response = {}
-            if client['apId'] in ap_dict:
-                result[str(client['apId'])] += 1
-        
-        for apid , count in result.iteritems()  :
-            
-            response = {}
-            list_new = []
-            list_new.append( [ap_dict[str(apid)+"time"] , result[str(apid)]])
-            response['data']  = list_new
-            response['label'] = ap_dict[int(apid)]
-            response_list.append(response)
-        
-        #result = {"label": mac, "data": [timestamp,no_mac]}
-        #response_list.append(result)
-
-        response =  HttpResponse(json.dumps({"status": "true", \
-         "values": response_list,\
-         "message": "values for Number of clients for AP"}))
-        return response
-
-    return HttpResponse(json.dumps({"status": "false",
-                                    "message": "No mac provided"}))
-
-def devicetype(request):
-    '''Module to plot the device type distribution pie chart'''
-
-    device_types = {}
-    response = []
-    clients = []
-    common = Common()
-    post_data = common.eval_request(request)
-
-    if 'mac' in post_data:
-        # fetch the docs
-        doc_list = common.let_the_docs_out(post_data)
-        for doc in doc_list:
-        # start the report evaluation
-
-        # get the clients
-            get_type = "clients"
-            
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                clients = doc.get('msgBody').get('controller').\
-                get('clients') or []
-            
-            for cl_elem in clients:
-                if cl_elem['clientType'] in device_types:
-                    device_types[cl_elem['clientType']] += 1
-                else:
-                    device_types[cl_elem['clientType']] = 1
-        for key, value in device_types.iteritems():
-            device = {"label": 0, "data": 0}
-            device["label"] = key
-            device["data"] = value
-            response.append(device)
-
-        response = HttpResponse(json.dumps({"status": "true",
-                                            "values": response}))
-        return response
-
-    else:
-        pass
-    return HttpResponse(json.dumps({"status": "false"}))

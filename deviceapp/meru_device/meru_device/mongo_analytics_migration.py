@@ -44,7 +44,7 @@ def ap_aggregation(start_time, end_time):
 
 
 def client_aggregation(start_time, end_time):
-    c = db.device_clients.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
+    c = db.device_clients.find({ "controller_mac":{'$exists': 1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("timestamp", -1)
 
     for doc in c:

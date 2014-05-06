@@ -31,7 +31,7 @@ def ap_quantification(start_time, end_time):
                 print "Ap doc inserted - Mac : " + str(ap_mac)
 
 def client_quantification(start_time, end_time):
-    c = db.device_clients.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
+    c = db.device_clients.find({ "controller_mac":{'$exists': 1},"timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("_id", -1)
     unique_clients = []
 

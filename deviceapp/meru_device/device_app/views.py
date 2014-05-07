@@ -634,19 +634,22 @@ class DeviceApplication(View):
         
         if 'alarms' in doc.get('msgBody').get('msolo'):
             for alarm in doc.get('msgBody').get('msolo').get('alarms'):
-                alarm['timeStamp'] = int(alarm['time-stamp'])
+                alarm['time-stamp'] = int(alarm['time-stamp'])
 
         if 'clients' in doc.get('msgBody').get('msolo'):
             for client in doc.get('msgBody').get('msolo').get('clients'):
-                
-               
                 client['rxBytes'] = int(client['rxBytes']) \
                 if str(client['rxBytes']).isdigit() else 0
                 client['txBytes'] = int(client['txBytes']) \
                 if str(client['txBytes']).isdigit() else 0
-                client['txBytes'] = int(client['txBytes']) \
-                if str(client['txBytes']).isdigit() else 0
-
+                
+        if 'radio-params' in doc.get('msgBody').get('msolo'):
+            for radio in doc.get('msgBody').get('msolo').get('radio-params'):
+                radio['rx-bytes'] = int(radio['rx-bytes']) \
+                if str(radio['rx-bytes']).isdigit() else 0
+                radio['tx-bytes'] = int(radio['tx-bytes']) \
+                if str(radio['tx-bytes']).isdigit() else 0
+                
         return doc
 
     def process_msolo_alarms(self, doc):

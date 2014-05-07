@@ -105,18 +105,21 @@ class Hourly_Graph():
                 if band not in band1_tmpdict:
                     band1_tmpdict[band] = {}
                 if doc['hour'] not in band1_tmpdict[band]:
-                    band1_tmpdict[band][doc['hour']] = 0
+                    band1_tmpdict[band][doc['hour']] = {}
+                if radio['radio_mac'] not in band1_tmpdict[band][doc['hour']]:
+                    band1_tmpdict[band][doc['hour']][radio['radio_mac']] = 0
                 throughput = radio['radio_rx']+radio['radio_tx']
-                band1_tmpdict[band][doc['hour']] += throughput
+                band1_tmpdict[band][doc['hour']][radio['radio_mac']] += throughput
                 
-                   
+        print band1_tmpdict
         for band in band1_tmpdict:
             result_band1 = {}
             result_band1['band'] = band 
             result_band1['values'] = {count:0 for count in range(0,loop_over)}
             for hour in band1_tmpdict[band]:
                 if hour in result_band1['values']:
-                    result_band1['values'][hour] = band1_tmpdict[band][hour]
+                    for mac in band1_tmpdict[band][hour]:
+                        result_band1['values'][hour] += band1_tmpdict[band][hour][mac] 
         
             thruBand.append(result_band1)
         
@@ -141,16 +144,19 @@ class Hourly_Graph():
                 if band not in band1_tmpdict:
                     band1_tmpdict[band] = {}
                 if doc['hour'] not in band1_tmpdict[band]:
-                    band1_tmpdict[band][doc['hour']] = 0
-                band1_tmpdict[band][doc['hour']] += 1
-
+                    band1_tmpdict[band][doc['hour']] = {}
+                if client['client_mac'] not in band1_tmpdict[band][doc['hour']]:
+                    band1_tmpdict[band][doc['hour']][client['client_mac']] = 1
+                else:
+                    band1_tmpdict[band][doc['hour']][client['client_mac']] += 1
+        print band1_tmpdict
         for band in band1_tmpdict:
             result_band1=  {}
             result_band1['band'] = band
             result_band1['values'] = {count:0 for count in range(0,loop_over)}
             for hour in band1_tmpdict[band]:
                 if hour in result_band1['values']:
-                    result_band1['values'][hour] = band1_tmpdict[band][hour]
+                    result_band1['values'][hour] = len(band1_tmpdict[band][hour])
             clientBand.append(result_band1)
         
         return clientBand

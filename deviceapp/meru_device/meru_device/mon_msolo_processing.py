@@ -82,8 +82,8 @@ def update_controller(controller_list):
 def make_ready_alarm(alarm_list):
     alarm_data = []
     for alarm in alarm_list:
-        t = (alarm['c_mac'], alarm['alarm-type'], alarm['severity'],
-                alarm['time-stamp'], alarm['content'], 0)
+        t = (alarm['c_mac'], alarm['alarmType'], alarm['severity'],
+                alarm['timeStamp'], alarm['content'], 0)
         alarm_data.append(t)
         t = ()
     return alarm_data
@@ -120,12 +120,12 @@ def make_ready_client(client_list, update):
     client_data = []
     if update:
         for client in client_list:
-            t = (client['mac'], client['rxBytes'], client['txBytes'],client['mac'])
+            t = (client['mac'], client['rxBytes'], client['txBytes'],client['rssi'],client['mac'])
             client_data.append(t)
             t = ()
     else:
         for client in client_list:
-            t = (client['mac'],client['rxBytes'], client['txBytes'])
+            t = (client['mac'],client['rxBytes'], client['txBytes'],client['rssi'])
             client_data.append(t)
             t = ()
     return client_data
@@ -136,7 +136,7 @@ def update_client_data(client_list):
     cursor.executemany(
     """
     UPDATE `meru_client`
-    SET `client_mac` = %s, `client_rx` = %s, `client_tx` = %s
+    SET `client_mac` = %s, `client_rx` = %s, `client_tx` = %s, `client_ssid` = %s
     WHERE `client_mac`=%s
     """, client_data
     )
@@ -151,8 +151,8 @@ def insert_client_data(client_list):
     cursor.executemany(
     """
     INSERT INTO `meru_client`
-    (`client_mac`,`client_rx`, `client_tx`)
-    VALUES (%s,%s,%s)
+    (`client_mac`,`client_rx`, `client_tx`, `client_ssid`)
+    VALUES (%s,%s,%s,%s)
     """,client_data
         )
     db.commit()

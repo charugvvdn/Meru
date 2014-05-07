@@ -108,10 +108,15 @@ def msolo_client_aggregation(start_time, end_time):
         client_interface = doc.get('clients').get('interface')
         client_associated = doc.get('clients').get('associated')
         client_authenticated = doc.get('clients').get('authenticated')
+        client_rssi = doc.get('clients').get('rssi')
+        client_rxPackets = doc.get('clients').get('rxPackets')
+        client_txPackets = doc.get('clients').get('txPackets')
         client_info = { "client_rx" : client_rx, "client_tx" : \
                         client_tx, "client_interface":client_interface,\
                         "client_associated": client_associated, \
-                        "client_authenticated" : client_authenticated, "client_mac" : client_mac}
+                        "client_authenticated" : client_authenticated,"client_rssi" : client_rssi,\
+                        "client_rxPackets" : client_rxPackets,"client_txPackets" : client_txPackets,\
+                        "client_mac" : client_mac}
         msolo_info = { "msolo_mac" : msolo_mac}
         client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : \
                     [client_info], "msolo_info" : [msolo_info]}
@@ -125,7 +130,9 @@ def msolo_client_aggregation(start_time, end_time):
                 "client_info.client_mac" : client_mac}, {"$set" : {"client_info.$.client_tx" : \
                 client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_interface" : \
                 client_interface, "client_info.$.client_associated" : client_associated, "client_info.$.authenticated" : \
-                client_authenticated, "timestamp" : t_stmp}, "$addToSet" : { "msolo_info" : msolo_info}})
+                client_authenticated,"client_info.$.client_rssi" : client_rssi,\
+                "client_info.$.client_rxPackets" : client_rxPackets,"client_info.$.client_txPackets" : client_txPackets,\
+                "timestamp" : t_stmp}, "$addToSet" : { "msolo_info" : msolo_info}})
             else:
                 db.msolo_client_date_count.update({"hour" : h, "date" : datetime_obj}, \
                     { "$addToSet" : { "client_info" : client_info, "msolo_info" : msolo_info}, \

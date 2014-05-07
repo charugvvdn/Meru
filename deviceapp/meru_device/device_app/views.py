@@ -634,7 +634,7 @@ class DeviceApplication(View):
         
         if 'alarms' in doc.get('msgBody').get('msolo'):
             for alarm in doc.get('msgBody').get('msolo').get('alarms'):
-                alarm['time-stamp'] = int(alarm['time-stamp'])
+                alarm['timeStamp'] = int(alarm['timeStamp'])
 
         if 'clients' in doc.get('msgBody').get('msolo'):
             for client in doc.get('msgBody').get('msolo').get('clients'):
@@ -642,6 +642,12 @@ class DeviceApplication(View):
                 if str(client['rxBytes']).isdigit() else 0
                 client['txBytes'] = int(client['txBytes']) \
                 if str(client['txBytes']).isdigit() else 0
+                client['rssi'] = int(client['rssi'])\
+                if str(client['rssi']).isdigit() else 0
+                client['rxPackets'] = int(client['rxPackets'])\
+                if str(client['rxPackets']).isdigit() else 0
+                client['txPackets'] = int(client['txPackets'])\
+                if str(client['txPackets']).isdigit() else 0
                 
         if 'radio-params' in doc.get('msgBody').get('msolo'):
             for radio in doc.get('msgBody').get('msolo').get('radio-params'):
@@ -673,7 +679,7 @@ class DeviceApplication(View):
         if len(alarm_row):
             last_alarm = alarm_row[0].get('alarms')[0]
             for alarm in new_alarms_list:
-                if alarm["time-stamp"] > last_alarm["time-stamp"]:
+                if alarm["timeStamp"] > last_alarm["timeStamp"]:
                     DB.device_alarms.update({ "msolo_mac" : mac}, { "$push" : \
             { "alarms" : alarm}, "$set" : { "timestamp" : timestamp}})
         else:
@@ -700,8 +706,6 @@ class DeviceApplication(View):
             clients_list = doc.get('msgBody').get('msolo').get('clients')
         
         for client in clients_list:
-        
-        
             try:
                 DB.device_clients.insert({ "msolo_mac" : mac, \
                     "timestamp":timestamp, "lower_snum":lower_snum, \

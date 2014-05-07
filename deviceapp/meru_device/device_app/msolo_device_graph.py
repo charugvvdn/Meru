@@ -92,7 +92,6 @@ class Hourly_Graph():
         thruBand = []
         band = '2.4Ghz'
         band1_tmpdict = {}
-        band2_tmpdict = {}
         loop_over,add_time = self.report_analytics()
         for doc in self.radio_doc_list:
             radios = doc.get('radio_info')
@@ -130,7 +129,6 @@ class Hourly_Graph():
         clientBand = []
         band = '2.4Ghz'
         band1_tmpdict = {}
-        band2_tmpdict = {}
         loop_over,add_time = self.report_analytics()
         for doc in self.client_doc_list:
             clients = doc.get('client_info')
@@ -153,8 +151,6 @@ class Hourly_Graph():
             for hour in band1_tmpdict[band]:
                 if hour in result_band1['values']:
                     result_band1['values'][hour] = band1_tmpdict[band][hour]
-        
-        
             clientBand.append(result_band1)
         
         return clientBand

@@ -6,6 +6,7 @@ from device_app.pdfgen import ApiBaseClass as pdf_api
 from device_app.api_calls import HomeApi, HomeApi2, DashboardApi, AlarmsApi
 from device_app.analytics_graph import analytics_api
 from device_app.device_graph import SSID_graph,rfBand_graph,ApState_graph,Throughput_graph,ApModel_graph,ClientAPid_graph
+from device_app.msolo_device_graph import ThroughputBand,ClientBand,ClientThroughput,ClientTable
 deviceapp = dav()
 
 urlpatterns = patterns('',
@@ -29,6 +30,12 @@ urlpatterns = patterns('',
 
                        url(r'^report/apmodel/$', ApModel_graph.as_view()),
                        url(r'^report/wc_ap/$', ClientAPid_graph.as_view()),
+
+                       #msolo graphs
+                       url(r'^msolo/throughputband/$', ThroughputBand.as_view()),
+                       url(r'^msolo/clientband/$', ClientBand.as_view()),
+                       url(r'^msolo/clientthroughput/$', ClientThroughput.as_view()),
+                       url(r'^msolo/clienttable/$', ClientTable.as_view()),
 
 
                        #url(r'^reports/devicedist/$', views.devicetype),

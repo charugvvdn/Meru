@@ -407,13 +407,13 @@ class DeviceApplication(View):
                 # php api call
                 host_ip = request.get_host().split(':')[0]
                 device_type='controller'
-            if 'msolo' in post_data.get('msgBody'):
-                device_type='msolo'
-	    	url = "http://" + str(host_ip) + settings.BASE_PATH +"command/device/create"
-        	data = json.dumps({"mac" : mac,"device_type":str(device_type)})
-        	headers = {'Content-Type': 'application/json'}
-        	r = requests.post(url, data=data, headers=headers)
-        	return HttpResponse(r.text)
+                if 'msolo' in post_data.get('msgBody'):
+                    device_type='msolo'
+    	    	url = "http://" + str(host_ip) + settings.BASE_PATH +"command/device/create"
+            	data = json.dumps({"mac" : mac,"device_type":str(device_type)})
+            	headers = {'Content-Type': 'application/json'}
+            	r = requests.post(url, data=data, headers=headers)
+            	return HttpResponse(r.text)
             else:
                 raw_model = Raw_Model()  # Raw model class to access the sql
                 config_data = raw_model.isConfigData(mac, command_id)

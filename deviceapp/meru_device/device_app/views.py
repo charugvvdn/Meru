@@ -403,13 +403,15 @@ class DeviceApplication(View):
         try:
             
             command_id = int(post_data.get('current-command-id')) if post_data.get('current-command-id') else 0
-            if command_id is 0:
-                # php api call
-                host_ip = request.get_host().split(':')[0]
-                device_type='controller'
+            host_ip = request.get_host().split(':')[0]
             if 'msolo' in post_data.get('msgBody'):
                 device_type='msolo'
-	    	url = "http://" + str(host_ip) + "/command/device/create"
+            else:
+                device_type='controller'
+	 	
+	    if command_id is 0:
+                # php api call	    
+	    	url = "http://" + str(host_ip) + "/mclouddev/latest/command/device/create"
         	data = json.dumps({"mac" : mac,"device_type":str(device_type)})
         	headers = {'Content-Type': 'application/json'}
         	r = requests.post(url, data=data, headers=headers)

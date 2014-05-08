@@ -29,7 +29,7 @@ DATABASES = {
 	},
    'meru_cnms_sitegroup' : {
         'ENGINE' : 'django.db.backends.mysql',
-        'NAME' : 'meru_cnms_sitegroup',
+        'NAME' : 'meru_cnms_sitegroup_dev',
         'USER' : 'root',
         'PASSWORD' : 'root',
         'HOST' : '',

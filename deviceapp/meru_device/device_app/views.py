@@ -16,6 +16,7 @@ import ast
 import re
 import json
 import requests
+from meru_device import settings
 from device_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
 from django.views.generic.base import View
@@ -401,7 +402,6 @@ class DeviceApplication(View):
             print "mongoDB error in post views.py"
             print e
         try:
-            
             command_id = int(post_data.get('current-command-id')) if post_data.get('current-command-id') else 0
             if command_id is 0:
                 # php api call
@@ -409,7 +409,7 @@ class DeviceApplication(View):
                 device_type='controller'
             if 'msolo' in post_data.get('msgBody'):
                 device_type='msolo'
-	    	url = "http://" + str(host_ip) + "/command/device/create"
+	    	url = "http://" + str(host_ip) + settings.BASE_PATH +"command/device/create"
         	data = json.dumps({"mac" : mac,"device_type":str(device_type)})
         	headers = {'Content-Type': 'application/json'}
         	r = requests.post(url, data=data, headers=headers)

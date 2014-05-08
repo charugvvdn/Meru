@@ -1,8 +1,7 @@
 # Django settings for meru_device project.
-
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
-
+BASE_PATH = "/mclouddev/latest/"
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )

@@ -16,6 +16,7 @@ import ast
 import re
 import json
 import requests
+from meru_device.settings import DATABASES
 from device_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
 from django.views.generic.base import View
@@ -218,7 +219,7 @@ class Raw_Model():
         :param mac:
         """
 
-        cursor = connections['meru_cnms_sitegroup'].cursor()
+        cursor = connections[DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
 
 
         command_query = """SELECT command_json, command_id FROM meru_command WHERE \
@@ -258,7 +259,7 @@ class Raw_Model():
 	try:
 		query = """ UPDATE meru_command SET command_status = 2 WHERE \
 				command_id = '%s'""" % command_id
-		cursor = connections['meru_cnms_sitegroup'].cursor()
+		cursor = connections[DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
 		cursor.execute(query)
 		cursor.close()
 	except Exception as error:
@@ -300,7 +301,7 @@ class DeviceApplication(View):
         `device_mac` = '%s'" % mac
 	print "mysql access in get"
 	print datetime.datetime.now()
-        cursor = connections['meru_cnms_sitegroup'].cursor()
+        cursor = connections[DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
         cursor.execute(query)
 	print "process complete"
 	print datetime.datetime.now()
@@ -349,7 +350,7 @@ class DeviceApplication(View):
 	print datetime.datetime.now()
         query = "SELECT COUNT(1) FROM meru_device WHERE \
         `device_mac` = '%s'" % mac
-        cursor = connections['meru_cnms_sitegroup'].cursor()
+        cursor = connections[DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
         cursor.execute(query)
 	print "process complete"
 	print datetime.datetime.now()
@@ -453,14 +454,14 @@ class DeviceApplication(View):
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_device WHERE \
                 `device_mac` = '%s'" % mac
-                cursor = connections['meru_cnms_sitegroup'].cursor()
+                cursor = connections[DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if not result[0][0]:
                     return HttpResponse(json.dumps(self.false_response))
                 if put_data["status"].lower() == "true":
                     try:
-                        db = mydb.connect(host='localhost', user='root', db='meru_cnms_sitegroup', passwd='root')
+                        db = mydb.connect(host='localhost', user='root', db=DATABASES['meru_cnms_sitegroup']['NAME'], passwd='root')
                         query = """ UPDATE meru_command SET command_status = 2 WHERE \
                                 command_mac = '%s'""" % mac
                         cursor = db.cursor()

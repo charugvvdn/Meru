@@ -2,13 +2,13 @@ import MySQLdb as mydb
 from pymongo import MongoClient
 import datetime as d
 import time
-from settings import DATABASES
+import settings
 
 '''
     Standalone script to process mongodb data for mysql.
 '''
 try:
-    db = mydb.connect(host='localhost', user='root', db=DATABASES['meru_cnms_sitegroup']['NAME'], passwd='root')
+    db = mydb.connect(host='localhost', user='root', db=settings.DATABASES['meru_cnms_sitegroup']['NAME'], passwd='root')
 except mydb.Error, e:
     print e
 #cursor = db.cursor()

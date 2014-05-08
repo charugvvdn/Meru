@@ -9,7 +9,7 @@ from settings import DATABASES
     Standalone script to process mongodb data for mysql.
 '''
 try:
-    db = mydb.connect(host='localhost', user='root', db=DATABASES['meru_cnms_sitegroup']['NAME'], passwd='root')
+    db = mydb.connect(host='localhost', user='root', db=settings.DATABASES['meru_cnms_sitegroup']['NAME'], passwd='root')
 except mydb.Error, e:
     print e
 #cursor = db.cursor()

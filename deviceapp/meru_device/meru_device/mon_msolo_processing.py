@@ -3,7 +3,6 @@ from pymongo import MongoClient
 import datetime as d
 import time
 import settings
-from settings import DATABASES
 
 '''
     Standalone script to process mongodb data for mysql.

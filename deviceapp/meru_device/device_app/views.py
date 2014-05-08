@@ -16,7 +16,6 @@ import ast
 import re
 import json
 import requests
-from meru_device import settings
 from device_app.models import controller, command, alarm, dashboard_info, \
     ssid, security_profile, ssid_in_command
 from django.views.generic.base import View
@@ -219,7 +218,7 @@ class Raw_Model():
         :param mac:
         """
 
-        cursor = connections[ settings.DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
+        cursor = connections['meru_cnms_sitegroup'].cursor()
 
 
         command_query = """SELECT command_json, command_id FROM meru_command WHERE \
@@ -259,7 +258,7 @@ class Raw_Model():
 	try:
 		query = """ UPDATE meru_command SET command_status = 2 WHERE \
 				command_id = '%s'""" % command_id
-		cursor = connections[settings.DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
+		cursor = connections['meru_cnms_sitegroup'].cursor()
 		cursor.execute(query)
 		cursor.close()
 	except Exception as error:
@@ -301,7 +300,7 @@ class DeviceApplication(View):
         `device_mac` = '%s'" % mac
 	print "mysql access in get"
 	print datetime.datetime.now()
-        cursor = connections[settings.DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
+        cursor = connections['meru_cnms_sitegroup'].cursor()
         cursor.execute(query)
 	print "process complete"
 	print datetime.datetime.now()
@@ -350,7 +349,7 @@ class DeviceApplication(View):
 	print datetime.datetime.now()
         query = "SELECT COUNT(1) FROM meru_device WHERE \
         `device_mac` = '%s'" % mac
-        cursor = connections[settings.DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
+        cursor = connections['meru_cnms_sitegroup'].cursor()
         cursor.execute(query)
 	print "process complete"
 	print datetime.datetime.now()
@@ -404,15 +403,13 @@ class DeviceApplication(View):
         try:
             
             command_id = int(post_data.get('current-command-id')) if post_data.get('current-command-id') else 0
-            host_ip = request.get_host().split(':')[0]
+            if command_id is 0:
+                # php api call
+                host_ip = request.get_host().split(':')[0]
+                device_type='controller'
             if 'msolo' in post_data.get('msgBody'):
                 device_type='msolo'
-            else:
-                device_type='controller'
-	 	
-	    if command_id is 0:
-                # php api call	    
-	    	url = "http://" + str(host_ip) + "/mclouddev/latest/command/device/create"
+	    	url = "http://" + str(host_ip) + "/command/device/create"
         	data = json.dumps({"mac" : mac,"device_type":str(device_type)})
         	headers = {'Content-Type': 'application/json'}
         	r = requests.post(url, data=data, headers=headers)
@@ -454,14 +451,14 @@ class DeviceApplication(View):
                 self.false_response["mac"] = mac
                 query = "SELECT COUNT(1) FROM meru_device WHERE \
                 `device_mac` = '%s'" % mac
-                cursor = connections[settings.DATABASES['meru_cnms_sitegroup']['NAME']].cursor()
+                cursor = connections['meru_cnms_sitegroup'].cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
                 if not result[0][0]:
                     return HttpResponse(json.dumps(self.false_response))
                 if put_data["status"].lower() == "true":
                     try:
-                        db = mydb.connect(host='localhost', user='root', db=settings.DATABASES['meru_cnms_sitegroup']['NAME'], passwd='root')
+                        db = mydb.connect(host='localhost', user='root', db='meru_cnms_sitegroup', passwd='root')
                         query = """ UPDATE meru_command SET command_status = 2 WHERE \
                                 command_mac = '%s'""" % mac
                         cursor = db.cursor()

@@ -252,11 +252,7 @@ class Stats():
             if doc.get('clients'):
                 if doc['clients']['mac'] not in unique_clients:
                     unique_clients[doc['clients']['mac']] = True
-                    client_details = {}
-                    client_details['mac'] = doc['clients']['mac']
-                    client_details['throughput'] = doc['clients']['rxBytes']+ doc['clients']['txBytes']
-                    
-                    client_list.append(client_details)
+                    client_list.append(doc['clients'])
         return client_list
             
 

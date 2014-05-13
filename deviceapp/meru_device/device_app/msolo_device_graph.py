@@ -139,6 +139,8 @@ class Hourly_Graph():
             clients = doc.get('client_info')
             for client in clients:
                 # separate calculation for grouping rxbyte
+                band1_tmpdict['2.4Ghz'] = {}
+                band1_tmpdict['5Ghz'] = {}
                 if client['client_interface'] == 'wlan0':
                     band = '2.4Ghz'
                 elif client['client_interface'] == 'wlan1':

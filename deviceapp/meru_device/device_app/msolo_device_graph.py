@@ -133,14 +133,13 @@ class Hourly_Graph():
 
         clientBand = []
         band = '2.4Ghz'
-        band1_tmpdict = {}
+        band1_tmpdict = {"2.4Ghz":{},"5Ghz":{}}
         loop_over,add_time = self.report_analytics()
         for doc in self.client_doc_list:
             clients = doc.get('client_info')
             for client in clients:
                 # separate calculation for grouping rxbyte
-                band1_tmpdict['2.4Ghz'] = {}
-                band1_tmpdict['5Ghz'] = {}
+                
                 if client['client_interface'] == 'wlan0':
                     band = '2.4Ghz'
                 elif client['client_interface'] == 'wlan1':

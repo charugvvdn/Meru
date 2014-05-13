@@ -9,9 +9,11 @@ import random
 from collections import Counter
 from operator import itemgetter
 from random import randint
+from meru_device import settings
 # Connection with mongoDB client
-CLIENT = MongoClient()
-DB = CLIENT['nms']
+
+DB = settings.DB
+
 utc_1970 = datetime.datetime(1970, 1, 1) #UTC since jan 1970
 utc_now = datetime.datetime.utcnow() #UTC now
 

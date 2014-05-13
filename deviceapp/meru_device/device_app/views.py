@@ -23,13 +23,7 @@ from django.views.generic.base import View
 TIME_INDEX = 60
 
 # Connection with mongoDB client
-try:
-    CLIENT = MongoClient()
-    DB = CLIENT['nms']
-except pymongo.errors.PyMongoError, e:
-    print "Views.py -->"
-    print e
-
+DB = settings.DB
 
 def welcome(request):
     """

@@ -171,10 +171,14 @@ LOGGING = {
         },
     }
 }
-
-
+try:
+    from pymongo import MongoClient
+except ImportError as e:
+    print e
+DB = MongoClient()['nms']
 #######################
 try:
     from local_settings import *
+
 except ImportError as e:
     print e

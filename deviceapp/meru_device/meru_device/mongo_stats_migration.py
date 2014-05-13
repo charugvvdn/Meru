@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 import datetime
 import time
-
+import settings
 def ap_quantification(start_time, end_time):
     c = db.device_aps.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("_id", -1)
@@ -80,9 +80,9 @@ def con_quantification(start_time, end_time):
 
 
 def main():
-    global db
-    db = MongoClient()['nms']
-
+    
+    db = settings.DB
+    
     offset  = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
     start_time = int((offset - datetime.datetime(1970, 1, 1)).total_seconds())
     end_time  = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).\

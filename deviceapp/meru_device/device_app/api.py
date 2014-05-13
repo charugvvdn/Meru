@@ -4,13 +4,10 @@ from views import Common
 import pymongo
 from collections import Counter
 import itertools
+from meru_device import settings
 # Connection with mongoDB client
-try:
-    CLIENT = MongoClient()
-    DB = CLIENT['nms']
-except pymongo.errors.PyMongoError, e:
-    print "api.py -->"
-    print e
+DB = settings.DB
+
 
 UTC_1970 = datetime.datetime(1970, 1, 1)
 UTC_NOW = datetime.datetime.utcnow()

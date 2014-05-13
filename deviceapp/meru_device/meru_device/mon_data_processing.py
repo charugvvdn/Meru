@@ -8,7 +8,7 @@ import settings
     Standalone script to process mongodb data for mysql.
 '''
 try:
-    db = mydb.connect(host='localhost', user='root', db=settings.DATABASES['meru_cnms_sitegroup']['NAME'], passwd='root')
+    db = mydb.connect(host='localhost', user='root', db=settings.DATABASES['meru_cnms_sitegroup']['NAME'], passwd=settings.DATABASES['meru_cnms_sitegroup']['PASSWORD'])
 except mydb.Error, e:
     print e
 #cursor = db.cursor()
@@ -250,7 +250,7 @@ def traverse(obj, l):
     return l
 
 def main():
-    db = MongoClient()['nms']
+    db = settings.DB
     doc_list = []
     controllers = []
     mon_data = []

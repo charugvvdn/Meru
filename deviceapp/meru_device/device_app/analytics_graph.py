@@ -6,11 +6,11 @@ from django.views.generic.base import View
 import ast
 import csv, json
 import random
+from meru_device import settings
 from collections import Counter
 from random import randint
 # Connection with mongoDB client
-CLIENT = MongoClient()
-DB = CLIENT['nms']
+DB = settings.DB
 utc_1970 = datetime.datetime(1970, 1, 1) #UTC since jan 1970
 utc_now = datetime.datetime.utcnow() #UTC now
 

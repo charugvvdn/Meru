@@ -180,7 +180,7 @@ class AnalyticsReport():
             mins += 1
             
         if self.type == "hours":
-            hours = thistime.days *24 if thistime.days>0 else hrs
+            hours = (thistime.days *24)+hrs if thistime.days>0 else hrs
             if mins > 0:
                 hours += 1
                 

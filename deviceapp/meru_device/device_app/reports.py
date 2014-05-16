@@ -4,9 +4,9 @@ import datetime
 import json
 import ast
 import csv, json
+from meru_device import settings
 # Connection with mongoDB client
-CLIENT = MongoClient()
-DB = CLIENT['nms']
+DB = settings.DB
 utc_1970 = datetime.datetime(1970, 1, 1) #UTC since jan 1970
 utc_now = datetime.datetime.utcnow() #UTC now
 def gen_csv(col1,col2,x):

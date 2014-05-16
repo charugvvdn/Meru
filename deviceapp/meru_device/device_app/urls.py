@@ -1,8 +1,8 @@
 from django.conf.urls import patterns, include, url
 from device_app import views, api
 from device_app.views import DeviceApplication as dav
-from device_app import pdfgen
-from device_app.pdfgen import ApiBaseClass as pdf_api
+#from device_app import pdfgen
+#from device_app.pdfgen import ApiBaseClass as pdf_api
 from device_app.api_calls import HomeApi, HomeApi2, DashboardApi, AlarmsApi
 from device_app.analytics_graph import analytics_api
 from device_app.device_graph import SSID_graph,rfBand_graph,ApState_graph,Throughput_graph,ApModel_graph,ClientAPid_graph
@@ -44,8 +44,8 @@ urlpatterns = patterns('',
                        url(r'^home/api2/$', HomeApi2.as_view()),
                        url(r'^dashboard/api/$', DashboardApi.as_view()),
                        url(r'^alarms/api/$', AlarmsApi.as_view()),
-                       url(r'^report-gen/$', pdfgen.main_view),
-                       url(r'^send-mail/$', pdfgen.send_mail),
+                       #url(r'^report-gen/$', pdfgen.main_view),
+                       #url(r'^send-mail/$', pdfgen.send_mail),
                        url(r'^analytics/api/$', analytics_api.as_view()),
 
 

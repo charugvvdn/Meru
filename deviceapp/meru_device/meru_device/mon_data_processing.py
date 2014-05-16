@@ -250,7 +250,7 @@ def traverse(obj, l):
     return l
 
 def main():
-    db = settings.DB
+    mongo_db = settings.DB
     doc_list = []
     controllers = []
     mon_data = []
@@ -267,7 +267,7 @@ def main():
     end_time  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
 
     #Doc query to fetch last 1 minute's monitoring data
-    c = db.devices.find({ "msgBody.controller":{"$exists":1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}}).\
+    c = mongo_db.devices.find({ "msgBody.controller":{"$exists":1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}}).\
             sort("timestamp", -1)
 
     for doc in c:
@@ -372,7 +372,8 @@ def main():
     if len(insert_ap_list):
         #i_ap_mon_data = traverse(insert_ap_list, ap_mon_data)
         insert_ap_data(insert_ap_list)
-
+        
+    db.close();
 if __name__ == "__main__":
         main()
 

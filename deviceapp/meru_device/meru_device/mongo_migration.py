@@ -1,7 +1,8 @@
 from pymongo import MongoClient
 import datetime
 import time
-
+import settings
+db = settings.DB
 def ap_aggregation(start_time, end_time):
     c = db.device_aps.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("timestamp", -1)
@@ -87,9 +88,7 @@ def client_aggregation(start_time, end_time):
 
 
 def main():
-    global db
-    db = MongoClient()['nms']
-
+    
     offset  = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
     start_time = int((offset - datetime.datetime(1970, 1, 1)).total_seconds())
     end_time  = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).\

@@ -24,182 +24,6 @@ TIME_INDEX = 60
 
 # Connection with mongoDB client
 DB = settings.DB
-
-def welcome(request):
-    """
-
-    Module for accessing the reports Api and display the graph plots
-    """
-    context = RequestContext(request)
-    if 'station' in request.GET:
-        return render_to_response('test_1_app/stationthru.html',
-                                  {"d": "Station"}, context)
-    if 'ap' in request.GET:
-        return render_to_response('test_1_app/apthru.html',
-                                  {"d": "AP"}, context)
-    if 'wifi' in request.GET:
-        return render_to_response('test_1_app/wifiexp.html',
-                                  {"d": "Wifi Experience"}, context)
-    if 'overall' in request.GET:
-        return render_to_response('test_1_app/overallthru.html',
-                                  {"d": "Overall Throughput"}, context)
-    if 'dist' in request.GET:
-        return render_to_response('test_1_app/devicedist.html',
-                                  {"d": "Device Dist Throughput"}, context)
-    if 'ap_client' in request.GET:
-        return render_to_response('test_1_app/Ap-clients.html',
-                                  {"d": "AP with number of Clients Connected"},\
-                                   context)
-
-    return HttpResponseServerError()
-
-
-class Reports():
-
-    """
-    Reports common functionality and features
-    """
-    pass
-
-
-class Common():
-    """Common functinality for all the modules"""
-    
-    def traverse(self, obj, item):
-        ''' common functinality'''
-        if hasattr(obj, '__iter__'):
-            for elem in obj:
-                if isinstance(elem, dict):
-                    item.append(elem)
-                else:
-                    self.traverse(elem, item)
-        return item
-
-    def eval_request(self, request):
-        ''' Evaluate the requested query parameter and returns the post data'''
-        if request.method == "GET":
-            post_data = request.GET.dict()
-            get_data = {}
-            for data in post_data:
-                temp_var = ast.literal_eval(data)
-                for val in temp_var:
-                    get_data[val] = temp_var[val]
-            post_data = get_data
-
-        elif request.method == "POST":
-            post_data = json.loads(request.body)
-
-        else:
-            post_data = None
-
-        return post_data
-
-    def let_the_docs_out(self, post_data):
-        """
-        find all the docs on the basis of list of MACS and time frame
-        """
-        doc_list = []
-        mac_list = post_data['mac']
-
-        if 'time' in post_data and post_data['time']:
-            time_frame = post_data['time']
-            start_time = time_frame[0]
-            end_time = time_frame[1]
-
-        else:
-            utc_1970 = datetime.datetime(1970, 1, 1)
-            utc_now = datetime.datetime.utcnow()
-            offset = utc_now - datetime.timedelta(minutes=30)
-            start_time = int((offset - utc_1970).total_seconds())
-            end_time = int((utc_now - utc_1970).total_seconds())
-
-        try:
-            for mac in mac_list:
-                print "db access in let_the_docs_out:"
-                print datetime.datetime.now()
-                if not DB.devices.find({"lower_snum": mac.lower()}).count():
-                    continue
-                cursor = DB.devices.find({"lower_snum": mac.lower(), "timestamp" \
-                    : {"$gt": start_time, "$lt": end_time}}).sort('timestamp',-1)
-                
-
-                for doc in cursor:
-                    doc_list.append(doc)
-
-            return doc_list
-        except Exception, e:
-            print e
-            return doc_list
-
-    def calc_type(self, doc_list, get_type):
-        """
-        get the client list or the ap list or the alarm list on the basis of
-        get_type. by default it is None
-        """
-        return_dict = {}
-        
-        for doc in doc_list:
-            if 'msgBody' in doc and 'controller' in doc['msgBody']:
-                if get_type in doc['msgBody'].get('controller'):
-                    result = doc.get('msgBody').get('controller').get(get_type)
-                    for val in result:
-                        unix_timestamp = int(doc['timestamp']) * 1000
-                        if unix_timestamp not in return_dict:
-                            return_dict[unix_timestamp] = []
-                        return_dict[unix_timestamp].append(val)
-
-        return return_dict
-
-    def throughput_calc(self, clients):
-        '''Function for client, ap, overall throughput, 
-        rx, tx byte calculation'''
-        rx_list = []
-        tx_list = []
-        throughput = []
-        unix_time = 0
-        rcv_bytes = 0
-        currenttime = 0
-        trnsfr_bytes = 0
-        flag = 0
-        #sorting the clients dict in ascending
-        clients = OrderedDict(sorted(clients.items(), key=lambda t: t[0])) 
-        for client in clients:
-            # read the first timestamp of the clients dict
-            currenttime = int(client/1000)
-            break
-        
-        torange = currenttime + TIME_INDEX # a time range group
-        
-        for client in clients:
-            if int(client / 1000) not in range(currenttime , torange ):
-                ''' if the result exceed the time frame , append 
-                the previous group of results and start to make a new group'''
-                rx_list.append([unix_time, rcv_bytes])
-                tx_list.append([unix_time, trnsfr_bytes])
-                throughput.append([unix_time, rcv_bytes + trnsfr_bytes])
-                currenttime = int(client/1000)
-                torange = currenttime + TIME_INDEX
-                rcv_bytes = 0
-                trnsfr_bytes = 0
-                flag = 0
-                
-            if int(client/1000) in range(currenttime , torange ):
-                # grouping the result for above timeframe
-                for elem in clients[client]:
-                    rcv_bytes += int(elem['rxBytes'])
-                    trnsfr_bytes += int(elem['txBytes'])
-                unix_time = client
-                flag = 1
-
-        if flag == 1:
-            # appending the last group of result
-            rx_list.append([unix_time, rcv_bytes])
-            tx_list.append([unix_time, trnsfr_bytes])
-            throughput.append([unix_time, rcv_bytes + trnsfr_bytes])
-
-        return (rx_list, tx_list, throughput)
-
-
 class Raw_Model():
 
     """
@@ -376,7 +200,7 @@ class DeviceApplication(View):
                 post_data = self.process_aps(post_data)
                 process_con = self.process_controller(post_data)
             elif 'msolo' in post_data.get('msgBody'):
-                # splitting msolo data to save in device_msolo collection
+                # splitting msolo data to save in device_controllers collection
                 process_msolo = self.process_msolo(post_data)
                 # splitting msolo radio params data to save in device_radio_params collection
                 process_msolo_radio_params = self.process_msolo_radio_params(post_data)
@@ -384,6 +208,8 @@ class DeviceApplication(View):
                 process_msolo_alarms = self.process_msolo_alarms(post_data)
                 # splitting msolo clients data to save in device_clients collection
                 process_msolo_clients = self.process_msolo_clients(post_data)
+                # splitting msolo rouge aps data to save in device_rouge_ap collection
+                process_msolo_rouge_ap = self.process_msolo_rouge_ap(post_data)
             print "db access in post:"
             print datetime.datetime.now()
             #DB.devices.insert(post_data)
@@ -612,7 +438,7 @@ class DeviceApplication(View):
     	sec_state = doc.get('msgBody').get('controller').get('secState')
     	try:
     		DB.device_controllers.insert({ "lower_snum" : lower_snum, "timestamp" : timestamp, "operState" : opstatus,\
-    					"controllerUtil" : util, "secState" : sec_state})
+    					"utilization" : util, "secState" : sec_state})
     	except Exception as error:
     		print "Mongodb error in process_controller"
     		print error
@@ -625,7 +451,14 @@ class DeviceApplication(View):
     def msolo_type_casting(self, doc):
         '''type casting the data received from msolo , \
         converting required values to int'''
-        
+        if 'msolo' in doc.get('msgBody'):
+            rxBytes = int(doc.get('msgBody').get('msolo').get('rx-bytes') or 0)
+            doc['msgBody']['msolo']['rx-bytes'] = rxBytes
+            txBytes = int(doc.get('msgBody').get('msolo').get('tx-bytes') or 0) 
+            doc['msgBody']['msolo']['tx-bytes'] = txBytes
+            utilization = int(doc.get('msgBody').get('msolo').get('utilization') or 0)
+            doc['msgBody']['msolo']['utilization'] = utilization
+            
         if 'alarms' in doc.get('msgBody').get('msolo'):
             for alarm in doc.get('msgBody').get('msolo').get('alarms'):
                 alarm['timeStamp'] = int(alarm['timeStamp'])
@@ -713,6 +546,32 @@ class DeviceApplication(View):
             print "Exception at process_clients"
             print e
         return doc
+    def process_msolo_rouge_ap(self, doc):
+        # splitting devices collection to new clients collection
+        rouge_ap_list = []
+        mac = doc.get('snum')
+        timestamp = doc.get('timestamp') or 0
+        # get the clients data from controller data
+        if mac is None or re.match('([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', mac) is None:
+            mac = doc.get('msgBody').get('msolo').get('mac')
+        lower_snum = mac.lower()
+        if 'rouge-aps' in doc.get('msgBody').get('msolo'):
+            rouge_ap_list = doc.get('msgBody').get('msolo').get('rouge-aps')
+        
+        for ap in rouge_ap_list:
+            try:
+                DB.device_rouge_ap.insert({ "msolo_mac" : mac, \
+                    "timestamp":timestamp, "lower_snum":lower_snum, \
+                "rouge_ap" : ap})
+            except Exception as error:
+                print "Mongodb error in process_rouge_ap"
+                print error 
+        try:
+            doc.get('msgBody').get('msolo')['rouge-aps'] = []
+        except KeyError as e:
+            print "Exception at process_rouge_ap"
+            print e
+        return doc
 
     def process_msolo(self, doc):
         mac = doc.get('snum')
@@ -722,10 +581,17 @@ class DeviceApplication(View):
         lower_snum = mac.lower()
         opstatus = doc.get('msgBody').get('msolo').get('operState')
         swVersion = doc.get('msgBody').get('msolo').get('swVersion')
+        rxBytes = doc.get('msgBody').get('msolo').get('rx-bytes')
+        txBytes = doc.get('msgBody').get('msolo').get('tx-bytes')
+        generic_command_status = doc.get('msgBody').get('msolo').get('generic-command-status')
+        generic_command_output = doc.get('msgBody').get('msolo').get('generic-command-output')
+        utilization = doc.get('msgBody').get('msolo').get('utilization')
         try:
-            DB.device_msolo.insert({ "lower_snum" : lower_snum, \
-                "timestamp" : timestamp, "operState" : opstatus,\
-                        "swVersion" : swVersion})
+            DB.device_controllers.insert({ "lower_snum" : lower_snum, "timestamp" : timestamp,\
+            "operState" : opstatus,"swVersion" : swVersion,"rxBytes":rxBytes, "txBytes":txBytes,\
+            "generic_command_status":generic_command_status,"generic_command_output":generic_command_output,\
+            "utilization":utilization})
+
         except Exception as error:
             print "Mongodb error in process_controller"
             print error

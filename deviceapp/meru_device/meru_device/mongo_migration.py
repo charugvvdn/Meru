@@ -45,7 +45,7 @@ def ap_aggregation(start_time, end_time):
 
 
 def client_aggregation(start_time, end_time):
-    c = db.device_clients.find({ "controller_mac":{'$exists': 1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
+    c = db.device_clients.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("timestamp", -1)
 
     for doc in c:
@@ -56,8 +56,8 @@ def client_aggregation(start_time, end_time):
         datetime_obj = datetime.datetime(y, m, d, h)
         print datetime_obj
 
-        c_mac = doc.get('controller_mac').lower()
-        client_type = doc.get('clients').get('clientType')
+        c_mac = doc.get('controller_mac').lower() if doc.get('controller_mac') else doc.get('msolo_mac').lower()
+        client_type = doc.get('clients').get('clientType') if doc.get('clients').get('clientType') else 'unknown'
         #client_thru = doc.get('clients').get('rxBytes') + doc.get('clients').get('txBytes')
         client_mac = doc.get('clients').get('mac')
         client_rx = doc.get('clients').get('rxBytes')
@@ -86,6 +86,49 @@ def client_aggregation(start_time, end_time):
             db.client_date_count.insert(client_doc)
             print "New client doc created\n"
 
+def device_aggregation(start_time, end_time):
+    c = db.device_controllers.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
+        .sort("timestamp", -1)
+
+    for doc in c:
+        t_stmp = doc.get('timestamp')
+        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
+        y, m, d= date_obj.year, date_obj.month, date_obj.day
+        h = date_obj.hour
+        datetime_obj = datetime.datetime(y, m, d, h)
+        print datetime_obj
+
+        c_mac = doc.get('lower_snum').lower()
+        device_operState = doc.get('operState') if doc.get('operState') else 'None'
+        device_rx = doc.get('rxBytes') or  0
+        device_mac = doc.get('lower_snum').lower()
+        device_tx = doc.get('txBytes') or 0
+        device_info = { "device_operState" : device_operState, "device_rx" : device_rx, "device_tx" : \
+                        device_tx, "device_mac" : device_mac}
+        c_info = { "c_mac" : c_mac}
+        device_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "device_info" : \
+                    [device_info], "c_info" : [c_info]}
+
+        cur = db.device_date_count.find({"hour" : h, "date" : datetime_obj})
+        if cur.count():
+            update_cursor = db.device_date_count.find({"hour" : h, "date" : datetime_obj, \
+                            "device_info.device_mac" : device_mac})
+            if update_cursor.count():
+                db.device_date_count.update({ "hour" : h, "date" : datetime_obj, \
+                "device_info.device_mac" : device_mac}, {"$set" : {"device_info.$.device_tx" : \
+                device_tx, "device.$.device_rx" : device_rx,"device.$.operState" : device_operState,\
+                 "device_info.$.device_type" : device_type, "timestamp" : t_stmp}, \
+                 "$addToSet" : { "c_info" : c_info}})
+            else:
+                db.device_date_count.update({"hour" : h, "date" : datetime_obj}, \
+                    { "$addToSet" : { "device_info" : device_info, "c_info" : c_info}, \
+                    "$set" : { "timestamp" : t_stmp}})
+            print "device doc updated\n"
+        else:
+            db.device_date_count.insert(device_doc)
+            print "New device doc created\n"
+
+
 
 def main():
     
@@ -96,6 +139,7 @@ def main():
 
     ap_aggregation(start_time, end_time)
     client_aggregation(start_time, end_time)
+    device_aggregation(start_time, end_time)
 
 if __name__ == "__main__":
     main()

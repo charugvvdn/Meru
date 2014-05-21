@@ -33,21 +33,29 @@ def ap_quantification(start_time, end_time):
                 print "Ap doc inserted - Mac : " + str(ap_mac)
 
 def client_quantification(start_time, end_time):
-    c = db.device_clients.find({ "controller_mac":{'$exists': 1},"timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
+    c = db.device_clients.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("_id", -1)
     unique_clients = []
 
     for doc in c:
+        client_state = ''
         if doc.get('clients').get('mac') not in unique_clients:
             lower_snum = doc.get('lower_snum')
             timestamp = doc.get('timestamp')
-            ap_mac = doc.get('ap_mac')
+            ap_mac = doc.get('ap_mac') if doc.get('ap_mac') else lower_snum
             client_mac = doc.get('clients').get('mac')
             unique_clients.append(client_mac)
-            state = doc.get('clients').get('state')
+            if doc.get('clients').get('state'):
+                client_state = doc.get('clients').get('state')
+            elif doc.get('clients').get('associated'):
+                if doc.get('clients').get('associated') == 'yes':
+                    client_state = 'associated'
+                else:
+                    client_state = 'not associated'
+            state = client_state
             rx = doc.get('clients').get('rxBytes')
             tx = doc.get('clients').get('txBytes')
-            ap_id = doc.get('clients').get('apId')
+            ap_id = doc.get('clients').get('apId') if doc.get('clients').get('apId') else 0
             client_docs = db.client_stats.find({ "client_mac" : client_mac}).count()
             if client_docs:
                 db.client_stats.update({ "client_mac" : client_mac}, { "$set" : {\
@@ -60,26 +68,6 @@ def client_quantification(start_time, end_time):
                     "txBytes" : tx, "ap_id" : ap_id, "timestamp" : timestamp})
                 print "Client doc inserted - Mac : " + str(client_mac)
 
-def con_quantification(start_time, end_time):
-    c = db.device_controllers.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
-        .sort("_id", -1)
-    unique_controllers = []
-
-    for doc in c:
-        if doc.get('lower_snum') not in unique_controllers:
-            unique_controllers.append(doc.get('lower_snum'))
-            controller_doc = db.controller_stats.find({ "lower_snum" : doc.get('lower_snum')}).count()
-            if controller_doc:
-                db.controller_stats.update({ "lower_snum" : doc.get('lower_snum')},\
-                   { "$set" : { "operState" : doc.get('operState'), "timestamp" : doc.get('timestamp'),\
-                    "controllerUtil" : doc.get('controllerUtil'), "secState" : doc.get('secState')}})
-	    	print "Controller doc updated - Mac : " + str(doc.get('lower_snum'))
-            else:
-                db.controller_stats.insert({ "lower_snum" : doc.get('lower_snum'), \
-                    "operState" : doc.get('operState'), "timestamp" : doc.get('timestamp'),\
-                    "controllerUtil" : doc.get('controllerUtil'), "secState" : doc.get('secState')})
-		print "Controller doc inserted - Mac : " + str(doc.get('lower_snum'))
-
 
 def main():
     
@@ -91,7 +79,7 @@ def main():
                 total_seconds())
     client_quantification(start_time, end_time)
     ap_quantification(start_time, end_time)
-    con_quantification(start_time, end_time)
+    
 
 if __name__ == "__main__":
     print "\n" + "Exec Time :: " + str(datetime.datetime.now()) + "\n"

@@ -3,50 +3,23 @@ from device_app import views, api
 from device_app.views import DeviceApplication as dav
 #from device_app import pdfgen
 #from device_app.pdfgen import ApiBaseClass as pdf_api
-from device_app.api_calls import HomeApi, HomeApi2, DashboardApi, AlarmsApi
-from device_app.analytics_graph import analytics_api
-from device_app.device_graph import SSID_graph,rfBand_graph,ApState_graph,Throughput_graph,ApModel_graph,ClientAPid_graph
-from device_app.msolo_device_graph import ThroughputBand,ClientBand,ClientThroughput,ClientTable
+from device_app.api_calls import HomeApi, HomeApi2
+from device_app.device_report import deviceGraph
+from device_app.client_report import clientGraph
 deviceapp = dav()
 
 urlpatterns = patterns('',
-                       url(r'^welcome/$', views.welcome, name='welcome'),
-                       # url(r'^api/auth/hello/$', views.gHello, name='hello'),
-                       # url(r'^api/auth/hello/([0-9A-F]{2}[:-]){5}([0-9A-F]{2})/$', views.uHello, name='uHello'),
-                       # url(r'^api/auth/hello/mon/$', views.cHello, name='cHello'),
+                       #GET/POST/PUT controller data
                        url(r'^api/auth/hello/$', dav.as_view()),
-                       # url(r'^api/auth/hello/(?P<mac=>[0-9A-F]{2}[:-]){5}([0-9A-F]{2})/$', dav.as_view()),
                        url(r'^api/auth/hello/(?P<mac>([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2}))/$',
                            dav.as_view()),
-                       # url(r'^api/auth/hello/([0-9A-F]{2}[:-]){5}([0-9A-F]{2})/$', views.uHello, name='uHello'),
-                       #url(r'^reports/stationThroughput/$',views.client_throughput),
-                       #url(r'^reports/APThroughput/$', views.ap_throughput),
-                       #url(r'^reports/wifi_experience/$',views.wifi_experience),
-                       #url(r'^reports/overall_throughput/$',views.overall_throughput),
-                       url(r'^report/ssid/$', SSID_graph.as_view()),
-                       url(r'^report/rfband/$', rfBand_graph.as_view()),
-                       url(r'^report/apstate/$', ApState_graph.as_view()),
-                       url(r'^report/throughput/$', Throughput_graph.as_view()),
-
-                       url(r'^report/apmodel/$', ApModel_graph.as_view()),
-                       url(r'^report/wc_ap/$', ClientAPid_graph.as_view()),
-
-                       #msolo graphs
-                       url(r'^msolo/throughputband/$', ThroughputBand.as_view()),
-                       url(r'^msolo/clientband/$', ClientBand.as_view()),
-                       url(r'^msolo/clientthroughput/$', ClientThroughput.as_view()),
-                       url(r'^msolo/clienttable/$', ClientTable.as_view()),
-
-
-                       #url(r'^reports/devicedist/$', views.devicetype),
-                       #url(r'^reports/ap_clients/$', views.ap_clients),
+                       #Client report graph
+                       url(r'^report/clientcount/$', clientGraph.as_view()),
+                       #Device report graph
+                       url(r'^report/devicecount/$', deviceGraph.as_view()),
+                       #Dashboard apis
                        url(r'^home/api/$', HomeApi.as_view()),
                        url(r'^home/api2/$', HomeApi2.as_view()),
-                       url(r'^dashboard/api/$', DashboardApi.as_view()),
-                       url(r'^alarms/api/$', AlarmsApi.as_view()),
-                       #url(r'^report-gen/$', pdfgen.main_view),
-                       #url(r'^send-mail/$', pdfgen.send_mail),
-                       url(r'^analytics/api/$', analytics_api.as_view()),
 
 
 

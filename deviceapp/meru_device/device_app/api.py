@@ -1,6 +1,5 @@
 from pymongo import MongoClient
 import datetime
-from views import Common
 import pymongo
 from collections import Counter
 import itertools
@@ -12,154 +11,6 @@ DB = settings.DB
 UTC_1970 = datetime.datetime(1970, 1, 1)
 UTC_NOW = datetime.datetime.utcnow()
 OFFSET = UTC_NOW - datetime.timedelta(minutes=30)
-class DashboardStats():
-
-    '''Common variable used under the class methods'''
-
-    def __init__(self,**kwargs):
-        print "Memory Report"
-        memory_report = self.memory_usage()
-        print memory_report
-        self.lt= kwargs['lt'] if 'lt' in kwargs else None
-        self.gt = kwargs['gt'] if 'gt' in kwargs else None
-        self.reporttype= kwargs['reportType'] if 'reportType' in kwargs else 0
-        self.maclist = kwargs['maclist'] if 'maclist' in kwargs else None
-        self.ap_doc_list = []
-        self.alarm_doc_list = []
-        self.client_doc_list = []
-        self.controller_doc_list = []
-
-        qry = {}
-        self.maclist = map(str.lower, self.maclist)
-        if self.lt and self.gt and self.maclist:
-            #for mac in self.maclist:
-            self.maclist = map(str.lower,self.maclist)
-            qry["timestamp"] =  {"$gte": self.gt, "$lte": self.lt}
-            qry['lower_snum'] = { "$in": self.maclist}
-            self.controller_cursor = DB.controller_stats.find(qry).sort('_id',-1)
-            self.cl_cursor = DB.client_stats.find(qry).sort('_id',-1)
-            self.ap_cursor = DB.ap_stats.find(qry).sort('_id',-1)
-            self.alarm_cursor = DB.device_alarms.find(qry).sort('_id',-1)
-            for doc in self.controller_cursor:
-                self.controller_doc_list.append(doc)
-            for doc in self.cl_cursor:
-                self.client_doc_list.append(doc)
-            for doc in self.ap_cursor:
-                self.ap_doc_list.append(doc)
-            for doc in self.alarm_cursor:
-                self.alarm_doc_list.append(doc)           
-
-    def memory_usage(self):
-        """Memory usage of the current process in kilobytes."""
-        status = None
-        result = {'peak': 0, 'rss': 0}
-        try:
-            status = open('/proc/self/status')
-            for line in status:
-                parts = line.split()
-                key = parts[0][2:-1].lower()
-                if key in result:
-                    result[key] = int(parts[1])
-        finally:
-            if status is not None:
-                status.close()
-        return result
-
-    def number_stations(self, **kwargs ):
-        '''API calculating NUMBER OF STATIONS '''
-        result_dict = {}
-        online_clients = []
-        critical_clients = []
-        unique_clients = {}
-
-        for doc in self.client_doc_list:
-            if doc.get('client_mac') and doc.get('state'):
-                client_mac = doc['client_mac']
-                client_state = doc['state'].lower()
-                if client_mac not in unique_clients:
-                    unique_clients[client_mac] = 0
-                    if client_state == 'associated':
-                        online_clients.append(client_mac)
-                    else:
-                        critical_clients.append(client_mac)
-        result_dict['label'] = 'Number of stations'
-        result_dict['data'] = [len(online_clients), len(critical_clients)]
-        if self.reporttype == 1:
-            result_dict['station_list'] = [online_clients, critical_clients]
-        return result_dict
-
-    def number_controllers(self, **kwargs ):
-        '''API calculating NUMBER OF Controllers '''
-        count = 0
-        result_dict = {}
-        unique_mac = {}
-        for doc in self.controller_doc_list:
-            if doc.get('lower_snum'):
-                mac = doc['lower_snum']
-                if mac not in unique_mac:
-                    unique_mac[mac] = 0
-        result_dict['label'] = 'Number of controllers'
-        result_dict['data'] = len(unique_mac)
-        if self.reporttype == 1:
-            result_dict['maclist'] = [unique_mac.keys()]
-        return result_dict
-
-    def wifi_exp(self, **kwargs):
-        '''API calculating WI-FI EXPERIENCE '''
-        count = 0
-        wifi_client = 0
-        result_dict = {}
-        result_dict['label'] = 'Wifi experience'
-        result_dict['data'] = 0
-        return result_dict
-
-    def online_offline_aps(self, **kwargs ):
-        '''API calculating NUMBER OF APS '''
-        result_dict = {}
-        online_aplist = []
-        offline_aplist = []
-        unique_aps = {}
-        for doc in self.ap_doc_list:
-            if doc.get('ap_mac') and doc.get('status'):
-                ap_mac = doc['ap_mac']
-                ap_status = doc['status'].lower()
-                if ap_mac not in unique_aps:
-                    unique_aps[ap_mac] = 0
-                    if ap_status == 'up':
-                        online_aplist.append(ap_mac)
-                    else:
-                        offline_aplist.append(ap_mac)
-        result_dict['label'] = 'Number of online offline aps'
-        result_dict['data'] = [len(online_aplist), len(offline_aplist)]
-        if self.reporttype == 1:
-            result_dict['aplist'] = [online_aplist, offline_aplist]
-        return result_dict
-
-    def alarms_count(self, **kwargs ):
-        
-        '''API calculating critical, high, minor alarms'''
-        result_dict = {}
-        high_alarm = []
-        critical_alarm = []
-        minor_alarm  = []
-        for doc in self.alarm_doc_list:
-            if  doc.get('lower_snum') and doc.get('alarms'):
-                mac = doc['lower_snum']
-                for alarm in doc.get('alarms'):
-                    alarm_status = alarm.get('severity').lower()
-                    if alarm_status == 'high':
-                        high_alarm.append(mac)
-                    elif alarm_status == 'critical':
-                        critical_alarm.append(mac)
-                    elif alarm_status == 'low':
-                        minor_alarm.append(mac)
-        result_dict['label'] = 'Alarms'
-        result_dict['data'] = [len(critical_alarm), len(high_alarm), len(minor_alarm)]
-        if self.reporttype == 1:
-            result_dict['maclist'] = [{"critical":critical_alarm, \
-             "high":high_alarm, "minor":minor_alarm}]
-        return result_dict
-
 
 class HomeStats():
 
@@ -185,7 +36,7 @@ class HomeStats():
             self.maclist = map(str.lower,self.maclist)
             qry["timestamp"] =  {"$gte": self.gt, "$lte": self.lt}
             qry['lower_snum'] = { "$in": self.maclist}
-            self.controller_cursor = DB.controller_stats.find(qry).sort('_id',-1)
+            self.controller_cursor = DB.device_controllers.find(qry).sort('_id',-1)
             self.cl_cursor = DB.client_stats.find(qry).sort('_id',-1)
             self.ap_cursor = DB.ap_stats.find(qry).sort('_id',-1)
             self.alarm_cursor = DB.device_alarms.find(qry).sort('_id',-1)
@@ -333,9 +184,9 @@ class HomeStats():
         result_dict = {}
         unique_mac = {}
         for doc in self.controller_doc_list:
-            if doc.get('lower_snum') and doc.get('controllerUtil'):
+            if doc.get('lower_snum') and doc.get('utilization'):
                 mac = doc['lower_snum']
-                controller_util = int(doc['controllerUtil'])
+                controller_util = int(doc['utilization'])
                 if mac not in unique_mac:
                     unique_mac[mac] = 0
                     if controller_util < 50:

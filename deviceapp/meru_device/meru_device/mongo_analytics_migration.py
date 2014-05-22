@@ -9,7 +9,7 @@ def ap_aggregation(start_time, end_time):
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)
@@ -45,27 +45,25 @@ def ap_aggregation(start_time, end_time):
 
 
 def client_aggregation(start_time, end_time):
-    c = db.device_clients.find({ "controller_mac":{'$exists': 1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
+    c = db.device_clients.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("timestamp", -1)
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)
         print datetime_obj
 
-        c_mac = doc.get('controller_mac').lower()
-        client_type = doc.get('clients').get('clientType')
+        c_mac = doc.get('controller_mac').lower() if doc.get('controller_mac') else doc.get('msolo_mac').lower()
+        client_type = doc.get('clients').get('clientType') if doc.get('clients').get('clientType') else 'unknown'
         #client_thru = doc.get('clients').get('rxBytes') + doc.get('clients').get('txBytes')
         client_mac = doc.get('clients').get('mac')
         client_rx = doc.get('clients').get('rxBytes')
         client_tx = doc.get('clients').get('txBytes')
-        client_band = doc.get('clients').get('rfBand')
-        client_ssid = doc.get('clients').get('ssid')
         client_info = { "client_type" : client_type, "client_rx" : client_rx, "client_tx" : \
-                        client_tx, "client_band": client_band, "client_ssid" : client_ssid, "client_mac" : client_mac}
+                        client_tx, "client_mac" : client_mac}
         c_info = { "c_mac" : c_mac}
         client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : \
                     [client_info], "c_info" : [c_info]}
@@ -77,8 +75,7 @@ def client_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.client_date_count.update({ "hour" : h, "date" : datetime_obj, \
                 "client_info.client_mac" : client_mac}, {"$set" : {"client_info.$.client_tx" : \
-                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_band" : \
-                client_band, "client_info.$.client_ssid" : client_ssid, "client_info.$.client_type" : \
+                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_type" : \
                 client_type, "timestamp" : t_stmp}, "$addToSet" : { "c_info" : c_info}})
             else:
                 db.client_date_count.update({"hour" : h, "date" : datetime_obj}, \
@@ -89,59 +86,47 @@ def client_aggregation(start_time, end_time):
             db.client_date_count.insert(client_doc)
             print "New client doc created\n"
 
-def msolo_client_aggregation(start_time, end_time):
-    c = db.device_clients.find({ "msolo_mac":{'$exists': 1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
+def device_aggregation(start_time, end_time):
+    c = db.device_controllers.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
         .sort("timestamp", -1)
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)
         print datetime_obj
 
-        msolo_mac = doc.get('msolo_mac').lower()
-        #client_thru = doc.get('clients').get('rxBytes') + doc.get('clients').get('txBytes')
-        client_mac = doc.get('clients').get('mac')
-        client_rx = doc.get('clients').get('rxBytes')
-        client_tx = doc.get('clients').get('txBytes')
-        client_interface = doc.get('clients').get('interface')
-        client_associated = doc.get('clients').get('associated')
-        client_authenticated = doc.get('clients').get('authenticated')
-        client_rssi = doc.get('clients').get('rssi')
-        client_rxPackets = doc.get('clients').get('rxPackets')
-        client_txPackets = doc.get('clients').get('txPackets')
-        client_info = { "client_rx" : client_rx, "client_tx" : \
-                        client_tx, "client_interface":client_interface,\
-                        "client_associated": client_associated, \
-                        "client_authenticated" : client_authenticated,"client_rssi" : client_rssi,\
-                        "client_rxPackets" : client_rxPackets,"client_txPackets" : client_txPackets,\
-                        "client_mac" : client_mac}
-        msolo_info = { "msolo_mac" : msolo_mac}
-        client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : \
-                    [client_info], "msolo_info" : [msolo_info]}
+        c_mac = doc.get('lower_snum').lower()
+        device_operState = doc.get('operState') if doc.get('operState') else 'None'
+        device_rx = doc.get('rxBytes') or  0
+        device_mac = doc.get('lower_snum').lower()
+        device_tx = doc.get('txBytes') or 0
+        device_info = { "device_operState" : device_operState, "device_rx" : device_rx, "device_tx" : \
+                        device_tx, "device_mac" : device_mac}
+        c_info = { "c_mac" : c_mac}
+        device_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "device_info" : \
+                    [device_info], "c_info" : [c_info]}
 
-        cur = db.msolo_client_date_count.find({"hour" : h, "date" : datetime_obj})
+        cur = db.device_date_count.find({"hour" : h, "date" : datetime_obj})
         if cur.count():
-            update_cursor = db.msolo_client_date_count.find({"hour" : h, "date" : datetime_obj, \
-                            "client_info.client_mac" : client_mac})
+            update_cursor = db.device_date_count.find({"hour" : h, "date" : datetime_obj, \
+                            "device_info.device_mac" : device_mac})
             if update_cursor.count():
-                db.msolo_client_date_count.update({ "hour" : h, "date" : datetime_obj, \
-                "client_info.client_mac" : client_mac}, {"$set" : {"client_info.$.client_tx" : \
-                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_interface" : \
-                client_interface, "client_info.$.client_associated" : client_associated, "client_info.$.authenticated" : \
-                client_authenticated,"client_info.$.client_rssi" : client_rssi,\
-                "client_info.$.client_rxPackets" : client_rxPackets,"client_info.$.client_txPackets" : client_txPackets,\
-                "timestamp" : t_stmp}, "$addToSet" : { "msolo_info" : msolo_info}})
+                db.device_date_count.update({ "hour" : h, "date" : datetime_obj, \
+                "device_info.device_mac" : device_mac}, {"$set" : {"device_info.$.device_tx" : \
+                device_tx, "device.$.device_rx" : device_rx,"device.$.operState" : device_operState,\
+                 "device_info.$.device_type" : device_type, "timestamp" : t_stmp}, \
+                 "$addToSet" : { "c_info" : c_info}})
             else:
-                db.msolo_client_date_count.update({"hour" : h, "date" : datetime_obj}, \
-                    { "$addToSet" : { "client_info" : client_info, "msolo_info" : msolo_info}, \
+                db.device_date_count.update({"hour" : h, "date" : datetime_obj}, \
+                    { "$addToSet" : { "device_info" : device_info, "c_info" : c_info}, \
                     "$set" : { "timestamp" : t_stmp}})
-            print "mSolo Client doc updated\n"
+            print "device doc updated\n"
         else:
-            db.msolo_client_date_count.insert(client_doc)
-            print "New mSolo client doc created\n"
+            db.device_date_count.insert(device_doc)
+            print "New device doc created\n"
 
 def msolo_radioparam_aggregation(start_time, end_time):
     c = db.device_radio_params.find({ "timestamp" : { "$gt" : start_time, "$lt" : end_time}})\
@@ -192,7 +177,6 @@ def msolo_radioparam_aggregation(start_time, end_time):
 
 def main():
     
-   
     offset  = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
     start_time = int((offset - datetime.datetime(1970, 1, 1)).total_seconds())
     end_time  = int((datetime.datetime.utcnow() - datetime.datetime(1970, 1, 1)).\
@@ -200,8 +184,9 @@ def main():
 
     ap_aggregation(start_time, end_time)
     client_aggregation(start_time, end_time)
-    msolo_client_aggregation(start_time, end_time)
+    device_aggregation(start_time, end_time)
     msolo_radioparam_aggregation(start_time, end_time)
+
 
 if __name__ == "__main__":
     main()

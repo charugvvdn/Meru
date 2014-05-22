@@ -82,7 +82,7 @@ class Hourly_Client_Graph():
     def ClientReport(self, **kwargs):
         
         '''Calculating the number of clients in a device and client throughput '''
-        result_dict = {'no_of_clients':{},'controller_thru':{}}
+        result_dict = {'no_of_clients':{},'client_thru':{}}
         loop_over,add_time = self.report_analytics()
         print loop_over
         for count in range(0,loop_over):

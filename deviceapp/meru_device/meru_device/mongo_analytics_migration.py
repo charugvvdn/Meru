@@ -62,8 +62,9 @@ def client_aggregation(start_time, end_time):
         client_mac = doc.get('clients').get('mac')
         client_rx = doc.get('clients').get('rxBytes')
         client_tx = doc.get('clients').get('txBytes')
+        client_interface = doc.get('clients').get('interface') or 'none'
         client_info = { "client_type" : client_type, "client_rx" : client_rx, "client_tx" : \
-                        client_tx, "client_mac" : client_mac}
+                        client_tx, "client_interface":client_interface, "client_mac" : client_mac}
         c_info = { "c_mac" : c_mac}
         client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : \
                     [client_info], "c_info" : [c_info]}
@@ -75,7 +76,8 @@ def client_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.client_date_count.update({ "hour" : h, "date" : datetime_obj, \
                 "client_info.client_mac" : client_mac}, {"$set" : {"client_info.$.client_tx" : \
-                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_type" : \
+                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_interface" : client_interface,\
+                 "client_info.$.client_type" : \
                 client_type, "timestamp" : t_stmp}, "$addToSet" : { "c_info" : c_info}})
             else:
                 db.client_date_count.update({"hour" : h, "date" : datetime_obj}, \

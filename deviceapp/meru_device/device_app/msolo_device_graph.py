@@ -42,7 +42,7 @@ class Hourly_Graph():
             qry["date"] =  {"$gte": gt, "$lte": lt}
             qry['msolo_info.msolo_mac'] = { "$in": self.maclist}
             print qry
-            self.cl_cursor = DB.msolo_client_date_count.find(qry).sort('_id',-1)
+            self.cl_cursor = DB.client_date_count.find({"date":{"$gte":gt,"$lte":lt},"c_info.c_mac":{"$in":self.maclist}}).sort('_id',-1)
             self.rd_cursor = DB.msolo_radio_date_count.find(qry).sort('_id',-1)
             for doc in self.cl_cursor:
                 self.client_doc_list.append(doc)

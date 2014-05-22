@@ -6,6 +6,7 @@ from device_app.views import DeviceApplication as dav
 from device_app.api_calls import HomeApi, HomeApi2
 from device_app.device_report import deviceGraph
 from device_app.client_report import clientGraph
+from device_app.msolo_device_graph import ThroughputBand,ClientBand,ClientThroughput,ClientTable
 deviceapp = dav()
 
 urlpatterns = patterns('',
@@ -20,7 +21,10 @@ urlpatterns = patterns('',
                        #Dashboard apis
                        url(r'^home/api/$', HomeApi.as_view()),
                        url(r'^home/api2/$', HomeApi2.as_view()),
-
+                       url(r'^msolo/throughputband/$', ThroughputBand.as_view()),
+                       url(r'^msolo/clientband/$', ClientBand.as_view()),
+                       url(r'^msolo/clientthroughput/$', ClientThroughput.as_view()),
+                       url(r'^msolo/clienttable/$', ClientTable.as_view()),
 
 
 

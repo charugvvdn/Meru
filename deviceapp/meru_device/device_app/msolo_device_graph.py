@@ -139,19 +139,19 @@ class Hourly_Graph():
             clients = doc.get('client_info')
             for client in clients:
                 # separate calculation for grouping rxbyte
-                
-                if client['client_interface'] == 'wlan0':
-                    band = '2.4Ghz'
-                elif client['client_interface'] == 'wlan1':
-                    band = '5Ghz'
-                if band not in band1_tmpdict:
-                    band1_tmpdict[band] = {}
-                if doc['hour'] not in band1_tmpdict[band]:
-                    band1_tmpdict[band][doc['hour']] = {}
-                if client['client_mac'] not in band1_tmpdict[band][doc['hour']]:
-                    band1_tmpdict[band][doc['hour']][client['client_mac']] = 1
-                else:
-                    band1_tmpdict[band][doc['hour']][client['client_mac']] += 1
+                if client['c_mac'] in self.maclist:
+                    if client['client_interface'] == 'wlan0':
+                        band = '2.4Ghz'
+                    elif client['client_interface'] == 'wlan1':
+                        band = '5Ghz'
+                    if band not in band1_tmpdict:
+                        band1_tmpdict[band] = {}
+                    if doc['hour'] not in band1_tmpdict[band]:
+                        band1_tmpdict[band][doc['hour']] = {}
+                    if client['client_mac'] not in band1_tmpdict[band][doc['hour']]:
+                        band1_tmpdict[band][doc['hour']][client['client_mac']] = 1
+                    else:
+                        band1_tmpdict[band][doc['hour']][client['client_mac']] += 1
         print band1_tmpdict
         for band in band1_tmpdict:
             result_band1=  {}

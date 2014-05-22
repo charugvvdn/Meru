@@ -20,7 +20,7 @@ def ap_aggregation(start_time, end_time):
         ap_rx = doc.get('aps').get('rxBytes')
         ap_tx = doc.get('aps').get('txBytes')
         ap_info = {"ap_mac" : ap_mac, "ap_status" : ap_status, "ap_rx" : ap_rx, "ap_tx" :\
-                     ap_tx}
+                     ap_tx,"c_mac" : c_mac}
         c_info = { "c_mac" : c_mac}
         ap_doc = {"hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "c_info" : \
                     [c_info], "ap_info" : [ap_info]}
@@ -32,7 +32,8 @@ def ap_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.ap_date_count.update({ "hour" : h, "date" : datetime_obj, "ap_info.ap_mac" : \
                     ap_mac}, {"$set" : {"ap_info.$.ap_tx" : ap_tx, "ap_info.$.ap_rx" : ap_rx,\
-                    "ap_info.$.ap_status" : ap_status, "timestamp" : t_stmp}, "$addToSet" : \
+                    "ap_info.$.ap_status" : ap_status, "ap_info.$c_mac" : c_mac,\
+                    "timestamp" : t_stmp}, "$addToSet" : \
                     { "c_info" : c_info}})
             else:
                 db.ap_date_count.update({"hour" : h, "date" : datetime_obj}, \
@@ -64,7 +65,7 @@ def client_aggregation(start_time, end_time):
         client_tx = doc.get('clients').get('txBytes')
         client_interface = doc.get('clients').get('interface') or 'none'
         client_info = { "client_type" : client_type, "client_rx" : client_rx, "client_tx" : \
-                        client_tx, "client_interface":client_interface, "client_mac" : client_mac}
+                        client_tx, "client_interface":client_interface, "client_mac" : client_mac,"c_mac" : c_mac}
         c_info = { "c_mac" : c_mac}
         client_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "client_info" : \
                     [client_info], "c_info" : [c_info]}
@@ -76,7 +77,8 @@ def client_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.client_date_count.update({ "hour" : h, "date" : datetime_obj, \
                 "client_info.client_mac" : client_mac}, {"$set" : {"client_info.$.client_tx" : \
-                client_tx, "client_info.$.client_rx" : client_rx, "client_info.$.client_interface" : client_interface,\
+                client_tx, "client_info.$.client_rx" : client_rx,"client_info.$.c_mac" : c_mac,\
+                 "client_info.$.client_interface" : client_interface,\
                  "client_info.$.client_type" : \
                 client_type, "timestamp" : t_stmp}, "$addToSet" : { "c_info" : c_info}})
             else:
@@ -106,7 +108,7 @@ def device_aggregation(start_time, end_time):
         device_mac = doc.get('lower_snum').lower()
         device_tx = doc.get('txBytes') or 0
         device_info = { "device_operState" : device_operState, "device_rx" : device_rx, "device_tx" : \
-                        device_tx, "device_mac" : device_mac}
+                        device_tx, "device_mac" : device_mac,"c_mac" : c_mac}
         c_info = { "c_mac" : c_mac}
         device_doc = { "hour" : h, "date" : datetime_obj, "timestamp" : t_stmp, "device_info" : \
                     [device_info], "c_info" : [c_info]}
@@ -118,7 +120,8 @@ def device_aggregation(start_time, end_time):
             if update_cursor.count():
                 db.device_date_count.update({ "hour" : h, "date" : datetime_obj, \
                 "device_info.device_mac" : device_mac}, {"$set" : {"device_info.$.device_tx" : \
-                device_tx, "device.$.device_rx" : device_rx,"device.$.operState" : device_operState,\
+                device_tx, "device.$.device_rx" : device_rx, "device.$.c_mac" : c_mac,\
+                "device.$.operState" : device_operState,\
                  "device_info.$.device_type" : device_type, "timestamp" : t_stmp}, \
                  "$addToSet" : { "c_info" : c_info}})
             else:

@@ -190,7 +190,7 @@ class DeviceApplication(View):
         try:
             '''saving the complete data to db.devices until 
             the whole code is updated with splitting with new db'''
-            DB.devices.insert(post_data)
+            #DB.devices.insert(post_data)
             if 'controller' in post_data.get('msgBody'):
                 # spliiting data to save in device_alamrs
                 post_data = self.process_alarms(post_data)

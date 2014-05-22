@@ -177,7 +177,7 @@ def insert_ap_data(ap_list):
     print "Succ from insert ap_data\n"
 
 def find_client(client_mac):
-    print "client_mac--------------",client_mac
+
     cursor = db.cursor()
     if client_mac:
         query = "SELECT COUNT(*) FROM `meru_client` \

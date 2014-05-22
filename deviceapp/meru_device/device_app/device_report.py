@@ -95,7 +95,7 @@ class Hourly_Device_Graph():
                 if doc['hour'] == count:
                     devices  = doc.get('device_info')
                     for device in devices:
-                        if device['device_mac'] not in unique_devices and device['c_mac'] in self.maclist:
+                        if device['device_mac'] not in unique_devices and device.get('c_mac') and  device['c_mac'] in self.maclist:
                             unique_devices[device['device_mac']] = 1
                             if device.get('device_rx') and device.get('device_tx'):
                                 device_thorughput += device['device_rx']+device['device_tx']

@@ -95,7 +95,7 @@ class Hourly_Client_Graph():
                 if doc['hour'] == count:
                     clients  = doc.get('client_info')
                     for cl in clients:
-                        if cl['client_mac'] not in unique_clients and cl['c_mac'] in self.maclist :
+                        if cl['client_mac'] not in unique_clients and cl.get('c_mac') and cl['c_mac'] in self.maclist :
                             unique_clients[cl['client_mac']] = 1
                             if cl.get('client_rx') and cl.get('client_tx'):
                                 client_thorughput += cl['client_rx']+cl['client_tx']

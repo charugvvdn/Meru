@@ -55,11 +55,11 @@ def make_ready_controller(controller_list, update=True):
     controller_data = []
     if update:
         for controller in controller_list:
-		if controller['operStat'].lower().strip() == "enabled" or controller['operStat'].lower().strip() == "up":
-			status = 1
-    		t = (status, controller["mac"])
-		controller_data.append(t)
-		t = ()
+            if controller['operState'].lower().strip() == "enabled" or controller['operState'].lower().strip() == "up":
+                status = 1
+                t = (status, controller["mac"])
+                controller_data.append(t)
+                t = ()
     return controller_data
 
 def update_controller(controller_list):
@@ -177,6 +177,7 @@ def insert_ap_data(ap_list):
     print "Succ from insert ap_data\n"
 
 def find_client(client_mac):
+    print "client_mac--------------",client_mac
     cursor = db.cursor()
     if client_mac:
         query = "SELECT COUNT(*) FROM `meru_client` \
@@ -251,106 +252,90 @@ def traverse(obj, l):
 
 def main():
     mongo_db = settings.DB
-    doc_list = []
-    controllers = []
-    mon_data = []
+    unique_controller = []
+    unique_clients = []
+    unique_aps = []
+    unique_client_device =[]
+    unique_ap_device =[]
+
+    controller_list = []
+    update_client_list = []
+    insert_client_list = []
+    update_ap_list = []
+    insert_ap_list = []
     alarm_list = []
     alarm_mon_data = []
-    ap_list = []
-    ap_mon_data = []
-    client_list = []
-    client_mon_data = []
-    ap_info = {}
 
     offset  = d.datetime.utcnow() - d.timedelta(minutes=1)
     start_time = int((offset - d.datetime(1970, 1, 1)).total_seconds())
     end_time  = int((d.datetime.utcnow() - d.datetime(1970, 1, 1)).total_seconds())
+    qry = {}
+    qry["timestamp"] =  {"$gt": start_time, "$lt": end_time }
+    print qry
 
     #Doc query to fetch last 1 minute's monitoring data
-    c = mongo_db.devices.find({ "msgBody.controller":{"$exists":1}, "timestamp" : { "$gt" : start_time, "$lt" : end_time}}).\
-            sort("timestamp", -1)
+    controller_cursor = mongo_db.device_controllers.find(qry).sort("timestamp", -1)
+    client_cursor = mongo_db.device_clients.find(qry).sort("timestamp", -1)
+    alarm_cursor = mongo_db.device_alarms.find(qry).sort("timestamp", -1)
+    ap_cursor = mongo_db.device_aps.find(qry).sort("timestamp", -1)
+    #another apcursor to use in client prcessing
+    ap_cl_cursor = mongo_db.device_aps.find(qry).sort("timestamp", -1)
 
-    for doc in c:
-        doc_list.append(doc)
 
-    for doc in doc_list:
-        if doc['snum'] not in controllers:
-            controllers.append(doc['snum'])
-            mon_data.append(doc)
-
-    insert_ap_list = []
-    update_ap_list = []
     
-    insert_client_list = []
-    update_client_list = []
+    for controller in controller_cursor:
+        if controller['lower_snum'] not in unique_controller:
+            unique_controller.append(controller['lower_snum'])
+            controller['mac'] = controller['lower_snum']
+            controller_list.append(controller)
+    for ap in ap_cursor:
+        if ap['lower_snum'] not in unique_ap_device:
+            unique_ap_device.append(ap['lower_snum'])
+            controller_id = find_controller(ap['lower_snum'])
+            if 'aps' in ap:
+                if ap['aps']['mac'] not in unique_aps:
+                    unique_aps.append(ap['aps']['mac'])
+                    ap['aps']['c_id'] = controller_id[0]
+                    ap['aps']['c_mac'] = ap['lower_snum']
 
-    controller_list = []
+                    if find_ap(ap['aps']['mac']):
+                        update_ap_list.append(ap['aps'])
+                    else:
+                        insert_ap_list.append(ap['aps'])
 
-    for doc in reversed(mon_data):
-        alarms = []
-        aps = []
-        clients = []
-        controllers = []
+    for client in client_cursor:
+        if client['lower_snum'] not in unique_client_device:
+            unique_client_device.append(client['lower_snum'])
+            if 'clients' in client:
+                if client['clients']['mac'] not in unique_clients:
+                    unique_clients.append(client['clients']['mac'])
+                    if client.get('clients').get('apId') :
+                        for ap in ap_cl_cursor :
+                            if ap['aps']['id'] == client['clients']['apId']:
+                                apmac = ap['aps']['mac']
+                                client['clients']['ap_mac'] = apmac
+                    else:
+                        client['clients']['ap_mac'] = client['lower_snum']
+                    client['clients']['clientType'] = client.get('clients').get('clientType') or 'unknown'
+                    client['clients']['ip'] = client.get('clients').get('ip') or 0
+                    client['clients']['rfBand'] = client.get('clients').get('rfBand') or ('band 11a' if client.get('clients').get('interface') == 'wlan1' else 'band 11b')
+                    client['clients']['ssid'] = client.get('clients').get('ssid') or "None"
+                    client['clients']['wifiExp'] = client.get('clients').get('wifiExp') or 0
+                    client['clients']['wifiExpDescr'] = client.get('clients').get('wifiExpDescr') or "None"
+                    if find_client(client['clients']['mac']):
+                        update_client_list.append(client['clients'])
+                    else:
+                        insert_client_list.append(client['clients'])
+    
 
-        t_stmp = doc.get('timestamp')
-        
-        aps = doc.get('msgBody').get('controller').get('aps')
-        alarms = doc.get('msgBody').get('controller').get('alarms')
-        clients = doc.get('msgBody').get('controller').get('clients')
-        controllers = doc.get('msgBody').get('controller')
-
-        #search for the controller id
-        controller_id = find_controller(doc['snum'])
-
-        controller = {}
-        controller["ip"] = controllers["ip"]
-        controller["hostname"] = controllers["hostname"]
-        controller["uptime"] = controllers["uptime"]
-        controller["location"] = controllers["location"]
-        controller["contact"] = controllers["contact"]
-        controller["operStat"] = controllers["operState"]
-        controller["model"] = controllers["model"]
-        controller["swVersion"] = controllers["swVersion"]
-        controller["countrySettings"] = controllers["countrySettings"]
-        controller["mac"] = controllers["mac"]
-        controller_list.append(controller)
-
-        unique_aps = {}
-
-        for ap in aps:
-            if ap['mac'] not in unique_aps:
-#            print ap
-                unique_aps[ap['mac']] = True
-                ap['c_mac'] = doc['snum']
-                ap['c_id'] = controller_id[0]
-                ap_info[ap['id']] = ap['mac']
-		print "ap mac to be find"
-		print ap["mac"]
-                if find_ap(ap['mac']):
-                    update_ap_list.append(ap)
-                else:
-                    insert_ap_list.append(ap)
-
-        for alarm in alarms:
+    for cursor in alarm_cursor:
+        for alarm in cursor['alarms']:
+            
+            controller_id = find_controller(cursor['lower_snum'])
             alarm['c_mac'] = controller_id[1]
-            alarm_list.append(alarms)
+            alarm_list.append(alarm)
 
-        unique_clients = {}
-
-        for client in clients:
-            if client['mac'] not in unique_clients:
-		try:
-                	client['ap_mac'] = ap_info[client['apId']]
-		except KeyError as error:
-			print "Error at clients apId"
-			print error
-                if find_client(client['mac']):
-                    update_client_list.append(client)
-                else:
-                    insert_client_list.append(client)
-
-    print "Final controller list"
-    print controller_list
+    
     alarm_mon_data = traverse(alarm_list, alarm_mon_data)
 
     if len(controller_list):
@@ -372,8 +357,8 @@ def main():
     if len(insert_ap_list):
         #i_ap_mon_data = traverse(insert_ap_list, ap_mon_data)
         insert_ap_data(insert_ap_list)
-        
     db.close();
+
 if __name__ == "__main__":
         main()
 

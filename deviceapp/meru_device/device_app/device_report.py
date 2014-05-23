@@ -80,14 +80,12 @@ class Hourly_Device_Graph():
                 status.close()
         return result
     def DeviceReport(self, **kwargs):
-        print self.device_doc_list
         '''Calculating the number of devices  and device throughput'''
         result_dict = {'no_of_devices':{},'device_thru':{}}
         loop_over,add_time = self.report_analytics()
         to = self.gt
-        for count in range(0,loop_over):
+        for count in range(0,loop_over+1):
             frm = to
-            to = to + add_time * 60 * 60
             device_thorughput = 0
             result_dict['no_of_devices'][count] =0
             result_dict['device_thru'][count] = 0
@@ -103,6 +101,7 @@ class Hourly_Device_Graph():
                                 device_thorughput += device['device_rx']+device['device_tx']
                             result_dict['no_of_devices'][count] = len(unique_devices)
                             result_dict['device_thru'][count] = device_thorughput
+            to = to + add_time * 60 * 60
             
         return result_dict
             
@@ -146,6 +145,7 @@ class Hourly_Device_Graph():
             month = math.ceil(float(thistime.days)/float(30)) if thistime.days >= 30 else 1
         
         date_dict = {"month":int(month),"week":int(week),"days":days,"hours":hours}
+        print date_dict
         return date_dict
         
 

@@ -9,7 +9,7 @@ def ap_aggregation(start_time, end_time):
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)
@@ -33,8 +33,7 @@ def ap_aggregation(start_time, end_time):
                 db.ap_date_count.update({ "hour" : h, "date" : datetime_obj, "ap_info.ap_mac" : \
                     ap_mac}, {"$set" : {"ap_info.$.ap_tx" : ap_tx, "ap_info.$.ap_rx" : ap_rx,\
                     "ap_info.$.ap_status" : ap_status, "ap_info.$c_mac" : c_mac,\
-                    "timestamp" : t_stmp}, "$addToSet" : \
-                    { "c_info" : c_info}})
+                    "timestamp" : t_stmp}, "$addToSet" : { "c_info" : c_info}})
             else:
                 db.ap_date_count.update({"hour" : h, "date" : datetime_obj}, \
                     { "$addToSet" : { "ap_info" : ap_info, "c_info" : c_info}, "$set" : \
@@ -51,7 +50,7 @@ def client_aggregation(start_time, end_time):
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)
@@ -96,7 +95,7 @@ def device_aggregation(start_time, end_time):
 
     for doc in c:
         t_stmp = doc.get('timestamp')
-        date_obj = datetime.datetime.fromtimestamp(int(t_stmp))
+        date_obj = datetime.datetime.utcfromtimestamp(int(t_stmp))
         y, m, d= date_obj.year, date_obj.month, date_obj.day
         h = date_obj.hour
         datetime_obj = datetime.datetime(y, m, d, h)

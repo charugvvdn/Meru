@@ -84,23 +84,24 @@ class Hourly_Client_Graph():
         '''Calculating the number of clients in a device and client throughput '''
         result_dict = {'no_of_clients':{},'client_thru':{}}
         loop_over,add_time = self.report_analytics()
-        print loop_over
+        to = self.gt
         for count in range(0,loop_over):
+            frm = to
+            to = to + add_time * 60 * 60
             client_thorughput = 0
             result_dict['no_of_clients'][count] =0
             result_dict['client_thru'][count] = 0
             unique_clients = {}
-            print count
             for doc in self.client_doc_list:
-                if doc['hour'] == count:
+                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
                     clients  = doc.get('client_info')
                     for cl in clients:
                         if cl['client_mac'] not in unique_clients and cl.get('c_mac') and cl['c_mac'] in self.maclist :
                             unique_clients[cl['client_mac']] = 1
                             if cl.get('client_rx') and cl.get('client_tx'):
                                 client_thorughput += cl['client_rx']+cl['client_tx']
-                result_dict['no_of_clients'][count] = len(unique_clients)
-                result_dict['client_thru'][count] = client_thorughput
+                            result_dict['no_of_clients'][count] = len(unique_clients)
+                            result_dict['client_thru'][count] = client_thorughput
             
         return result_dict
             

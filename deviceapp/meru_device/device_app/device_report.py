@@ -84,23 +84,25 @@ class Hourly_Device_Graph():
         '''Calculating the number of devices  and device throughput'''
         result_dict = {'no_of_devices':{},'device_thru':{}}
         loop_over,add_time = self.report_analytics()
+        to = self.gt
         for count in range(0,loop_over):
+            frm = to
+            to = to + add_time * 60 * 60
             device_thorughput = 0
             result_dict['no_of_devices'][count] =0
             result_dict['device_thru'][count] = 0
             unique_devices = {}
-        
+            
             for doc in self.device_doc_list:
-                print doc
-                if doc['hour'] == count:
+                if doc['timestamp'] >= frm and doc['timestamp'] <= to:
                     devices  = doc.get('device_info')
                     for device in devices:
                         if device['device_mac'] not in unique_devices and device.get('c_mac') and  device['c_mac'] in self.maclist:
                             unique_devices[device['device_mac']] = 1
                             if device.get('device_rx') and device.get('device_tx'):
                                 device_thorughput += device['device_rx']+device['device_tx']
-                    result_dict['no_of_devices'][count] = len(unique_devices)
-                    result_dict['device_thru'][count] = device_thorughput
+                            result_dict['no_of_devices'][count] = len(unique_devices)
+                            result_dict['device_thru'][count] = device_thorughput
             
         return result_dict
             

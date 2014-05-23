@@ -85,7 +85,7 @@ class Hourly_Client_Graph():
         result_dict = {'no_of_clients':{},'client_thru':{}}
         loop_over,add_time = self.report_analytics()
         to = self.gt
-        for count in range(0,loop_over+1):
+        for count in range(0,loop_over):
             frm = to
             to = to + add_time * 60 * 60
             client_thorughput = 0

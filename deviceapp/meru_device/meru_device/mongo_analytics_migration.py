@@ -120,8 +120,7 @@ def device_aggregation(start_time, end_time):
                 db.device_date_count.update({ "hour" : h, "date" : datetime_obj, \
                 "device_info.device_mac" : device_mac}, {"$set" : {"device_info.$.device_tx" : \
                 device_tx, "device.$.device_rx" : device_rx, "device.$.c_mac" : c_mac,\
-                "device.$.operState" : device_operState,\
-                 "device_info.$.device_type" : device_type, "timestamp" : t_stmp}, \
+                "device.$.operState" : device_operState,"timestamp" : t_stmp}, \
                  "$addToSet" : { "c_info" : c_info}})
             else:
                 db.device_date_count.update({"hour" : h, "date" : datetime_obj}, \

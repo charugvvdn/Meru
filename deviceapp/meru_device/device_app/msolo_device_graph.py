@@ -240,7 +240,7 @@ class Stats():
                     client_details = {}
                     if doc['clients']['mac'] not in unique_clients:
                         unique_clients[doc['clients']['mac']] = True
-                        client_details ['mac'] = doc['clients']['mac']
+                        client_details ['mac'] = doc['clients']['mac'].upper()
                         client_details ['throughput'] = doc['clients']['rxBytes']+doc['clients']['txBytes']
                         client_list.append(client_details)
         client_list =  sorted(client_list, key=itemgetter('throughput'),reverse = True)[:5]
@@ -255,6 +255,7 @@ class Stats():
             if doc.get('clients'):
                 if doc['clients']['mac'] not in unique_clients:
                     unique_clients[doc['clients']['mac']] = True
+		    doc['clients']['mac'] = doc['clients']['mac'].upper()
                     client_list.append(doc['clients'])
         return client_list
             

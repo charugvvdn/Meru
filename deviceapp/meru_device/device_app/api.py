@@ -277,7 +277,7 @@ class HomeStats():
             max_client = max(peak_list)
             avg_client = sum(peak_list) / len(all_clients)
 
-        result_dict['data'] = [len(current_clients), avg_client, max_client]
+        result_dict['data'] = [len(current_clients), max_client , avg_client]
         
         if self.reporttype:
             result_dict['maclist'] = [{'current':current_clients, \

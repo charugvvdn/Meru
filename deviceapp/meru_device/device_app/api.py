@@ -146,7 +146,7 @@ class HomeStats():
         elif status == "offline":
             
             filter_time = current_timestamp-settings.OFFLINE
-            if not doc['timestamp'] > filter_time:
+            if doc['timestamp'] > current_timestamp-settings.DOWN and not doc['timestamp'] > filter_time:
                 if doc['lower_snum'] not in mac_list:
                     mac_list.append(doc['lower_snum'] )
         elif status == "online":

@@ -135,29 +135,27 @@ class HomeStats():
         utcnow = datetime.datetime.utcnow()
         mac_list = []
         current_timestamp = int((utcnow - utc_1970).total_seconds())
-        doc =  self.controller_doc_list[0]
-        if status == 'down':
-            
-            filter_time = current_timestamp-settings.DOWN
-            if not doc['timestamp'] > filter_time:
+        if len(self.controller_doc_list)>0:
+            doc =  self.controller_doc_list[0]
+            if status == 'down':
                 
-                if doc['lower_snum'] not in mac_list:
-                    mac_list.append(doc['lower_snum'] )
-        elif status == "offline":
-            
-            filter_time = current_timestamp-settings.OFFLINE
-            if doc['timestamp'] > current_timestamp-settings.DOWN and not doc['timestamp'] > filter_time:
-                if doc['lower_snum'] not in mac_list:
-                    mac_list.append(doc['lower_snum'] )
-        elif status == "online":
-            
-            filter_time = current_timestamp-settings.OFFLINE
-            if doc['timestamp'] > filter_time:
-                if doc['lower_snum'] not in mac_list:
-                    mac_list.append(doc['lower_snum'] )
-        print  mac_list
-            
-        
+                filter_time = current_timestamp-settings.DOWN
+                if not doc['timestamp'] > filter_time:
+                    
+                    if doc['lower_snum'] not in mac_list:
+                        mac_list.append(doc['lower_snum'] )
+            elif status == "offline":
+                
+                filter_time = current_timestamp-settings.OFFLINE
+                if doc['timestamp'] > current_timestamp-settings.DOWN and not doc['timestamp'] > filter_time:
+                    if doc['lower_snum'] not in mac_list:
+                        mac_list.append(doc['lower_snum'] )
+            elif status == "online":
+                
+                filter_time = current_timestamp-settings.OFFLINE
+                if doc['timestamp'] > filter_time:
+                    if doc['lower_snum'] not in mac_list:
+                        mac_list.append(doc['lower_snum'] )
         
         return mac_list
 

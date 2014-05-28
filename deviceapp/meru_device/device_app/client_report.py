@@ -182,6 +182,7 @@ class clientGraph(View):
                 obj = Hourly_Client_Graph(maclist = maclist,gt=request_dict['time'][0],lt=request_dict['time'][1],type=request_dict['type'] if 'type' in request_dict else None)
                 response_list.append(obj.ClientReport())
                 response = HttpResponse(json.dumps({"status": "true","values":response_list,"message": "no.of clients and client thoughput"}))
-
+            else:
+                response = HttpResponse(json.dumps({"status": "false","message": "Missing get request paramater"}))
         return response
 

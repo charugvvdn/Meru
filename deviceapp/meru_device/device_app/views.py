@@ -457,7 +457,7 @@ class DeviceApplication(View):
             txBytes = int(doc.get('msgBody').get('msolo').get('tx-bytes') or 0) 
             doc['msgBody']['msolo']['tx-bytes'] = txBytes
             doc['msgBody']['msolo']['utilization'] = int(float(doc.get('msgBody').get('msolo').get('utilization')))\
-            if float((doc['msgBody']['msolo']['utilization']) else 0
+            if float(doc['msgBody']['msolo']['utilization']) else 0
             
         if 'alarms' in doc.get('msgBody').get('msolo'):
             for alarm in doc.get('msgBody').get('msolo').get('alarms'):

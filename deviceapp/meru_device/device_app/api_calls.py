@@ -38,20 +38,18 @@ class HomeApi(View):
                 maclist = request_dict['mac']
                 obj = HomeStats(maclist = maclist, gt=request_dict['time'][0],lt=request_dict['time'][1])
             
-            # SITES WITH DECREASE IN WIRELESS EXPERIENCES#
-            response_list.append(obj.wireless_stats())
+
+            # SITES WITH POTENTIAL SECURITY ISSUE#
+            response_list.append(obj.potential_security())
             #------------------------
-            # SITES WITH CHANGE IN SECURITY#
-            response_list.append(obj.change_security())
-            #------------------------
-            # SITES WITH VERY HIGH ACCESS POINT UTILIZATION#
-            response_list.append(obj.access_pt_util())
+            # SITES WITH DEVICES AT PEAK CAPACITY#
+            response_list.append(obj.peak_capacity())
             #-------------------------
             # SITES WITH DEVICES DOWN#
-            response_list.append(obj.sites_down())
+            response_list.append(obj.device_down())
             #--------------------------
-            # SITES WITH CRITICAL HEALTH
-            response_list.append(obj.sites_critical_health())
+            # SITES WITH HIGH DEVICE UTILIZATION
+            response_list.append(obj.high_utilization())
             #--------------------------
             # SITES WITH CRITICAL ALARMS#
             response_list.append(obj.critical_alarms())
@@ -94,7 +92,7 @@ class HomeApi2(View):
             # WIRELESS CLIENTS
             response_list.append(obj.wireless_clients())
             # ACCESS POINTS
-            response_list.append(obj.access_points())
+            response_list.append(obj.devices())
             # ALARMS
             response_list.append(obj.alarms())
             # CONTROLLER UTILIZATION

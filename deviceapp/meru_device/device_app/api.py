@@ -7,11 +7,6 @@ from meru_device import settings
 # Connection with mongoDB client
 DB = settings.DB
 
-
-UTC_1970 = datetime.datetime(1970, 1, 1)
-UTC_NOW = datetime.datetime.utcnow()
-OFFSET = UTC_NOW - datetime.timedelta(minutes=30)
-
 class HomeStats():
 
     '''Common variable used under the class methods'''
@@ -28,24 +23,25 @@ class HomeStats():
         self.alarm_doc_list = []
         self.client_doc_list = []
         self.controller_doc_list = []
+        self.rouge_ap_list = []
 
         qry = {}
-        self.maclist = map(str.lower, self.maclist)
+        
         if self.lt and self.gt and self.maclist:
             #for mac in self.maclist:
             self.maclist = map(str.lower,self.maclist)
             qry["timestamp"] =  {"$gte": self.gt, "$lte": self.lt}
             qry['lower_snum'] = { "$in": self.maclist}
             self.controller_cursor = DB.device_controllers.find(qry).sort('_id',-1)
+            self.rouge_ap_cursor = DB.device_rouge_ap.find(qry).sort('_id',-1)
             self.cl_cursor = DB.client_stats.find(qry).sort('_id',-1)
-            self.ap_cursor = DB.ap_stats.find(qry).sort('_id',-1)
             self.alarm_cursor = DB.device_alarms.find(qry).sort('_id',-1)
+            for doc in self.rouge_ap_cursor:
+                self.rouge_ap_list.append(doc)
             for doc in self.controller_cursor:
                 self.controller_doc_list.append(doc)
             for doc in self.cl_cursor:
                 self.client_doc_list.append(doc)
-            for doc in self.ap_cursor:
-                self.ap_doc_list.append(doc)
             for doc in self.alarm_cursor:
                 self.alarm_doc_list.append(doc)           
         
@@ -65,44 +61,38 @@ class HomeStats():
                 status.close()
         return result
 
-    def access_pt_util(self, **kwargs):
-        '''b. SITES WITH VERY HIGH ACCESS POINT UTILIZATION'''
+    def peak_capacity(self, **kwargs):
+        '''b. Sites witth devices at peak capacity'''
         mac_list = []
         controller_dict = {}
         result_dict = {}
         sites_count = 0
-        apid_list = []
         count_apid = {}
+        
         for doc in self.client_doc_list:
-            if doc.get('lower_snum') and doc.get('ap_id'):
+            if 'ap_id' in doc:
                 mac = doc['lower_snum']
                 if mac not in controller_dict:
                     controller_dict[mac] = []
                 client_apid = doc['ap_id']
                 controller_dict[mac].append(client_apid)
-                
-
-        print controller_dict
-        for mac in controller_dict:
-            count_apid = Counter(controller_dict[mac])
-        print count_apid
-        for key,count in count_apid.iteritems():
-            if count > 30:
-                sites_count += 1
-                break
         
+        for mac in controller_dict:
+            if len(controller_dict[mac])> settings.PEAK_CAPACITY:
+                sites_count += 1
+                mac_list.append(mac)
 
         result_dict["access_pt"] = {}
         result_dict["access_pt"]['message'] = \
             "SITES WITH VERY HIGH ACCESS POINT UTILIZATION"
-        result_dict["access_pt"]['count'] = sites_count
+        result_dict["access_pt"]['device_list'] = mac_list
         result_dict["access_pt"]['status'] = True
         if self.reporttype == 1:
             result_dict["access_pt"]['mac'] = controller_dict.keys()
         return result_dict['access_pt']
 
-    def change_security(self, **kwargs):
-        ''' API Calculating change in security # '''
+    def potential_security(self, **kwargs):
+        ''' Sites with potential security issue # '''
         result_dict = {}
         mac_list = []
         count = 0
@@ -112,45 +102,72 @@ class HomeStats():
                 security_state  = doc['secState']
                 if int(security_state) == 1 and mac not in mac_list:
                     mac_list.append(mac)
-
+        for doc in self.rouge_ap_list:
+            mac = doc['lower_snum']
+            if mac not in mac_list:
+                mac_list.append(doc['lower_snum'])
         result_dict["change_security"] = {}
         result_dict["change_security"]['message'] = \
-            "SITES WITH CHANGE IN SECURITY"
-        result_dict["change_security"]['count'] = len(mac_list)
+            "SITES WITH POTENTIAL SECURITY ISSUE"
+        result_dict["change_security"]['device_list'] = mac_list
         result_dict["change_security"]['status'] = True
         if self.reporttype == 1 :
             result_dict["change_security"]['mac'] = mac_list
         return result_dict['change_security']
 
-    def sites_critical_health(self, **kwargs):
-        '''SITES WITH CRITICAL HEALTH'''
+    def high_utilization(self, **kwargs):
+        '''SITES WITH HIGH DEVICE UTILIZATION'''
         result_dict = {}
         mac_list = []
         # logic to be implemneted
 
         result_dict["sites_critcal_health"] = {}
         result_dict["sites_critcal_health"]['message'] = \
-            "SITES WITH CRITICAL HEALTH"
-        result_dict["sites_critcal_health"]['count'] = 0
+            "SITES WITH HIGH DEVICE UTILIZATION"
+        result_dict["sites_critcal_health"]['device_list'] = mac_list
         result_dict["sites_critcal_health"]['status'] = True
         if self.reporttype == 1:
             result_dict["sites_critcal_health"]['mac'] = mac_list
         return result_dict["sites_critcal_health"]
 
-    def sites_down(self, **kwargs):
+    def device_stats(self,status):
+        utc_1970 = datetime.datetime(1970, 1, 1)
+        utcnow = datetime.datetime.utcnow()
+        mac_list = []
+        current_timestamp = int((utcnow - utc_1970).total_seconds())
+        doc =  self.controller_doc_list[0]
+        if status == 'down':
+            
+            filter_time = current_timestamp-settings.DOWN
+            if not doc['timestamp'] > filter_time:
+                
+                if doc['lower_snum'] not in mac_list:
+                    mac_list.append(doc['lower_snum'] )
+        elif status == "offline":
+            
+            filter_time = current_timestamp-settings.OFFLINE
+            if not doc['timestamp'] > filter_time:
+                if doc['lower_snum'] not in mac_list:
+                    mac_list.append(doc['lower_snum'] )
+        elif status == "online":
+            
+            filter_time = current_timestamp-settings.OFFLINE
+            if doc['timestamp'] > filter_time:
+                if doc['lower_snum'] not in mac_list:
+                    mac_list.append(doc['lower_snum'] )
+        print  mac_list
+            
+        
+        
+        return mac_list
+
+    def device_down(self, **kwargs):
         '''b. SITES WITH DEVICES DOWN'''
         result_dict = {}
-        mac_list = []
-        typeof = "aps"
-        for doc in self.ap_doc_list:
-            if doc.get('lower_snum') and doc.get('status'):
-                mac = doc['lower_snum']
-                ap_status = doc['status'].lower()
-                if ap_status == 'down' and mac not in mac_list:
-                    mac_list.append(mac)
+        mac_list = self.device_stats(status = 'down')
         result_dict["sites_down"] = {}
         result_dict["sites_down"]['message'] = "SITES WITH DEVICES DOWN"
-        result_dict["sites_down"]['count'] = len(mac_list)
+        result_dict["sites_down"]['count'] = mac_list
         result_dict["sites_down"]['status'] = True
         if self.reporttype == 1 :
             result_dict["sites_down"]['mac'] = mac_list
@@ -170,7 +187,7 @@ class HomeStats():
         result_dict["critical_alarm"] = {}
         result_dict["critical_alarm"]['message'] = \
             "SITES WITH CRITICAL ALARMS"
-        result_dict["critical_alarm"]['count'] = len(mac_list)
+        result_dict["critical_alarm"]['count'] = mac_list
         result_dict["critical_alarm"]['status'] = True
         if self.reporttype == 1:
             result_dict["critical_alarm"]['mac'] = mac_list
@@ -224,29 +241,18 @@ class HomeStats():
              "high":high_alarm, "minor":minor_alarm}]
         return result_dict
 
-    def access_points(self, **kwargs):
-        ''' API Calculating online, offline, down aps # '''
+    def devices(self, **kwargs):
+        ''' API Calculating online, offline, down devices # '''
         result_dict = {}
-        unique_ap = {}
-        offline_maclist = []
-        online_maclist = []
+        offline_mac_list = self.device_stats(status ='offline')
+        online_mac_list = self.device_stats(status = 'online')
+        down_mac_list = self.device_stats(status ='down')
 
-        for doc in self.ap_doc_list:
-            if doc.get('ap_mac') and doc.get('status'):
-                ap_status = doc['status'].lower()
-                ap_mac = doc['ap_mac']
-                if ap_mac not in unique_ap:
-                    unique_ap[ap_mac] = 0
-                    if ap_status == 'down':
-                        offline_maclist.append(ap_mac)
-                    else:
-                        online_maclist.append(ap_mac)
-
-        result_dict['label'] = 'Access point'
-        result_dict['data'] = [len(online_maclist), len(offline_maclist), 0]
+        result_dict['label'] = 'Devices'
+        result_dict['data'] = [len(online_mac_list),len(down_mac_list), len(offline_mac_list)]
         if self.reporttype == 1:
-            result_dict['maclist'] = [{"online":online_maclist, \
-             "offline":offline_maclist, "down":[]}]
+            result_dict['maclist'] = [{"online":online_mac_list, \
+             "offline":offline_mac_list, "down":down_mac_list}]
         return result_dict
 
     def wireless_clients(self, **kwargs):
@@ -256,16 +262,25 @@ class HomeStats():
         current_clients = []
         max_client = 0
         avg_client = 0
-        # getting the number of clients in controller which are added last in the db (latest timestamp)
-        if len(self.client_doc_list) > 0:
-            doc = self.client_doc_list[0]
-            current_time = doc.get('timestamp')
-            for doc in self.client_doc_list:
-                if  doc.get('lower_snum') and doc.get('client_mac'):
-                    client_mac = doc['client_mac']
-                    time = doc['timestamp']
-                    if time == current_time and client_mac not in current_clients:
-                        current_clients.append(client_mac)
+        qry1={}
+        client_list = []
+        # getting the number of clients in controller which are added lastest in the db (latest timestamp)
+        utc_1970 = datetime.datetime(1970, 1, 1)
+        utcnow = datetime.datetime.utcnow()
+        mac_list = []
+        current_timestamp = int((utcnow - utc_1970).total_seconds())
+        new_timestamp = current_timestamp-int(settings.OFFLINE)
+
+        qry1["timestamp"] =  {"$gte": new_timestamp }
+        qry1['lower_snum'] = { "$in": self.maclist}
+        device_cursor = DB.client_stats.find(qry1).sort('_id',-1)
+        for doc in device_cursor:
+            client_list.append(doc)
+        for doc in client_list:
+            if  doc.get('lower_snum') and doc.get('client_mac'):
+                client_mac = doc['client_mac']
+                if client_mac not in current_clients:
+                    current_clients.append(client_mac)
         # getting the highest number of clients against the controller added between the given time range
         all_clients = [{key,len(list(val))} for key, val in itertools.groupby(self.client_doc_list, lambda v: v['lower_snum'])]
         all_clients = dict(sorted(x,key=lambda k:isinstance(k,int),reverse=True) for x in all_clients)
@@ -284,17 +299,5 @@ class HomeStats():
             'peak':max_client}]
         return result_dict
 
-    def wireless_stats(self, **kwargs):
-        '''SITES WITH DECREASE IN WIRELESS EXPERIENCES'''
-        #logic to be inplemented
-        result_dict = {} 
-        result_dict["wifi_exp"] = {}
-        result_dict["wifi_exp"]['message'] = \
-            "SITES WITH DECREASE IN WIRELESS EXPERIENCES"
-        result_dict["wifi_exp"]['count'] = 0 
-        result_dict["wifi_exp"]['status'] = True
-        if self.reporttype == 1:
-            result_dict["wifi_exp"]['mac'] = []
-        return result_dict['wifi_exp']
-
+    
 

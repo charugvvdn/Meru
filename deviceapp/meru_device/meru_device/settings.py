@@ -5,7 +5,11 @@ BASE_PATH = "/mclouddev/latest/"
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
-
+# time to indicate device down or offline 
+T = 30
+OFFLINE = T*5
+DOWN = T*30
+PEAK_CAPACITY = 3
 MANAGERS = ADMINS
 
 DATABASES = {
@@ -173,10 +177,10 @@ LOGGING = {
 }
 try:
 
-    from pymongo import MongoClient
+    from pymongo import Connection
 except ImportError as e:
     print e
-CLIENT = MongoClient()
+CLIENT = Connection(max_pool_size=10)
 DB = CLIENT['nms']
 #######################
 try:

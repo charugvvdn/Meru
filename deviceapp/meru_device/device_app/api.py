@@ -165,7 +165,7 @@ class HomeStats():
         mac_list = self.device_stats(status = 'down')
         result_dict["sites_down"] = {}
         result_dict["sites_down"]['message'] = "SITES WITH DEVICES DOWN"
-        result_dict["sites_down"]['count'] = mac_list
+        result_dict["sites_down"]['device_list'] = mac_list
         result_dict["sites_down"]['status'] = True
         if self.reporttype == 1 :
             result_dict["sites_down"]['mac'] = mac_list
@@ -185,7 +185,7 @@ class HomeStats():
         result_dict["critical_alarm"] = {}
         result_dict["critical_alarm"]['message'] = \
             "SITES WITH CRITICAL ALARMS"
-        result_dict["critical_alarm"]['count'] = mac_list
+        result_dict["critical_alarm"]['device_list'] = mac_list
         result_dict["critical_alarm"]['status'] = True
         if self.reporttype == 1:
             result_dict["critical_alarm"]['mac'] = mac_list
